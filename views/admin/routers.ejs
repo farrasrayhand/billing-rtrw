@@ -8,8 +8,8 @@
   <style>
     .mtabs { display: flex; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
     .mtab { padding: 9px 16px; border-radius: 10px; cursor: pointer; color: var(--muted); transition: all 0.2s; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-    .mtab:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-    .mtab.active { background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%); color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }
+    .mtab:hover { background: rgba(0,0,0,0.05); color: var(--text); }
+    .mtab.active { background: var(--primary); color: white; }
 
     /* Router Grid Cards */
     .router-grid {
@@ -20,23 +20,22 @@
     }
 
     .rc-card {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
-      border: 1px solid rgba(99, 102, 241, 0.22);
-      border-radius: 18px;
-      padding: 22px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-      transition: all 0.3s ease;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+      transition: border-color .2s ease, box-shadow .2s ease;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
 
     .rc-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(99, 102, 241, 0.55);
-      box-shadow: 0 18px 45px rgba(99, 102, 241, 0.25);
+      border-color: var(--primary);
+      box-shadow: 0 6px 20px -8px rgba(16, 24, 40, .18);
     }
 
     .rc-header {
@@ -53,30 +52,29 @@
     }
 
     .rc-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(59, 130, 246, 0.15) 100%);
-      color: #818cf8;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--pdim);
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 22px;
+      border: 1px solid var(--pdim);
     }
 
     .rc-name {
-      font-size: 18px;
-      font-weight: 800;
-      color: #f8fafc;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
       margin: 0;
       line-height: 1.2;
     }
 
     .rc-host {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--muted);
       font-family: ui-monospace, monospace;
       margin-top: 3px;
     }
@@ -92,14 +90,14 @@
       letter-spacing: 0.3px;
     }
     .rc-status-pill.online {
-      background: rgba(34, 197, 94, 0.18);
-      color: #4ade80;
-      border: 1px solid rgba(34, 197, 94, 0.4);
+      background: var(--sdim);
+      color: var(--success);
+      border: 1px solid var(--sdim);
     }
     .rc-status-pill.offline {
-      background: rgba(239, 68, 68, 0.18);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: var(--ddim);
+      color: var(--danger);
+      border: 1px solid var(--ddim);
     }
     .rc-status-dot {
       width: 8px;
@@ -108,11 +106,10 @@
       display: inline-block;
     }
     .rc-status-pill.online .rc-status-dot {
-      background: #4ade80;
-      box-shadow: 0 0 10px #4ade80;
+      background: var(--success);
     }
     .rc-status-pill.offline .rc-status-dot {
-      background: #f87171;
+      background: var(--danger);
     }
 
     /* Meter Bars */
@@ -120,10 +117,10 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      background: rgba(15, 23, 42, 0.6);
-      border-radius: 14px;
+      background: var(--bg3);
+      border-radius: 12px;
       padding: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
       margin-bottom: 16px;
     }
 
@@ -137,13 +134,13 @@
       display: flex;
       justify-content: space-between;
       font-size: 11px;
-      color: #cbd5e1;
+      color: var(--muted);
       font-weight: 700;
     }
 
     .rc-progress {
       height: 7px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.08);
       border-radius: 10px;
       overflow: hidden;
     }
@@ -153,9 +150,9 @@
       border-radius: 10px;
       transition: width 0.6s ease;
     }
-    .bg-green { background: linear-gradient(90deg, #10b981, #34d399); }
-    .bg-yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    .bg-red { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .bg-green { background: var(--success); }
+    .bg-yellow { background: var(--warning); }
+    .bg-red { background: var(--danger); }
 
     /* Specs Badges */
     .rc-specs {
@@ -167,19 +164,19 @@
     }
 
     .rc-spec-box {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg3);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px 4px;
     }
     .rc-spec-val {
       font-size: 16px;
-      font-weight: 800;
-      color: #f1f5f9;
+      font-weight: 700;
+      color: var(--text);
     }
     .rc-spec-lbl {
       font-size: 10px;
-      color: #94a3b8;
+      color: var(--muted);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -192,38 +189,35 @@
       flex-wrap: wrap;
       margin-top: auto;
       padding-top: 14px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--border);
     }
 
     .btn-detail-live {
-      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
-      color: white !important;
+      background: var(--primary);
+      color: #fff !important;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 8px 14px;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 13px;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-      transition: all 0.25s ease;
+      transition: filter .2s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
     .btn-detail-live:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-      filter: brightness(1.1);
+      filter: brightness(.95);
     }
 
     .view-toggle-btn {
       padding: 6px 14px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--bg3);
       color: var(--text);
       border: 1px solid var(--border);
       cursor: pointer;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
     }
     .view-toggle-btn.active {
       background: var(--primary);
@@ -235,23 +229,22 @@
     .modal-tab-btn {
       padding: 8px 14px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(15, 23, 42, 0.6);
-      color: #94a3b8;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--muted);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
     }
     .modal-tab-btn:hover {
-      background: rgba(30, 41, 59, 0.8);
-      color: #f1f5f9;
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--text);
     }
     .modal-tab-btn.active {
-      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      background: var(--primary);
       color: white;
-      border-color: #6366f1;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      border-color: var(--primary);
     }
   </style>
 </head>
@@ -734,7 +727,7 @@ async function openLiveDetailModal(id) {
 
     bodyEl.innerHTML = `
       <!-- Top Overview Header -->
-      <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background:linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.9) 100%); border:1px solid rgba(99,102,241,0.25); shadow: 0 8px 20px rgba(0,0,0,0.3);">
+      <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background:var(--bg3); border:1px solid var(--border);">
         <div>
           <h5 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
             <i class="bi bi-hdd-network text-info"></i> ${r.name}
@@ -767,20 +760,20 @@ async function openLiveDetailModal(id) {
       <div id="mtab-content-sys">
         <div class="row g-2 mb-3">
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:rgba(30,41,59,0.5)">
+            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">CPU Load</small>
               <h4 class="fw-extrabold mb-0 ${l.cpuLoad > 80 ? 'text-danger' : (l.cpuLoad > 50 ? 'text-warning' : 'text-success')}">${l.cpuLoad}%</h4>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:rgba(30,41,59,0.5)">
+            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">RAM Used</small>
               <h4 class="fw-extrabold mb-0 text-info">${memPercent}%</h4>
               <small class="text-muted" style="font-size:10px;">${formatBytes(usedMem)} / ${formatBytes(l.totalMemory)}</small>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:rgba(30,41,59,0.5)">
+            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">Disk Storage</small>
               <h4 class="fw-extrabold mb-0 text-warning">${hddPercent}%</h4>
               <small class="text-muted" style="font-size:10px;">${formatBytes(usedHdd)} / ${formatBytes(l.totalHdd)}</small>

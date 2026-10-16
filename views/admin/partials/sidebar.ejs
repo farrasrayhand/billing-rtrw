@@ -1,160 +1,99 @@
 <!-- views/admin/partials/sidebar.ejs -->
-<script>
-(function() {
-  const savedTheme = localStorage.getItem('app-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  if (savedTheme === 'light') {
-    document.documentElement.classList.add('light-theme');
-  } else {
-    document.documentElement.classList.remove('light-theme');
-  }
-})();
-
-function toggleAppTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  if (newTheme === 'light') {
-    document.documentElement.classList.add('light-theme');
-    if (document.body) document.body.classList.add('light-theme');
-  } else {
-    document.documentElement.classList.remove('light-theme');
-    if (document.body) document.body.classList.remove('light-theme');
-  }
-  localStorage.setItem('app-theme', newTheme);
-  updateThemeToggleIcons(newTheme);
-}
-
-function updateThemeToggleIcons(theme) {
-  const isLight = theme === 'light';
-  document.querySelectorAll('.theme-toggle-icon').forEach(icon => {
-    icon.className = isLight ? 'bi bi-sun-fill theme-toggle-icon' : 'bi bi-moon-stars-fill theme-toggle-icon';
-    icon.style.color = isLight ? '#f59e0b' : '#fbbf24';
-  });
-  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-    btn.setAttribute('title', isLight ? 'Ganti ke Mode Gelap (Dark)' : 'Ganti ke Mode Terang (Light)');
-  });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const theme = localStorage.getItem('app-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  if (theme === 'light') {
-    document.documentElement.classList.add('light-theme');
-    if (document.body) document.body.classList.add('light-theme');
-  }
-  updateThemeToggleIcons(theme);
-});
-</script>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sb-brand">
     <div class="sb-icon"><i class="bi bi-wifi"></i></div>
-    <div style="flex:1">
+    <div style="flex:1;min-width:0">
       <div class="sb-name">
         <%= company %>
       </div>
       <div class="sb-sub"><%= t('admin.panel', 'Admin Panel') %></div>
-      <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
-        <a href="/lang/id" class="btn btn-g btn-sm" style="padding:4px 8px">ID</a>
-        <a href="/lang/en" class="btn btn-g btn-sm" style="padding:4px 8px">EN</a>
-        <button type="button" class="btn btn-g btn-sm theme-toggle-btn" onclick="toggleAppTheme()" title="Ganti Tema Dark / Light" style="padding:4px 8px;margin-left:auto">
-          <i class="bi bi-moon-stars-fill theme-toggle-icon" style="color:#fbbf24"></i> Tema
-        </button>
+      <div class="sb-lang">
+        <a href="/lang/id" class="btn btn-xs <%= ((typeof lang !== 'undefined' ? lang : 'id') === 'id') ? 'btn-primary' : 'btn-ghost' %>">ID</a>
+        <a href="/lang/en" class="btn btn-xs <%= ((typeof lang !== 'undefined' ? lang : 'id') === 'en') ? 'btn-primary' : 'btn-ghost' %>">EN</a>
       </div>
       <% if (typeof multiRouterMode !== 'undefined' && multiRouterMode && allActiveRouters && allActiveRouters.length > 0) { %>
-        <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.06);border-radius:10px;border:1px solid rgba(255,255,255,0.1)">
-          <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;font-weight:600;display:flex;align-items:center;gap:4px">
-            <i class="bi bi-router"></i> Router Filter
-          </div>
-          <select class="form-select form-select-sm" style="font-size:12px;cursor:pointer" onchange="window.location.href='/admin/set-active-router?router_id=' + this.value">
-            <option value="all" <%= (!selectedRouterId) ? 'selected' : '' %>>🌐 Semua Router (<%= allActiveRouters.length %>)</option>
+        <div class="sb-router">
+          <div class="sb-router-label"><i class="bi bi-router"></i> Router Filter</div>
+          <select class="select select-sm w-full" onchange="window.location.href='/admin/set-active-router?router_id=' + this.value">
+            <option value="all" <%= (!selectedRouterId) ? 'selected' : '' %>>Semua Router (<%= allActiveRouters.length %>)</option>
             <% allActiveRouters.forEach(r => { %>
               <option value="<%= r.id %>" <%= (selectedRouterId === r.id) ? 'selected' : '' %>>
-                🔌 <%= r.name %> (<%= r.host %>)
+                <%= r.name %> (<%= r.host %>)
               </option>
             <% }) %>
           </select>
         </div>
       <% } %>
     </div>
-    <button class="sb-close btn-g btn-sm" onclick="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
+    <button class="sb-close btn btn-ghost btn-sm btn-square" onclick="toggleSidebar()" aria-label="<%= t('common.close', 'Tutup') %>"><i class="bi bi-x-lg"></i></button>
   </div>
   <nav class="sb-nav">
-    <% (sidebarSections || []).forEach((section) => { %>
-      <div class="sb-section"><%= section.labelKey ? t(section.labelKey, section.labelDefault) : section.labelDefault %></div>
-      <% section.items.forEach((item) => { %>
-        <a
-          href="<%= item.hrefResolved %>"
-          class="sb-item <%= (item.activePages || []).includes(activePage) ? 'active' : '' %>"
-          <% if (item.locked) { %>
-            onclick='return showLockedMenuNotice(<%- JSON.stringify(item.lockedMessage) %>)'
-          <% } %>
-        >
-          <i class="<%= item.icon %>"></i>
-          <span><%= item.labelKey ? t(item.labelKey, item.labelDefault) : item.labelDefault %></span>
-          <% if (item.locked) { %>
-            <span style="margin-left:auto;padding:2px 8px;border-radius:999px;background:rgba(245,158,11,.18);color:#fde68a;font-size:11px">Kunci</span>
-          <% } %>
-        </a>
+    <ul class="menu">
+      <% (sidebarSections || []).forEach((section) => { %>
+        <li class="menu-title"><%= section.labelKey ? t(section.labelKey, section.labelDefault) : section.labelDefault %></li>
+        <% section.items.forEach((item) => { %>
+          <% const isActive = (item.activePages || []).includes(activePage); %>
+          <li>
+            <a
+              href="<%= item.hrefResolved %>"
+              class="<%= isActive ? 'font-semibold' : '' %>"
+              <%- isActive ? 'aria-current="page"' : '' %>
+              <% if (item.locked) { %>
+                onclick='return showLockedMenuNotice(<%- JSON.stringify(item.lockedMessage) %>)'
+              <% } %>
+            >
+              <i class="<%= item.icon %>"></i>
+              <span><%= item.labelKey ? t(item.labelKey, item.labelDefault) : item.labelDefault %></span>
+              <% if (item.locked) { %>
+                <span class="badge badge-warning badge-sm">Kunci</span>
+              <% } %>
+            </a>
+          </li>
+        <% }) %>
       <% }) %>
-    <% }) %>
 
-    <div class="sb-section">KONTROL</div>
-    <a href="/admin/sidebar-settings" class="sb-item <%= activePage==='sidebar_settings' ? 'active' : '' %>">
-      <i class="bi bi-layout-sidebar-inset"></i><span>Pengaturan Sidebar</span>
-    </a>
-
-    <a href="/admin/logout" class="sb-item logout">
-      <i class="bi bi-box-arrow-left"></i><span><%= t('common.logout', 'Logout') %></span>
-    </a>
-    <div class="mt-4 px-3 py-2 text-center" style="border-top: 1px solid rgba(255,255,255,0.1);">
-      <a href="https://github.com/alijayanet/billing-rtrw" target="_blank"
-        style="color: #94a3b8; font-size: 11px; text-decoration: none; font-weight: 600;">
-        ALIJAYA BILLING SYSTEM
-      </a>
+      <li class="menu-title">Kontrol</li>
+      <li>
+        <a href="/admin/sidebar-settings" <%- activePage === 'sidebar_settings' ? 'aria-current="page" class="font-semibold"' : '' %>>
+          <i class="bi bi-layout-sidebar-inset"></i><span>Pengaturan Sidebar</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/logout" class="text-error">
+          <i class="bi bi-box-arrow-left"></i><span><%= t('common.logout', 'Logout') %></span>
+        </a>
+      </li>
+    </ul>
+    <div class="sb-credit">
+      <a href="https://github.com/alijayanet/billing-rtrw" target="_blank" rel="noopener">ALIJAYA BILLING SYSTEM</a>
     </div>
   </nav>
 </aside>
 
-<div id="lockedMenuModal" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(2,6,23,.72);backdrop-filter:blur(4px);padding:16px;align-items:center;justify-content:center">
-  <div style="width:min(100%,420px);background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(30,41,59,.98));border:1px solid rgba(148,163,184,.18);border-radius:18px;box-shadow:0 24px 60px rgba(2,6,23,.45);overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(148,163,184,.14)">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(245,158,11,.16);color:#fde68a;display:grid;place-items:center;font-size:18px">
-          <i class="bi bi-lock-fill"></i>
-        </div>
-        <div>
-          <div style="font-weight:800;color:#f8fafc">Menu Terkunci</div>
-          <div style="font-size:12px;color:#94a3b8">Aktivasi diperlukan untuk membuka fitur ini</div>
-        </div>
-      </div>
-      <button type="button" class="btn btn-g btn-sm" onclick="hideLockedMenuNotice()" style="padding:6px 10px">
-        <i class="bi bi-x-lg"></i>
-      </button>
+<div id="lockedMenuModal" class="modal">
+  <div class="modal-box">
+    <h3 class="text-base font-bold flex items-center gap-2">
+      <i class="bi bi-lock-fill text-warning"></i> Menu Terkunci
+    </h3>
+    <p class="py-2 text-sm text-base-content/70">Aktivasi diperlukan untuk membuka fitur ini.</p>
+    <p id="lockedMenuModalMessage" class="text-sm">Menu ini sedang terkunci.</p>
+    <div class="alert alert-info alert-soft mt-4 text-sm">
+      Dukung pengembangan aplikasi untuk mendapatkan kode aktivasi (seikhlasnya).
     </div>
-    <div style="padding:18px">
-      <div id="lockedMenuModalMessage" style="color:#e2e8f0;line-height:1.6">
-        Menu ini sedang terkunci.
-      </div>
-      <div style="margin-top:16px;padding:12px 14px;border-radius:14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.22);color:#bfdbfe;font-size:13px">
-        Dukung pengembangan aplikasi untuk mendapatkan kode aktivasi (seikhlasnya).
-      </div>
-      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
-        <a href="https://app.alijaya.com/donasi" target="_blank" class="btn btn-p" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#0f172a;font-weight:800;box-shadow:0 8px 20px rgba(245,158,11,0.35);">
-          <i class="bi bi-heart-fill" style="color:#e11d48"></i> Donasi & Dapatkan Kode Aktivasi
-        </a>
-        <a href="/admin/sidebar-settings" class="btn btn-g" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="hideLockedMenuNotice()">
-          <i class="bi bi-layout-sidebar-inset"></i> Buka Pengaturan Sidebar
-        </a>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px 18px">
-      <button type="button" class="btn btn-p" onclick="hideLockedMenuNotice()">
+    <div class="modal-action">
+      <a href="https://app.alijaya.com/donasi" target="_blank" rel="noopener" class="btn btn-warning">
+        <i class="bi bi-heart-fill"></i> Donasi &amp; Dapatkan Kode Aktivasi
+      </a>
+      <a href="/admin/sidebar-settings" class="btn btn-ghost" onclick="hideLockedMenuNotice()">
+        <i class="bi bi-layout-sidebar-inset"></i> Pengaturan Sidebar
+      </a>
+      <button type="button" class="btn btn-primary" onclick="hideLockedMenuNotice()">
         <i class="bi bi-check2-circle"></i> Mengerti
       </button>
     </div>
   </div>
+  <div class="modal-backdrop" onclick="hideLockedMenuNotice()"></div>
 </div>
 
 <script>
@@ -172,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messageBox.textContent = message || 'Menu ini sedang terkunci.';
     }
     if (modal) {
-      modal.style.display = 'flex';
+      modal.classList.add('modal-open');
       document.body.style.overflow = 'hidden';
     }
     return false;
@@ -181,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function hideLockedMenuNotice() {
     const modal = document.getElementById('lockedMenuModal');
     if (modal) {
-      modal.style.display = 'none';
+      modal.classList.remove('modal-open');
       document.body.style.overflow = '';
     }
   }
@@ -190,14 +129,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') hideLockedMenuNotice();
   });
 </script>
-<script src="/js/theme.js"></script>
 
 <!-- Bottom Navigation (Mobile Only) -->
 <nav class="bottom-nav" id="bottomNav">
   <% (sidebarBottomNavItems || []).slice(0, 4).forEach((item) => { %>
+    <% const navActive = (item.activePages || []).includes(activePage); %>
     <a
       href="<%= item.hrefResolved %>"
-      class="bn-item <%= (item.activePages || []).includes(activePage) ? 'active' : '' %>"
+      class="bn-item <%= navActive ? 'active' : '' %>"
+      <%- navActive ? 'aria-current="page"' : '' %>
       <% if (item.locked) { %>
         onclick='return showLockedMenuNotice(<%- JSON.stringify(item.lockedMessage) %>)'
       <% } %>

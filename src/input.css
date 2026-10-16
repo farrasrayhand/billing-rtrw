@@ -1,0 +1,133 @@
+@layer legacy, theme, base, components, utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@import "./admin-legacy.css" layer(legacy);
+
+@source "../views";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "alijaya";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f7f8fa;
+  --color-base-300: #e5e7eb;
+  --color-base-content: #1f2328;
+
+  --color-primary: #2563eb;
+  --color-primary-content: #ffffff;
+  --color-secondary: #475569;
+  --color-secondary-content: #ffffff;
+  --color-accent: #2563eb;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1f2328;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #0ea5e9;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@layer components {
+  .btn-p { @apply btn-primary; }
+  .btn-s { @apply btn-success; }
+  .btn-d { @apply btn-error; }
+  .btn-w { @apply btn-warning; }
+  .btn-g { @apply btn-ghost; }
+
+  .bs { @apply badge-success; }
+  .bd { @apply badge-error; }
+  .bw { @apply badge-warning; }
+  .bp { @apply badge-primary; }
+  .bm { @apply badge-ghost; }
+
+  .alert-s { @apply alert-success; }
+  .alert-d { @apply alert-error; }
+  .alert-w { @apply alert-warning; }
+  .alert-i { @apply alert-info; }
+}
+
+/* The rules below are intentionally unlayered: DaisyUI emits its CSS into a
+   `@layer daisyui` that is not part of the layer order above, so it lands last
+   and would otherwise beat a layered override. Unlayered rules win. */
+
+:root {
+  --sb-fg: #3c4043;
+  --sb-icon: #5f6368;
+  --sb-muted: #5f6368;
+}
+
+.btn { text-transform: none; }
+
+.sb-icon { background: var(--color-primary); color: var(--color-primary-content); }
+.sb-name { font-size: 15px; }
+
+.sb-nav { padding: 8px 10px 40px; }
+
+.sidebar .menu {
+  width: 100%;
+  padding: 0;
+  gap: 2px;
+  --menu-active-bg: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  --menu-active-fg: var(--color-primary);
+}
+.sidebar .menu .menu-title {
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sb-muted);
+  opacity: 1;
+  padding: 20px 10px 6px;
+}
+.sidebar .menu .menu-title:first-child { padding-top: 4px; }
+.sidebar .menu li > a {
+  padding: 8px 10px;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sb-fg);
+  text-decoration: none;
+  border-radius: 6px;
+}
+.sidebar .menu li > a > i { font-size: 17px; width: 20px; text-align: center; color: var(--sb-icon); }
+.sidebar .menu li > a:hover { color: var(--sb-fg); }
+.sidebar .menu li > a[aria-current="page"] { color: var(--color-primary); }
+.sidebar .menu li > a[aria-current="page"] > i { color: var(--color-primary); }
+.sidebar .menu li > a.text-error { color: var(--color-error); }
+.sidebar .menu li > a.text-error > i { color: var(--color-error); }
+
+.sb-close { display: none; }
+@media (max-width: 992px) { .sb-close { display: inline-flex; } }
+
+.modal-action { flex-wrap: wrap; }
+
+.sb-lang { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+.sb-router { margin-top: 10px; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; }
+.sb-router-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.sb-credit { padding: 12px; text-align: center; border-top: 1px solid var(--border); }
+.sb-credit a { color: var(--muted); font-size: 11px; text-decoration: none; font-weight: 600; }

@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node app-customer.js",
     "dev": "nodemon app-customer.js",
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/css/admin.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/css/admin.css --watch",
     "postinstall": "echo 'Install complete. If you used sudo, run: sudo chown -R $USER:$USER .'",
     "fix-permissions": "sudo chown -R $USER:$USER ."
   },
@@ -35,7 +37,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@tailwindcss/cli": "^4.3.3",
+    "daisyui": "^5.7.50",
+    "nodemon": "^3.1.14",
+    "tailwindcss": "^4.3.3"
   },
   "overrides": {
     "protobufjs": "^7.5.5",

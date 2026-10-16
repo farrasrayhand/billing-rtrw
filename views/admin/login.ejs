@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/css/admin.css">
   <style>
     body {
-      background: radial-gradient(circle at top right, #1e1b4b, #0d1117);
+      background: var(--color-base-200);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -20,40 +20,38 @@
     .login-box {
       width: 100%;
       max-width: 400px;
-      animation: fadeIn 0.6s ease-out;
     }
 
     .login-card {
-      background: rgba(22, 27, 34, 0.8);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 40px 32px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      background: var(--color-base-100);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-box);
+      padding: 36px 30px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 32px -14px rgba(16, 24, 40, .22);
     }
 
     .login-head {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
     .login-icon {
-      width: 64px;
-      height: 64px;
-      background: linear-gradient(135deg, var(--primary), #818cf8);
-      border-radius: 16px;
+      width: 60px;
+      height: 60px;
+      background: var(--color-primary);
+      color: var(--color-primary-content);
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      margin: 0 auto 20px;
-      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+      font-size: 26px;
+      margin: 0 auto 18px;
     }
 
     .login-title {
       font-size: 20px;
       font-weight: 700;
-      color: #fff;
+      color: var(--text);
       margin-bottom: 4px;
     }
 
@@ -62,35 +60,10 @@
       color: var(--muted);
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .alert-d {
-      background: rgba(248, 81, 73, 0.1);
-      color: #ff7b72;
-      border: 1px solid rgba(248, 81, 73, 0.2);
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
     .back-btn {
       display: block;
       text-align: center;
-      margin-top: 24px;
+      margin-top: 22px;
       font-size: 12px;
       color: var(--muted);
       text-decoration: none;
@@ -118,9 +91,9 @@
       </div>
 
       <% if (typeof error !=='undefined' && error) { %>
-        <div class="alert-d">
+        <div class="alert alert-error">
           <i class="bi bi-exclamation-circle"></i>
-          <%= error %>
+          <span><%= error %></span>
         </div>
         <% } %>
 
@@ -142,7 +115,7 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-p w-100" style="padding:12px;justify-content:center">
+            <button type="submit" class="btn btn-primary w-full">
               <i class="bi bi-box-arrow-in-right"></i> <%= t('admin.login.sign_in', 'Masuk Sekarang') %>
             </button>
           </form>
@@ -152,12 +125,6 @@
           </a>
     </div>
   </div>
-
-  <style>
-    .w-100 {
-      width: 100%;
-    }
-  </style>
 
 </body>
 

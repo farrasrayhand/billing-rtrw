@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title><%= ((typeof viewMode !== 'undefined' && viewMode === 'ewallet_logs') ? t('admin.settings.ewallet_logs.title', 'Log Notifikasi E-Wallet (Webhook)') : t('admin.settings.title', 'Pengaturan')) %> | <%= company %></title>
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#f7f8fa">
   <link rel="manifest" href="/admin/manifest.webmanifest">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/admin.css">
@@ -211,7 +211,7 @@
             </div>
             <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
               <div style="font-size:10px; color:var(--muted)">Logo Saat Ini:</div>
-              <img src="/img/logo.png?v=<%= Date.now() %>" alt="Current Logo" style="height:40px; object-fit:contain; background:rgba(255,255,255,0.05); border-radius:6px; padding:4px; border:1px solid var(--border)">
+              <img src="/img/logo.png?v=<%= Date.now() %>" alt="Current Logo" style="height:40px; object-fit:contain; background:rgba(0,0,0,0.04); border-radius:6px; padding:4px; border:1px solid var(--border)">
             </div>
           </div>
           <div class="form-row">

@@ -1755,8 +1755,8 @@ app.get('/admin/manifest.webmanifest', (req, res) => {
     scope: '/admin/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#0f172a',
-    theme_color: '#0f172a',
+    background_color: '#f7f8fa',
+    theme_color: '#2563eb',
     icons: [
       { src: '/img/pwa-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
       { src: '/img/logo.png', sizes: '2000x545', type: 'image/png', purpose: 'any' }
