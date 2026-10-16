@@ -998,12 +998,27 @@ function enrichDevicesWithCustomerNames(devices) {
 // ROUTES
 // ============================================
 
+// Batasi waktu tunggu ke perangkat eksternal supaya render halaman tidak ikut tertahan
+// ketika MikroTik tidak terjangkau. Hasil fallback dipakai bila melewati batas.
+function withTimeout(promise, ms, fallback) {
+    const safe = Promise.resolve(promise).catch(() => fallback);
+    return Promise.race([
+        safe,
+        new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
+    ]);
+}
+
 router.get('/', async (req, res) => {
     try {
         const searchQuery = String(req.query.q || '').trim() || null;
         const acsServers = getACSServers();
         const legacyACS = getLegacyACS();
-        const activeSessionsMap = await mikrotikSvc.getActivePppoeSessionsMap().catch(() => new Map());
+
+        // Jalankan kedua panggilan MikroTik bersamaan lalu batasi waktunya, supaya render
+        // tidak menunggu berurutan ketika router tidak terjangkau.
+        const selectedRouterId = req.query.router_id ? Number(req.query.router_id) : null;
+        const profilesPromise = withTimeout(mikrotikSvc.getPppoeProfiles(selectedRouterId), 1500, []).catch(() => []);
+        const activeSessionsMap = await withTimeout(mikrotikSvc.getActivePppoeSessionsMap(), 1500, new Map());
         
         const activeServers = acsServers.length > 0 ? acsServers :
             (legacyACS.acs_url ? [{ id: 'legacy', name: 'Default ACS', url: legacyACS.acs_url, username: legacyACS.acs_user, password: legacyACS.acs_pass }] : []);
@@ -1091,9 +1106,7 @@ router.get('/', async (req, res) => {
 
         let pppoeProfiles = [];
         try {
-            // Get routerId dari query parameter jika ada (untuk multi-router support)
-            const selectedRouterId = req.query.router_id ? Number(req.query.router_id) : null;
-            pppoeProfiles = await mikrotikSvc.getPppoeProfiles(selectedRouterId);
+            pppoeProfiles = await profilesPromise;
         } catch (e) {
             console.error('Failed to load PPPoE profiles from MikroTik:', e.message);
         }
@@ -1157,7 +1170,7 @@ router.get('/device/:deviceId', async (req, res) => {
         if (!deviceData) return res.status(404).send('Device not found');
 
         let pppoeUser = extractPppoeUser(deviceData);
-        const activeSessionsMap = await mikrotikSvc.getActivePppoeSessionsMap().catch(() => new Map());
+        const activeSessionsMap = await withTimeout(mikrotikSvc.getActivePppoeSessionsMap(), 1500, new Map());
 
         const lastInform = deviceData._lastInform;
         const isOnline = (lastInform && (Date.now() - new Date(lastInform).getTime() < 900000)) ||

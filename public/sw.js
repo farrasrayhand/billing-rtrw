@@ -1,4 +1,4 @@
-const CACHE_NAME = 'customer-pwa-v1';
+const CACHE_NAME = 'customer-pwa-v2';
 const PRECACHE_URLS = [
   '/css/style.css',
   '/img/logo.png',
@@ -29,15 +29,6 @@ self.addEventListener('activate', (event) => {
     ])
   );
 });
-
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-  const res = await fetch(request);
-  const cache = await caches.open(CACHE_NAME);
-  if (res && res.ok) cache.put(request, res.clone()).catch(() => {});
-  return res;
-}
 
 async function networkFirst(request, fallbackUrl) {
   try {
@@ -74,7 +65,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (path.startsWith('/css/') || path.startsWith('/img/') || path === '/manifest.webmanifest') {
-    event.respondWith(cacheFirst(req));
+    event.respondWith(networkFirst(req));
     return;
   }
 

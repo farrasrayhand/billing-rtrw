@@ -24,25 +24,26 @@ async function checkDependencies() {
   // 1. Check MikroTik Routers
   try {
     const routers = db.prepare('SELECT * FROM routers').all();
-    for (const r of routers) {
+    // Cek router secara paralel: total waktu = router terlambat, bukan jumlah semua timeout.
+    results.mikrotik = await Promise.all(routers.map(async (r) => {
       try {
         // Simple connectivity check (get identity or similar)
         const isOnline = await mikrotikService.checkConnection(r.id);
-        results.mikrotik.push({
+        return {
           name: r.name,
           host: r.host,
           status: isOnline ? 'online' : 'offline',
           error: isOnline ? null : 'Connection failed'
-        });
+        };
       } catch (err) {
-        results.mikrotik.push({
+        return {
           name: r.name,
           host: r.host,
           status: 'offline',
           error: err.message
-        });
+        };
       }
-    }
+    }));
   } catch (err) {
     logger.error(`[Diagnostics] MikroTik check failed: ${err.message}`);
   }
