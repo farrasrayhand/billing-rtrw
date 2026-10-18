@@ -708,11 +708,6 @@ function requireSidebarMenuAccess(menuKey) {
             return res.redirect('/admin');
         }
 
-        if (access.reason === 'locked') {
-            req.session._msg = { type: 'error', text: `Menu "${access.menu.labelDefault}" terkunci. Hubungi ${sidebarMenuSvc.getFeatureContactPhone()} untuk mendapatkan password.` };
-            return res.redirect('/admin/sidebar-settings');
-        }
-
         req.session._msg = { type: 'error', text: 'Anda tidak memiliki akses ke menu ini.' };
         return res.redirect('/admin');
     };

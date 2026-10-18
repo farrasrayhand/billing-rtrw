@@ -551,8 +551,14 @@ const telnetLoginAndRun = async (host, user, pass, commands, opts = {}) => {
   socket.setTimeout(15000);
 
   await new Promise((resolve, reject) => {
-    socket.connect(telnetPort, host, resolve);
-    socket.once('error', reject);
+    const connectTimeoutMs = Number(opts.connectTimeoutMs) > 0 ? Number(opts.connectTimeoutMs) : 6000;
+    const connectTimer = setTimeout(() => {
+      try { socket.destroy(); } catch (e) {}
+      reject(new Error('Telnet connect timeout'));
+    }, connectTimeoutMs);
+    socket.once('connect', () => { clearTimeout(connectTimer); resolve(); });
+    socket.once('error', (e) => { clearTimeout(connectTimer); reject(e); });
+    socket.connect(telnetPort, host);
   });
 
   const promptRe = /[>#]\s*$/m;
@@ -1619,6 +1625,83 @@ async function getOltStats(id, full = false) {
   return promise;
 }
 
+/**
+ * Cek TCP reachability singkat (memastikan host benar-benar tidak dapat dijangkau).
+ */
+function tcpReachable(host, port, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    if (!host || !port) return resolve(false);
+    const socket = new net.Socket();
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      socket.removeAllListeners();
+      try { socket.destroy(); } catch (e) {}
+      resolve(ok);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => done(true));
+    socket.once('timeout', () => done(false));
+    socket.once('error', () => done(false));
+    try { socket.connect(port, host); } catch (e) { done(false); }
+  });
+}
+
+/**
+ * Probe liveness SNMP singkat (timeout pendek, 1x ulang) — untuk deteksi offline dengan cepat
+ * tanpa menunggu walk SNMP panjang. `retries` dijaga ≥1 agar 1 paket UDP hilang tidak
+ * langsung dianggap offline.
+ */
+function snmpLivenessProbe(host, community, port, timeoutMs = 1000, retries = 1) {
+  return new Promise((resolve) => {
+    let session = null;
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      try { if (session) session.close(); } catch (e) {}
+      resolve(ok);
+    };
+    try {
+      session = snmp.createSession(host, community, {
+        port: port || 161,
+        timeout: timeoutMs,
+        retries: retries,
+        version: snmp.Version2c
+      });
+      session.on('error', () => done(false));
+      session.get(['1.3.6.1.2.1.1.3.0'], (err, vbs) => {
+        if (err || !vbs || !vbs[0]) return done(false);
+        if (vbs[0].type === snmp.ObjectType.NoSuchObject || vbs[0].type === snmp.ObjectType.EndOfMibView) return done(false);
+        done(true);
+      });
+    } catch (e) {
+      done(false);
+    }
+  });
+}
+
+/**
+ * Pre-flight: kalau host tidak merespons SNMP maupun TCP (telnet/ssh), anggap offline.
+ * @returns {Promise<boolean>} true bila OLT kemungkinan masih online
+ */
+async function isOltReachable(olt, full = false) {
+  const community = olt.snmp_community || 'public';
+  const snmpPort = olt.snmp_port || 161;
+  const telnetPort = Number(olt.telnet_port) > 0 ? Number(olt.telnet_port) : 23;
+  const sshPort = Number(olt.ssh_port) > 0 ? Number(olt.ssh_port) : 22;
+
+  // Jalankan paralel: cukup salah satu merespons = dianggap online (hemat waktu saat offline).
+  // SNMP 1000ms x (1 + 1 ulang) ≈ 2s; TCP 1500ms. Total ≈ 2s.
+  const results = await Promise.all([
+    snmpLivenessProbe(olt.host, community, snmpPort, 1000, 1),
+    tcpReachable(olt.host, telnetPort, 1500),
+    tcpReachable(olt.host, sshPort, 1500)
+  ]);
+  return results.some(Boolean);
+}
+
 async function getOltStatsInternal(id, full = false) {
   const olt = getOltById(id);
   if (!olt) return null;
@@ -1655,6 +1738,14 @@ async function getOltStatsInternal(id, full = false) {
     .filter(k => k !== brandKey)
     .reduce((acc, k) => acc.concat((BRAND_PROFILES[k] || []).map(p => ({ ...p, __brandKey: k }))), []);
   const allAvailableProfiles = [...selectedProfiles, ...otherProfiles];
+
+  // Pre-flight: hindari halaman "stuck" lama saat OLT offline.
+  // Kalau host tidak merespons SNMP (probe singkat) maupun TCP telnet/ssh → langsung Offline.
+  if (!(await isOltReachable(olt, full))) {
+    stats.status = 'Offline';
+    stats.error = `OLT ${olt.host} tidak dapat dijangkau (offline / tidak merespons SNMP & Telnet)`;
+    return stats;
+  }
 
   const session = snmp.createSession(olt.host, community, {
     port:     olt.snmp_port || 161,

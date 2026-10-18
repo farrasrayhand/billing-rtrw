@@ -535,24 +535,27 @@ function stop() {
 }
 
 /**
- * Format Mikrotik-Rate-Limit string dari nilai kecepatan paket.
- * 
- * PENTING: Format MikroTik Rate-Limit menggunakan perspektif CLIENT:
- * - RX (Receive) = Download = Data yang DITERIMA client dari internet
- * - TX (Transmit) = Upload = Data yang DIKIRIM client ke internet
- * 
- * Format standar: "rx-rate/tx-rate" atau lebih lengkap dengan burst:
- * "rx-rate/tx-rate rx-burst/tx-burst rx-threshold/tx-threshold burst-time"
- * 
- * Contoh: "10M/5M" = Download 10Mbps / Upload 5Mbps
- * Contoh burst: "10M/5M 20M/10M 10M/5M 8" = CIR 10M/5M, Burst 20M/10M, Threshold 10M/5M, Time 8s
- * 
- * @param {number} upVal - Kecepatan UPLOAD dalam Kbps (TX)
- * @param {number} downVal - Kecepatan DOWNLOAD dalam Kbps (RX)
- * @param {string} defaultVal - Nilai default jika speed tidak valid
- * @param {number} uptoUp - Burst UPLOAD dalam Kbps (TX-burst)
- * @param {number} uptoDown - Burst DOWNLOAD dalam Kbps (RX-burst)
- * @returns {string} Format MikroTik Rate-Limit: "rx-rate/tx-rate" atau dengan burst
+ * Format string Mikrotik-Rate-Limit dari kecepatan paket pelanggan.
+ *
+ * KONVENSI MIKROTIK — perspektif ROUTER (bukan client):
+ *   rx-rate = rate data yang DITERIMA router dari client = UPLOAD client
+ *   tx-rate = rate data yang DIKIRIM router ke client    = DOWNLOAD client
+ * (Sesuai MikroTik docs: rate-limit ditulis "rx-rate[/tx-rate]" "from the
+ *  point of view of the router".)
+ *
+ * Urutan output: "rx-rate/tx-rate"  =  "Upload/Download".
+ * Format lengkap dengan burst:
+ *   "rx/tx rx-burst/tx-burst rx-threshold/tx-threshold burst-time"
+ *
+ * Contoh:       "5M/10M"                  = Upload 5 Mbps / Download 10 Mbps
+ * Contoh burst: "5M/10M 10M/20M 5M/10M 8" = CIR 5M/10M, Burst 10M/20M, Threshold 5M/10M, 8s
+ *
+ * @param {number|string} upVal      - Kecepatan UPLOAD client (rx-rate), dalam Kbps
+ * @param {number|string} downVal    - Kecepatan DOWNLOAD client (tx-rate), dalam Kbps
+ * @param {string}        defaultVal - Fallback bila speed kosong / tidak valid
+ * @param {number|string} uptoUp     - Burst UPLOAD (rx-burst), dalam Kbps
+ * @param {number|string} uptoDown   - Burst DOWNLOAD (tx-burst), dalam Kbps
+ * @returns {string} Contoh: "5M/10M" atau "5M/10M 10M/20M 5M/10M 8"
  */
 function formatRateLimit(upVal, downVal, defaultVal = '5M/10M', uptoUp = 0, uptoDown = 0) {
   function parseSpeed(v) {
@@ -571,16 +574,16 @@ function formatRateLimit(upVal, downVal, defaultVal = '5M/10M', uptoUp = 0, upto
     return `${kbps}k`;
   }
 
-  const upKbps = parseSpeed(upVal);      // Client Upload -> Router RX
-  const downKbps = parseSpeed(downVal);  // Client Download -> Router TX
+  const upKbps = parseSpeed(upVal);      // Upload client   -> rx-rate (router menerima)
+  const downKbps = parseSpeed(downVal);  // Download client -> tx-rate (router mengirim)
 
   if (upKbps <= 0 || downKbps <= 0) {
     return defaultVal;
   }
 
-  // Format MikroTik RouterOS: rx-rate/tx-rate (Upload/Download)
-  const rxStr = kbpsToStr(upKbps);    // rx-rate = Upload (client to router)
-  const txStr = kbpsToStr(downKbps);  // tx-rate = Download (router to client)
+  // Output "rx-rate/tx-rate" = "Upload/Download" (perspektif router)
+  const rxStr = kbpsToStr(upKbps);    // rx-rate = Upload
+  const txStr = kbpsToStr(downKbps);  // tx-rate = Download
 
   // Tambahkan burst rate jika tersedia (format: rx/tx rx-burst/tx-burst rx-threshold/tx-threshold burst-time)
   const uptoUpKbps = parseSpeed(uptoUp);      // Burst Upload
@@ -597,7 +600,7 @@ function formatRateLimit(upVal, downVal, defaultVal = '5M/10M', uptoUp = 0, upto
     return `${rxStr}/${txStr} ${rxBurstStr}/${txBurstStr} ${rxThresholdStr}/${txThresholdStr} 8`;
   }
 
-  // Format standar: rx/tx (Upload/Download)
+  // Format standar: rx/tx = Upload/Download
   return `${rxStr}/${txStr}`;
 }
 

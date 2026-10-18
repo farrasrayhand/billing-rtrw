@@ -17,7 +17,7 @@
   </style>
 </head>
 <body>
-<%- include('partials/sidebar', { activePage: activePage || 'broadcast', company }) %>
+<%- include('partials/sidebar', { activePage: 'whatsapp', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-megaphone"></i> <%= t('admin.broadcast.title', 'Broadcast WhatsApp') %></div>
@@ -35,11 +35,7 @@
     </div>
     <% } %>
 
-    <div class="wa-tabs">
-      <a href="/admin/whatsapp" class="wa-tab <%= waTab==='status' ? 'active' : '' %>"><i class="bi bi-phone"></i> Status</a>
-      <a href="/admin/whatsapp/broadcast" class="wa-tab <%= waTab==='broadcast' ? 'active' : '' %>"><i class="bi bi-megaphone"></i> Broadcast & Pengingat</a>
-      <a href="/admin/whatsapp/templates" class="wa-tab <%= waTab==='templates' ? 'active' : '' %>"><i class="bi bi-chat-left-quote"></i> Template Pesan</a>
-    </div>
+    <%- include('partials/tabs_whatsapp', { waTab: 'broadcast' }) %>
 
     <div class="card">
       <div class="card-hd" style="display: flex; justify-content: space-between; align-items: center;">

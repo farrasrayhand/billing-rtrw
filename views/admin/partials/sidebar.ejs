@@ -36,15 +36,9 @@
               href="<%= item.hrefResolved %>"
               class="<%= isActive ? 'active' : '' %>"
               <%- isActive ? 'aria-current="page"' : '' %>
-              <% if (item.locked) { %>
-                onclick='return showLockedMenuNotice(<%- JSON.stringify(item.lockedMessage) %>)'
-              <% } %>
             >
               <i class="<%= item.icon %>"></i>
               <span><%= item.labelKey ? t(item.labelKey, item.labelDefault) : item.labelDefault %></span>
-              <% if (item.locked) { %>
-                <span class="badge bw" style="padding:1px 6px;font-size:10px">Kunci</span>
-              <% } %>
             </a>
           </li>
         <% }) %>
@@ -68,34 +62,6 @@
   </nav>
 </aside>
 
-<div id="lockedMenuModal" class="mo" role="dialog" aria-modal="true" aria-labelledby="lockedMenuTitle">
-  <div class="mb" style="max-width:460px">
-    <div class="mh">
-      <span class="mt" id="lockedMenuTitle"><i class="bi bi-lock-fill text-warning"></i> Menu Terkunci</span>
-      <button type="button" class="mc" onclick="hideLockedMenuNotice()" aria-label="Tutup">&times;</button>
-    </div>
-    <div class="mbody">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Aktivasi diperlukan untuk membuka fitur ini.</p>
-      <p id="lockedMenuModalMessage" style="font-size:13.5px;font-weight:500;color:var(--text);margin-bottom:14px">Menu ini sedang terkunci.</p>
-      <div class="alert alert-i" style="margin-bottom:0">
-        <i class="bi bi-info-circle-fill"></i>
-        <span>Dukung pengembangan aplikasi untuk mendapatkan kode aktivasi.</span>
-      </div>
-    </div>
-    <div class="mf" style="flex-wrap:wrap">
-      <a href="https://app.alijaya.com/donasi" target="_blank" rel="noopener" class="btn btn-w btn-sm">
-        <i class="bi bi-heart-fill"></i> Donasi &amp; Kode Aktivasi
-      </a>
-      <a href="/admin/sidebar-settings" class="btn btn-g btn-sm" onclick="hideLockedMenuNotice()">
-        <i class="bi bi-layout-sidebar-inset"></i> Pengaturan Sidebar
-      </a>
-      <button type="button" class="btn btn-p btn-sm" onclick="hideLockedMenuNotice()">
-        <i class="bi bi-check2-circle"></i> Mengerti
-      </button>
-    </div>
-  </div>
-</div>
-
 <script>
   function toggleSidebar() {
     const sb = document.getElementById('sidebar');
@@ -108,30 +74,8 @@
     }
   }
 
-  function showLockedMenuNotice(message) {
-    const modal = document.getElementById('lockedMenuModal');
-    const messageBox = document.getElementById('lockedMenuModalMessage');
-    if (messageBox) {
-      messageBox.textContent = message || 'Menu ini sedang terkunci.';
-    }
-    if (modal) {
-      modal.classList.add('show');
-      document.body.style.overflow = 'hidden';
-    }
-    return false;
-  }
-
-  function hideLockedMenuNotice() {
-    const modal = document.getElementById('lockedMenuModal');
-    if (modal) {
-      modal.classList.remove('show');
-      document.body.style.overflow = '';
-    }
-  }
-
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-      hideLockedMenuNotice();
       document.querySelectorAll('.mo.show').forEach(function(m) {
         m.classList.remove('show');
       });
@@ -148,6 +92,41 @@
       }
     }
   });
+
+  // Simpan & pulihkan posisi scroll sidebar agar tidak balik ke atas saat pindah halaman / refresh.
+  (function () {
+    const KEY = 'admin.sidebar.scrollTop';
+    const sb = document.getElementById('sidebar');
+    if (!sb) return;
+
+    let saveTimer = null;
+    sb.addEventListener('scroll', function () {
+      if (saveTimer) return;
+      saveTimer = setTimeout(function () {
+        saveTimer = null;
+        try { localStorage.setItem(KEY, String(sb.scrollTop)); } catch (e) {}
+      }, 150);
+    });
+
+    function restore() {
+      let saved = null;
+      try { saved = localStorage.getItem(KEY); } catch (e) {}
+      if (saved !== null && saved !== '') {
+        sb.scrollTop = parseInt(saved, 10) || 0;
+      } else {
+        const active = sb.querySelector('a.active, a[aria-current="page"]');
+        if (active) {
+          try { active.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+        }
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', restore);
+    } else {
+      restore();
+    }
+  })();
 </script>
 
 <!-- Bottom Navigation (Mobile Only) -->
@@ -158,9 +137,6 @@
       href="<%= item.hrefResolved %>"
       class="bn-item <%= navActive ? 'active' : '' %>"
       <%- navActive ? 'aria-current="page"' : '' %>
-      <% if (item.locked) { %>
-        onclick='return showLockedMenuNotice(<%- JSON.stringify(item.lockedMessage) %>)'
-      <% } %>
     >
       <i class="<%= item.icon %>"></i>
       <span><%= item.labelKey ? t(item.labelKey, item.labelDefault) : item.labelDefault %></span>

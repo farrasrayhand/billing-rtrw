@@ -397,6 +397,7 @@
             </select>
           </div>
         <% } else { %>
+          <% if (typeof multiRouterMode !== 'undefined' && multiRouterMode) { %>
           <div class="fg">
             <label>Filter Router</label>
             <select name="router_id" onchange="document.getElementById('filterForm').submit()">
@@ -406,6 +407,7 @@
               <% }) %>
             </select>
           </div>
+          <% } %>
           <div class="fg">
             <label>Cari Pelanggan</label>
             <input type="text" name="q" value="<%= searchQuery || '' %>" placeholder="Ketik nama / ID..." />

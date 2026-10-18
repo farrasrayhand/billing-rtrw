@@ -42,7 +42,7 @@
   </style>
 </head>
 <body>
-<%- include('partials/sidebar', { activePage: 'whatsapp_live_chat', company }) %>
+<%- include('partials/sidebar', { activePage: 'whatsapp', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title">
@@ -58,6 +58,8 @@
   </div>
 
   <div class="page">
+    <% const waTab = 'live_chat'; %>
+    <%- include('partials/tabs_whatsapp', { waTab: 'live_chat' }) %>
     <% if (msg) { %>
       <div class="alert alert-<%= msg.type==='success'?'s':'d' %> mb16">
         <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-triangle' %>"></i> <%= msg.text %>

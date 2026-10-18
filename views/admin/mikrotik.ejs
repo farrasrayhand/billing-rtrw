@@ -45,11 +45,7 @@
   <div class="page">
     <% const mTab = 'monitoring'; %>
 
-    <div class="mtabs">
-      <a href="/admin/mikrotik" class="mtab <%= mTab==='monitoring' ? 'active' : '' %>"><i class="bi bi-router"></i> Monitoring</a>
-      <a href="/admin/vouchers" class="mtab <%= mTab==='vouchers' ? 'active' : '' %>"><i class="bi bi-ticket-perforated"></i> Voucher Hotspot</a>
-      <a href="/admin/routers" class="mtab <%= mTab==='routers' ? 'active' : '' %>"><i class="bi bi-hdd-network"></i> Router</a>
-    </div>
+    <%- include('partials/tabs_mikrotik', { mTab: 'monitoring' }) %>
 
     <!-- Summary Cards -->
     <div class="stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;position:relative">

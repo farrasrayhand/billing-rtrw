@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-<%- include('partials/sidebar', { activePage: 'voucher_packages', company }) %>
+<%- include('partials/sidebar', { activePage: 'mikrotik', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title">
@@ -34,16 +34,14 @@
       <div class="alert <%= msg.type === 'success' ? 's' : 'd' %>"><%= msg.text %></div>
     <% } %>
 
-    <div class="mtabs">
-      <a href="/admin/vouchers" class="mtab"><i class="bi bi-ticket-perforated"></i> Pembuatan Voucher (Batch)</a>
-      <a href="/admin/vouchers/packages" class="mtab active"><i class="bi bi-ticket-detailed"></i> Konfigurasi Paket (Real-Time)</a>
-    </div>
+    <% const mTab = 'packages'; %>
+    <%- include('partials/tabs_mikrotik', { mTab: 'packages' }) %>
 
     <div class="card">
       <div class="card-hd">
         <h6><i class="bi bi-list-stars"></i> Daftar Paket Hotspot Real-Time</h6>
         <div style="display:flex;align-items:center;gap:10px">
-          <% if (typeof routers !== 'undefined' && routers && routers.length > 0) { %>
+          <% if (typeof multiRouterMode !== 'undefined' && multiRouterMode && typeof routers !== 'undefined' && routers && routers.length > 0) { %>
           <select class="fs" style="width:160px" onchange="window.location.href='/admin/set-active-router?router_id=' + this.value">
             <option value="all" <%= (!selectedRouterId) ? 'selected' : '' %>>🌐 Semua Router</option>
             <% routers.forEach(r => { %>

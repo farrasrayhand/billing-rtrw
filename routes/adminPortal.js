@@ -329,11 +329,6 @@ function requireSidebarMenuAccess(menuKey) {
       return res.redirect('/admin');
     }
 
-    if (access.reason === 'locked') {
-      req.session._msg = { type: 'error', text: `Menu "${access.menu.labelDefault}" terkunci. Hubungi ${sidebarMenuSvc.FEATURE_CONTACT_PHONE} untuk mendapatkan password.` };
-      return res.redirect('/admin/sidebar-settings');
-    }
-
     req.session._msg = { type: 'error', text: 'Anda tidak memiliki akses ke menu ini.' };
     return res.redirect('/admin');
   };
@@ -1308,7 +1303,7 @@ router.post('/cashiers/attendance/checkout', requireAdminSession, uploadAttendan
 });
 
 
-router.get('/cashiers/reports', requireAdminSession, requireSidebarMenuAccess('cashiers_reports'), (req, res) => {
+router.get('/cashiers/reports', requireAdminSession, requireSidebarMenuAccess('reports'), (req, res) => {
   const allCashiers = adminSvc.getAllCashiers();
   const isAdmin = Boolean(req.session?.isAdmin);
   const isCashier = Boolean(req.session?.isCashier);
@@ -1436,7 +1431,7 @@ router.get('/cashiers/reports', requireAdminSession, requireSidebarMenuAccess('c
   res.render('admin/cashier_reports', {
     title: 'Laporan Kasir',
     company: company(),
-    activePage: 'cashiers_reports',
+    activePage: 'reports',
     cashiers: safeCashiers,
     cashierId: cashierId || '',
     paidByExact: paidByExact || '',
@@ -1670,7 +1665,7 @@ router.get('/bulk', requireAdminSession, (req, res) => {
 });
 
 // ─── ONU MODEM STICKER PRINT ───────────────────────────────────────────────
-router.get('/onu-stickers', requireAdminSession, requireSidebarMenuAccess('onu_stickers'), async (req, res) => {
+router.get('/onu-stickers', requireAdminSession, requireSidebarMenuAccess('customers'), async (req, res) => {
   try {
     const settings = getSettings();
     const mode = req.query.mode === 'customers' ? 'customers' : 'blank';
@@ -2637,11 +2632,11 @@ router.post('/packages/:id/delete', requireAdminSession, (req, res) => {
 });
 
 // ─── VOUCHER PACKAGES (ON-DEMAND REAL-TIME CONFIGURATION) ────────────────────
-router.get('/vouchers/packages', requireAdminSession, requireSidebarMenuAccess('voucher_packages'), (req, res) => {
+router.get('/vouchers/packages', requireAdminSession, requireSidebarMenuAccess('mikrotik'), (req, res) => {
   const selectedRouterId = req.selectedRouterId || (req.query.router_id ? Number(req.query.router_id) : null);
   const routers = db.prepare('SELECT id, name FROM routers WHERE is_active = 1').all();
   res.render('admin/vouchers_packages', {
-    title: 'Paket Voucher Hotspot', company: company(), activePage: 'voucher_packages',
+    title: 'Paket Voucher Hotspot', company: company(), activePage: 'mikrotik',
     routers, selectedRouterId, msg: flashMsg(req)
   });
 });
@@ -3691,18 +3686,12 @@ router.get('/sidebar-settings', requireAdminSession, (req, res) => {
     activePage: 'sidebar_settings',
     msg: flashMsg(req),
     canManageSidebar: Boolean(req.session?.isAdmin),
-    menuConfigs: sidebarMenuSvc.getConfigMenus(),
-    featureContactPhone: sidebarMenuSvc.getFeatureContactPhone()
+    menuConfigs: sidebarMenuSvc.getConfigMenus()
   });
 });
 
 router.post('/sidebar-settings', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
-    const featurePassword = String(req.body.feature_password || '').trim();
-    if (!sidebarMenuSvc.isFeaturePasswordValid(featurePassword)) {
-      throw new Error(`Password aktivasi salah. Hubungi ${sidebarMenuSvc.getFeatureContactPhone()} untuk mendapatkan password yang benar.`);
-    }
-
     const menuStates = sidebarMenuSvc.sanitizeMenuStates(req.body.menu_state || {});
     const success = sidebarMenuSvc.saveMenuStates(menuStates);
     if (!success) throw new Error('Gagal menyimpan pengaturan sidebar');
@@ -3715,7 +3704,7 @@ router.post('/sidebar-settings', requireAdminSession, restrictToAdmin, express.u
         actor_type: req.session?.isAdmin ? 'admin' : 'cashier',
         actor_id: String(req.session?.adminUser || req.session?.cashierUsername || ''),
         actor_name: req.session?.adminUser || req.session?.cashierName || 'Admin',
-        details: { menuStates, password_verified: true },
+        details: { menuStates },
         ip_address: req.ip,
         user_agent: req.get('user-agent')
       });
@@ -4228,31 +4217,8 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
     newSettings.auto_backup_enabled = (newSettings.auto_backup_enabled === 'true');
     newSettings.use_builtin_acs = (newSettings.use_builtin_acs === 'true' || newSettings.use_builtin_acs === true);
 
-    // Multi-Router Mode settings
-    if (!newSettings.multi_router_mode) newSettings.multi_router_mode = 'disabled';
-    if (newSettings.default_router_id) newSettings.default_router_id = parseInt(newSettings.default_router_id) || null;
-
-    // ✅ NEW: Jika switching dari disabled ke active, auto-assign default router ke pelanggan NULL
-    const oldMode = getSetting('multi_router_mode', 'disabled');
-    if (oldMode === 'disabled' && newSettings.multi_router_mode === 'active') {
-      const defaultRouterId = newSettings.default_router_id;
-      if (defaultRouterId && defaultRouterId > 0) {
-        // Auto-assign default router to customers with NULL router_id
-        const result = db.prepare(
-          "UPDATE customers SET router_id = ? WHERE router_id IS NULL AND (pppoe_username != '' OR hotspot_username != '' OR static_ip != '')"
-        ).run(defaultRouterId);
-        logger.info(`[Settings] Auto-assigned router ${defaultRouterId} to ${result.changes} customers with NULL router_id`);
-      } else {
-        // Jika tidak ada default router, cari router pertama yang aktif
-        const router = db.prepare('SELECT id FROM routers WHERE is_active = 1 ORDER BY id ASC LIMIT 1').get();
-        if (router) {
-          const result = db.prepare(
-            "UPDATE customers SET router_id = ? WHERE router_id IS NULL AND (pppoe_username != '' OR hotspot_username != '' OR static_ip != '')"
-          ).run(router.id);
-          logger.info(`[Settings] Auto-assigned router ${router.id} to ${result.changes} customers with NULL router_id`);
-        }
-      }
-    }
+    // Pengaturan MikroTik (multi_router_mode, default_router_id, mikrotik_*)
+    // kini disimpan lewat POST /admin/mikrotik/settings, bukan dari form ini.
 
     const success = saveSettings(newSettings);
     if (success) {
@@ -4649,15 +4615,19 @@ router.post('/api/genieacs/settings', requireAdmin, async (req, res) => {
 router.get('/api/genieacs/test', requireAdmin, async (req, res) => {
   try {
     const genieacs = require('../config/genieacs');
-    const devices = await genieacs.getDevices();
-    
+    // Batas waktu keras: jangan biarkan UI "stuck" saat GenieACS offline.
+    const devices = await Promise.race([
+      genieacs.getDevices(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout: GenieACS tidak merespons')), 5000))
+    ]);
+
     res.json({ 
       success: true, 
       message: 'Koneksi ke GenieACS berhasil!',
       deviceCount: devices.length
     });
   } catch (error) {
-    logger.error('[API] Error testing GenieACS connection:', error);
+    logger.error('[API] Error testing GenieACS connection:', error.message);
     res.json({ 
       success: false, 
       message: 'Koneksi gagal: ' + error.message 
@@ -4922,6 +4892,70 @@ router.get('/mikrotik/display', requireAdminSession, (req, res) => {
     msg: flashMsg(req),
     settings
   });
+});
+
+// ─── MIKROTIK SETTINGS (MODE MULTI-ROUTER & KREDENSIAL ROUTER) ──────────────
+router.get('/mikrotik/settings', requireAdminSession, restrictToAdmin, requireSidebarMenuAccess('mikrotik'), (req, res) => {
+  res.render('admin/mikrotik_settings', {
+    title: 'Pengaturan MikroTik',
+    company: company(),
+    activePage: 'mikrotik',
+    msg: flashMsg(req),
+    settings: getSettings()
+  });
+});
+
+router.post('/mikrotik/settings', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
+  try {
+    const payload = {
+      multi_router_mode: req.body.multi_router_mode === 'disabled' ? 'disabled' : 'active',
+      default_router_id: req.body.default_router_id ? (parseInt(req.body.default_router_id, 10) || null) : null,
+      mikrotik_host: String(req.body.mikrotik_host || '').trim(),
+      mikrotik_port: parseInt(req.body.mikrotik_port, 10) || 8728,
+      mikrotik_user: String(req.body.mikrotik_user || '').trim(),
+      mikrotik_password: String(req.body.mikrotik_password || '')
+    };
+
+    // Saat pindah dari single-router (disabled) ke multi-router (active),
+    // tugaskan router default ke pelanggan yang belum punya router_id.
+    const oldMode = getSetting('multi_router_mode', 'disabled');
+    if (oldMode === 'disabled' && payload.multi_router_mode === 'active') {
+      const defaultScanner = db.prepare('SELECT id FROM routers WHERE is_active = 1 ORDER BY id ASC LIMIT 1').get();
+      const defaultRouterId = payload.default_router_id || (defaultScanner ? defaultScanner.id : null);
+      if (defaultRouterId && defaultRouterId > 0) {
+        const result = db.prepare(
+          "UPDATE customers SET router_id = ? WHERE router_id IS NULL AND (pppoe_username != '' OR hotspot_username != '' OR static_ip != '')"
+        ).run(defaultRouterId);
+        logger.info(`[MikroTik Settings] Auto-assigned router ${defaultRouterId} to ${result.changes} customers with NULL router_id`);
+      }
+    }
+
+    const success = saveSettings(payload);
+    if (!success) throw new Error('Gagal menyimpan pengaturan');
+
+    if (auditSvc && typeof auditSvc.logAuditTrail === 'function') {
+      auditSvc.logAuditTrail({
+        action: 'UPDATE',
+        entity_type: 'mikrotik_settings',
+        entity_id: 'global',
+        actor_type: req.session?.isAdmin ? 'admin' : 'cashier',
+        actor_id: String(req.session?.adminUser || req.session?.cashierUsername || ''),
+        actor_name: req.session?.adminUser || req.session?.cashierName || 'Admin',
+        details: {
+          multi_router_mode: payload.multi_router_mode,
+          default_router_id: payload.default_router_id,
+          mikrotik_host: payload.mikrotik_host
+        },
+        ip_address: req.ip,
+        user_agent: req.get('user-agent')
+      });
+    }
+
+    req.session._msg = { type: 'success', text: 'Pengaturan MikroTik berhasil disimpan.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal menyimpan pengaturan MikroTik: ' + e.message };
+  }
+  res.redirect('/admin/mikrotik/settings');
 });
 
 router.get('/vouchers', requireAdminSession, (req, res) => {
@@ -5909,7 +5943,7 @@ router.get('/whatsapp/live-chat', requireAdminSession, requireSidebarMenuAccess(
   res.render('admin/whatsapp_live_chat', {
     title: 'Live Chat WhatsApp',
     company: company(),
-    activePage: 'whatsapp_live_chat',
+    activePage: 'whatsapp',
     msg: flashMsg(req),
     gatewayType: waGatewayType,
     customers: customers || []
@@ -5995,7 +6029,7 @@ router.post('/whatsapp/templates', requireAdminSession, express.urlencoded({ ext
   res.redirect('/admin/whatsapp/templates');
 });
 
-router.get('/whatsapp/broadcast', requireAdminSession, requireSidebarMenuAccess('broadcast'), (req, res) => {
+router.get('/whatsapp/broadcast', requireAdminSession, requireSidebarMenuAccess('whatsapp'), (req, res) => {
   const comp = company();
   const defaultAutoBillingMsg =
     `Yth. Pelanggan {{nama}},\n\n` +
@@ -6009,7 +6043,7 @@ router.get('/whatsapp/broadcast', requireAdminSession, requireSidebarMenuAccess(
   const autoBillingMsg = db.getAppSetting('whatsapp_auto_billing_message', defaultAutoBillingMsg);
 
   res.render('admin/broadcast', {
-    title: 'Broadcast WhatsApp', company: comp, activePage: 'broadcast', msg: flashMsg(req),
+    title: 'Broadcast WhatsApp', company: comp, activePage: 'whatsapp', msg: flashMsg(req),
     broadcastStatus: global.broadcastStatus, getSetting, autoBillingMsg
   });
 });
@@ -6516,9 +6550,49 @@ router.post('/routers/:id/update', requireAdminSession, express.urlencoded({ ext
   res.redirect('/admin/routers');
 });
 
-router.post('/routers/:id/delete', requireAdminSession, (req, res) => {
+function getRouterUsage(routerId) {
+  const id = Number(routerId);
+  const one = (sql) => { try { return db.prepare(sql).get(id).c || 0; } catch (e) { return 0; } };
+  return {
+    customers: one('SELECT COUNT(*) c FROM customers WHERE router_id = ?'),
+    packages: one('SELECT COUNT(*) c FROM packages WHERE router_id = ?'),
+    agents: one('SELECT COUNT(*) c FROM agents WHERE router_id = ?'),
+    voucher_batches: one('SELECT COUNT(*) c FROM voucher_batches WHERE router_id = ?'),
+    vouchers: one('SELECT COUNT(*) c FROM vouchers WHERE router_id = ?'),
+    voucher_packages: one('SELECT COUNT(*) c FROM voucher_packages WHERE router_id = ?')
+  };
+}
+
+router.get('/api/routers/:id/usage', requireAdmin, (req, res) => {
+  res.json(getRouterUsage(req.params.id));
+});
+
+router.post('/routers/:id/delete', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
   try {
-    mikrotikService.deleteRouter(req.params.id);
+    const id = Number(req.params.id);
+    const router = db.prepare('SELECT id, name FROM routers WHERE id = ?').get(id);
+    if (!router) throw new Error('Router tidak ditemukan');
+
+    const usage = getRouterUsage(id);
+    const total = Object.values(usage).reduce((a, b) => a + b, 0);
+
+    if (total > 0) {
+      const reassignTo = req.body.reassign_to ? Number(req.body.reassign_to) : null;
+      const force = req.body.force === '1';
+
+      if (reassignTo && reassignTo !== id) {
+        const target = db.prepare('SELECT id FROM routers WHERE id = ?').get(reassignTo);
+        if (!target) throw new Error('Router tujuan tidak ditemukan');
+        const moved = db.prepare('UPDATE customers SET router_id = ? WHERE router_id = ?').run(reassignTo, id);
+        logger.info(`[Router Delete] Memindahkan ${moved.changes} pelanggan dari router ${id} ke ${reassignTo}`);
+      } else if (!force) {
+        const labels = { customers: 'pelanggan', packages: 'paket', agents: 'agent', voucher_batches: 'batch voucher', vouchers: 'voucher', voucher_packages: 'paket voucher' };
+        const parts = Object.entries(usage).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${labels[k] || k}`);
+        throw new Error(`Router "${router.name}" masih dipakai: ${parts.join(', ')}. Pindahkan pelanggan ke router lain dulu, atau centang "hapus paksa".`);
+      }
+    }
+
+    mikrotikService.deleteRouter(id);
     req.session._msg = { type: 'success', text: 'Router berhasil dihapus.' };
   } catch (e) {
     req.session._msg = { type: 'error', text: 'Gagal: ' + e.message };
@@ -7470,8 +7544,12 @@ router.post('/radius/restart', requireAdminSession, restrictToAdmin, async (req,
   try {
     radiusSvc.stop();
     await new Promise(r => setTimeout(r, 500));
-    radiusSvc.start();
-    req.session._msg = { type: 'success', text: 'Layanan RADIUS Server (UDP Port 1812/1813) berhasil direstart.' };
+    if (getSetting('radius_enabled', '0') === '1') {
+      radiusSvc.start();
+      req.session._msg = { type: 'success', text: 'Layanan RADIUS Server (UDP Port 1812/1813) berhasil direstart.' };
+    } else {
+      req.session._msg = { type: 'warning', text: 'RADIUS Server sedang Non-Aktif, jadi tidak dijalankan. Aktifkan lebih dulu di tab Pengaturan RADIUS.' };
+    }
   } catch (e) {
     logger.error('Error restarting RADIUS service:', e);
     req.session._msg = { type: 'danger', text: 'Gagal merestart layanan RADIUS: ' + e.message };

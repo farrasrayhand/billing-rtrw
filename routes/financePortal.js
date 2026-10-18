@@ -37,7 +37,7 @@ router.use((req, res, next) => {
 router.get('/expense-categories', (req, res) => {
   const categories = db.prepare('SELECT * FROM expense_categories ORDER BY name ASC').all();
   res.render('admin/finance/expense_categories', {
-    activePage: 'expense_categories',
+    activePage: 'reports',
     categories,
     msg: flashMsg(req)
   });
@@ -76,7 +76,7 @@ router.get('/expenses', (req, res) => {
   const categories = db.prepare('SELECT * FROM expense_categories ORDER BY name ASC').all();
   
   res.render('admin/finance/expenses', {
-    activePage: 'expenses',
+    activePage: 'reports',
     expenses,
     categories,
     msg: flashMsg(req)
@@ -115,7 +115,7 @@ router.post('/expenses/:id/delete', (req, res) => {
 router.get('/cash-in', (req, res) => {
   const cashIn = db.prepare(`SELECT * FROM cash_in ORDER BY date DESC, id DESC LIMIT 500`).all();
   res.render('admin/finance/cash_in', {
-    activePage: 'cash_in',
+    activePage: 'reports',
     cashIn,
     msg: flashMsg(req)
   });

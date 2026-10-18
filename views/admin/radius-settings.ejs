@@ -120,11 +120,13 @@
         <i class="bi bi-broadcast sc-icon"></i>
         <div class="sc-label" style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
           <span>Status RADIUS Server</span>
+          <% if (radiusStatus.enabled) { %>
           <form action="/admin/radius/restart" method="POST" style="margin:0;">
             <button type="submit" class="btn btn-w btn-sm" style="font-size:10px;padding:2px 8px;height:auto;" title="Restart Service UDP RADIUS (1812/1813)">
               <i class="bi bi-arrow-clockwise"></i> Restart
             </button>
           </form>
+          <% } %>
         </div>
         <div class="sc-val">
           <% if (radiusStatus.running) { %>
@@ -136,6 +138,7 @@
         <div class="sc-sub">UDP Auth: <%= radiusStatus.authPort %> | Acct: <%= radiusStatus.acctPort %></div>
       </div>
 
+      <% if (radiusStatus.enabled) { %>
       <div class="sc s">
         <i class="bi bi-wifi sc-icon"></i>
         <div class="sc-label">User RADIUS Online</div>
@@ -156,26 +159,38 @@
         <div class="sc-val"><%= typeof todayTrafficMB !== 'undefined' ? todayTrafficMB : '0.0' %><span style="font-size:14px;"> MB</span></div>
         <div class="sc-sub"><%= typeof todayEvents !== 'undefined' ? todayEvents : 0 %> Log Accounting Hari Ini</div>
       </div>
+      <% } %>
     </div>
+
+    <% if (!radiusStatus.enabled) { %>
+    <div class="alert alert-i mb16">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>Mode RADIUS <strong>Non-Aktif</strong> — aplikasi berjalan memakai MikroTik langsung (tanpa server RADIUS bawaan). Aktifkan di tab <strong>Pengaturan RADIUS</strong> bila ingin memakai autentikasi RADIUS.</span>
+    </div>
+    <% } %>
 
     <!-- TABS NAVIGATION -->
     <div class="mtabs mb16">
+      <% if (radiusStatus.enabled) { %>
       <button type="button" class="mtab active" id="tab-btn-online" onclick="switchTab('online')">
         <i class="bi bi-wifi"></i> Sesi Active RADIUS (<%= onlineSessions.length %>)
       </button>
-      <button type="button" class="mtab" id="tab-btn-settings" onclick="switchTab('settings')">
+      <% } %>
+      <button type="button" class="mtab <%= radiusStatus.enabled ? '' : 'active' %>" id="tab-btn-settings" onclick="switchTab('settings')">
         <i class="bi bi-sliders"></i> Pengaturan RADIUS
       </button>
+      <% if (radiusStatus.enabled) { %>
       <button type="button" class="mtab" id="tab-btn-nas" onclick="switchTab('nas')">
         <i class="bi bi-router"></i> Daftar NAS Router (<%= nasList.length %>)
       </button>
       <button type="button" class="mtab" id="tab-btn-accounting" onclick="switchTab('accounting')">
         <i class="bi bi-journal-text"></i> Log Accounting
       </button>
+      <% } %>
     </div>
 
     <!-- TAB 1: PENGATURAN RADIUS -->
-    <div id="tab-content-settings" class="tab-pane" style="display:none;">
+    <div id="tab-content-settings" class="tab-pane" style="<%= radiusStatus.enabled ? 'display:none;' : '' %>">
       <form action="/admin/radius-settings" method="POST">
         <div class="settings-form-grid mb16">
           
@@ -249,7 +264,9 @@
                 <label class="fl">Default Rate Limit (Fallback Kecepatan)</label>
                 <input type="text" name="radius_default_rate_limit" class="fc" value="<%= typeof radiusStatus.defaultRateLimit !== 'undefined' ? radiusStatus.defaultRateLimit : '5M/10M' %>" placeholder="Contoh: 5M/10M">
                 <small class="text-muted" style="font-size:11px;display:block;margin-top:4px;">
-                  Digunakan jika pengguna/pelanggan tidak terikat pada Paket Internet khusus. (Format: <code>Upload/Download</code>).
+                  Cadangan kecepatan bila Paket Internet pelanggan tidak punya kecepatan. Urutan <code>Upload/Download</code>
+                  (mis. <code>5M/10M</code> = upload 5 Mbps, download 10 Mbps). Dikirim ke MikroTik sebagai atribut
+                  <code>Mikrotik-Rate-Limit</code> (rx-rate/tx-rate).
                 </small>
               </div>
             </div>
@@ -464,7 +481,7 @@
     </div>
 
     <!-- TAB 3: SESI ONLINE RADIUS -->
-    <div id="tab-content-online" class="tab-pane">
+    <div id="tab-content-online" class="tab-pane" style="<%= radiusStatus.enabled ? '' : 'display:none;' %>">
       <div class="card mb16">
         <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;">
           <h6 style="margin:0;"><i class="bi bi-wifi"></i> Sesi Aktif RADIUS (Active Connections)</h6>

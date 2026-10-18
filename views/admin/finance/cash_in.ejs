@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-<%- include('../partials/sidebar', { activePage: 'cash_in', company }) %>
+<%- include('../partials/sidebar', { activePage: 'reports', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-cash-stack"></i> Kas Masuk (Lain-lain)</div>
@@ -24,6 +24,8 @@
     </div>
   </div>
   <div class="page">
+    <% const finTab = 'cash_in'; %>
+    <%- include('../partials/tabs_finance', { finTab: 'cash_in' }) %>
     <% if (msg) { %>
     <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
       <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <%= msg.text %>

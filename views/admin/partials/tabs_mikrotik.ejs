@@ -1,0 +1,16 @@
+<!-- views/admin/partials/tabs_mikrotik.ejs — tab bersama area MikroTik (butuh variabel mTab) -->
+<style>
+  .mtabs { display: flex; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .mtab { padding: 8px 14px; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all .2s; font-weight: 700; text-decoration: none; flex-shrink: 0; }
+  .mtab:hover { background: rgba(0,0,0,.05); color: var(--text); }
+  .mtab.active { background: var(--primary); color: white; }
+</style>
+<div class="mtabs">
+  <a href="/admin/mikrotik" class="mtab <%= mTab === 'monitoring' ? 'active' : '' %>"><i class="bi bi-router"></i> Monitoring</a>
+  <a href="/admin/vouchers" class="mtab <%= mTab === 'vouchers' ? 'active' : '' %>"><i class="bi bi-ticket-perforated"></i> Voucher Hotspot</a>
+  <a href="/admin/vouchers/packages" class="mtab <%= mTab === 'packages' ? 'active' : '' %>"><i class="bi bi-ticket-detailed"></i> Paket Voucher</a>
+  <% if (typeof multiRouterMode !== 'undefined' && multiRouterMode) { %>
+  <a href="/admin/routers" class="mtab <%= mTab === 'routers' ? 'active' : '' %>"><i class="bi bi-hdd-network"></i> Router</a>
+  <% } %>
+  <a href="/admin/mikrotik/settings" class="mtab <%= mTab === 'settings' ? 'active' : '' %>"><i class="bi bi-gear"></i> Pengaturan</a>
+</div>

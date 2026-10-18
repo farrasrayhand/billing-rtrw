@@ -1,0 +1,29 @@
+.git
+.gitignore
+.github
+node_modules
+npm-debug.log*
+
+# Data yang harus datang dari volume, bukan dari image
+database/*.db
+database/*.db-wal
+database/*.db-shm
+database/*.sqlite
+backups
+logs
+auth_info_baileys
+data
+public/uploads
+
+# Android & artefak build lokal
+android-app
+*.apk
+*.aab
+*.png
+
+# Dokumentasi & konfigurasi editor
+*.md
+.commandcode
+.DS_Store
+.env
+*.env

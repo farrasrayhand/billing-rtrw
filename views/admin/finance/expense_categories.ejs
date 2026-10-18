@@ -22,7 +22,7 @@
   </style>
 </head>
 <body>
-<%- include('../partials/sidebar', { activePage: 'expense_categories', company }) %>
+<%- include('../partials/sidebar', { activePage: 'reports', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-tags"></i> Kategori Pengeluaran</div>
@@ -33,6 +33,8 @@
     </div>
   </div>
   <div class="page">
+    <% const finTab = 'expense_categories'; %>
+    <%- include('../partials/tabs_finance', { finTab: 'expense_categories' }) %>
     <% if (msg) { %>
     <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
       <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <%= msg.text %>

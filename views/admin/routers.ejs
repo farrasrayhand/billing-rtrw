@@ -270,11 +270,7 @@
     </div>
     <% } %>
 
-    <div class="mtabs">
-      <a href="/admin/mikrotik" class="mtab <%= mTab==='monitoring' ? 'active' : '' %>"><i class="bi bi-router"></i> Monitoring</a>
-      <a href="/admin/vouchers" class="mtab <%= mTab==='vouchers' ? 'active' : '' %>"><i class="bi bi-ticket-perforated"></i> Voucher Hotspot</a>
-      <a href="/admin/routers" class="mtab <%= mTab==='routers' ? 'active' : '' %>"><i class="bi bi-hdd-network"></i> Router</a>
-    </div>
+    <%- include('partials/tabs_mikrotik', { mTab: 'routers' }) %>
 
     <!-- Header Actions & View Mode -->
     <div class="card mb-3" style="border:none; background:transparent;">
@@ -376,9 +372,7 @@
             <button type="button" class="btn btn-g btn-sm" title="<%= t('common.edit', 'Edit') %>" onclick="editRouter(<%= i %>)">
               <i class="bi bi-pencil"></i>
             </button>
-            <form method="POST" action="/admin/routers/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t('admin.routers.confirm.delete', 'Hapus router ini?') %>')">
-              <button class="btn btn-d btn-sm" title="<%= t('common.delete', 'Hapus') %>"><i class="bi bi-trash"></i></button>
-            </form>
+            <button type="button" class="btn btn-d btn-sm" title="<%= t('common.delete', 'Hapus') %>" onclick="openDeleteRouterModal(<%= r.id %>)"><i class="bi bi-trash"></i></button>
           </div>
         </div>
       <% }) %>
@@ -418,9 +412,7 @@
                 <button class="btn btn-g btn-icon btn-sm" title="<%= t('admin.routers.actions.test', 'Test Koneksi') %>" onclick="testConn(<%= r.id %>)"><i class="bi bi-plug"></i></button>
                 <button class="btn btn-g btn-icon btn-sm" title="Setup Firewall Isolir" onclick="setupFirewall(<%= r.id %>)"><i class="bi bi-shield-lock"></i></button>
                 <button class="btn btn-g btn-icon btn-sm" title="<%= t('common.edit', 'Edit') %>" onclick="editRouter(<%= i %>)"><i class="bi bi-pencil"></i></button>
-                <form method="POST" action="/admin/routers/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t('admin.routers.confirm.delete', 'Hapus router ini?') %>')">
-                  <button class="btn btn-d btn-icon btn-sm" title="<%= t('common.delete', 'Hapus') %>"><i class="bi bi-trash"></i></button>
-                </form>
+                <button type="button" class="btn btn-d btn-icon btn-sm" title="<%= t('common.delete', 'Hapus') %>" onclick="openDeleteRouterModal(<%= r.id %>)"><i class="bi bi-trash"></i></button>
               </td>
             </tr>
           <% }) %>
@@ -430,6 +422,87 @@
     </div>
   </div>
 </div>
+
+<script>window.__ROUTERS = <%- JSON.stringify((routers || []).map(r => ({ id: r.id, name: r.name, host: r.host || '' }))) %>;</script>
+
+<!-- Modal Hapus Router -->
+<div class="mo" id="deleteRouterModal">
+  <div class="mb" style="max-width: 520px;">
+    <div class="mh">
+      <span class="mt"><i class="bi bi-trash text-danger me-2"></i> Hapus Router</span>
+      <button class="mc" onclick="closeModal('deleteRouterModal')">&times;</button>
+    </div>
+    <div class="mbody">
+      <p id="del-router-name" style="font-weight:700;margin-bottom:8px"></p>
+      <div id="del-usage" class="hint" style="margin-bottom:12px"></div>
+      <div id="del-reassign-wrap" style="display:none">
+        <label class="fl">Pindahkan pelanggan ke router</label>
+        <select class="fs" id="del-reassign"></select>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="del-force" onchange="toggleDelForce()">
+          <span>Hapus paksa tanpa memindahkan (pelanggan jadi tanpa router)</span>
+        </label>
+      </div>
+    </div>
+    <div class="mf">
+      <button type="button" class="btn btn-g" onclick="closeModal('deleteRouterModal')">Batal</button>
+      <button type="button" class="btn btn-d" onclick="submitDeleteRouter()"><i class="bi bi-trash"></i> Hapus Router</button>
+    </div>
+  </div>
+</div>
+
+<form id="deleteRouterForm" method="POST" style="display:none">
+  <input type="hidden" name="reassign_to" id="del-reassign-input">
+  <input type="hidden" name="force" id="del-force-input">
+</form>
+
+<script>
+  let __delRouterId = null;
+
+  async function openDeleteRouterModal(id) {
+    __delRouterId = id;
+    const router = (window.__ROUTERS || []).find(r => Number(r.id) === Number(id)) || {};
+    document.getElementById('del-router-name').textContent = 'Router: ' + (router.name || ('#' + id));
+
+    const sel = document.getElementById('del-reassign');
+    const others = (window.__ROUTERS || []).filter(r => Number(r.id) !== Number(id));
+    sel.innerHTML = others.length
+      ? others.map(r => '<option value="' + r.id + '">' + r.name + (r.host ? ' (' + r.host + ')' : '') + '</option>').join('')
+      : '<option value="">(tidak ada router lain)</option>';
+    document.getElementById('del-force').checked = false;
+    toggleDelForce();
+
+    let usage = {};
+    try { usage = await fetch('/admin/api/routers/' + id + '/usage').then(r => r.json()); } catch (e) { usage = {}; }
+    const labels = { customers: 'pelanggan', packages: 'paket', agents: 'agent', voucher_batches: 'batch voucher', vouchers: 'voucher', voucher_packages: 'paket voucher' };
+    const parts = Object.entries(usage).filter(([, v]) => v > 0).map(([k, v]) => v + ' ' + (labels[k] || k));
+    document.getElementById('del-usage').innerHTML = parts.length
+      ? ('Dipakai oleh: <strong>' + parts.join(', ') + '</strong>.')
+      : 'Tidak ada data yang memakai router ini.';
+
+    const customers = Number(usage.customers || 0);
+    const wrap = document.getElementById('del-reassign-wrap');
+    wrap.style.display = (customers > 0 && others.length) ? 'block' : 'none';
+    openModal('deleteRouterModal');
+  }
+
+  function toggleDelForce() {
+    const force = document.getElementById('del-force').checked;
+    const sel = document.getElementById('del-reassign');
+    if (sel) sel.disabled = force;
+  }
+
+  function submitDeleteRouter() {
+    if (!__delRouterId) return;
+    const force = document.getElementById('del-force').checked;
+    const sel = document.getElementById('del-reassign');
+    document.getElementById('del-force-input').value = force ? '1' : '';
+    document.getElementById('del-reassign-input').value = force ? '' : (sel && sel.value ? sel.value : '');
+    const f = document.getElementById('deleteRouterForm');
+    f.action = '/admin/routers/' + __delRouterId + '/delete';
+    f.submit();
+  }
+</script>
 
 <!-- Modal Live Detail Router -->
 <div class="mo" id="routerLiveModal">

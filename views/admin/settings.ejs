@@ -281,52 +281,8 @@
             </div>
           </div>
 
-          <!-- Multi-Router Mode Settings -->
-          <div class="form-row" style="margin-top:20px; background:#dcfce7; padding:12px; border-radius:8px; border:1px dashed #bbf7d0;">
-            <div class="fg" style="flex:1">
-              <label class="fl"><i class="bi bi-shuffle"></i> Mode Multi-Router</label>
-              <select class="fs" name="multi_router_mode" id="multi_router_mode_select" onchange="toggleMultiRouterUI()">
-                <option value="active" <%= (settings.multi_router_mode === 'active' || !settings.multi_router_mode) ? 'selected' : '' %>>Aktif (Multiple Router)</option>
-                <option value="disabled" <%= settings.multi_router_mode === 'disabled' ? 'selected' : '' %>>Nonaktif (Single Router Mode)</option>
-              </select>
-              <div class="hint">Pilih mode operasional MikroTik: Aktif untuk multi-router, Nonaktif untuk single router dengan fallback otomatis</div>
-            </div>
-            <div class="fg" id="default_router_div" style="flex:1; <%= (settings.multi_router_mode === 'disabled') ? '' : 'display:none' %>">
-              <label class="fl">Default Router ID <span style="color:var(--muted); font-weight:normal;">(Opsional)</span></label>
-              <input class="fc" type="number" name="default_router_id" id="default_router_id" value="<%= settings.default_router_id || '' %>" placeholder="Kosongkan untuk auto-detect" min="1">
-              <div class="hint">Opsional. Jika kosong, sistem auto-detect router pertama (ID terkecil). Jika diisi, gunakan nilai ini.</div>
-            </div>
-          </div>
-
-          <script>
-            function toggleMultiRouterUI() {
-              const mode = document.getElementById('multi_router_mode_select')?.value || 'active';
-              const div = document.getElementById('default_router_div');
-              if (div) {
-                div.style.display = (mode === 'disabled') ? 'block' : 'none';
-              }
-            }
-          </script>
-
-          <div class="form-row" style="margin-top:20px">
-            <div class="fg">
-              <label class="fl">MikroTik IP / Host</label>
-              <input class="fc" name="mikrotik_host" value="<%= settings.mikrotik_host || '' %>" placeholder="192.168.1.1">
-            </div>
-            <div class="fg">
-              <label class="fl">MikroTik API Port</label>
-              <input class="fc" type="number" name="mikrotik_port" value="<%= settings.mikrotik_port || 8728 %>" placeholder="8728">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="fg">
-              <label class="fl">MikroTik API User</label>
-              <input class="fc" name="mikrotik_user" value="<%= settings.mikrotik_user || '' %>">
-            </div>
-            <div class="fg">
-              <label class="fl">MikroTik API Password</label>
-              <input class="fc" type="password" name="mikrotik_password" value="<%= settings.mikrotik_password || '' %>">
-            </div>
+          <div class="hint" style="margin-top:16px; background:#eff6ff; border:1px dashed #bfdbfe; padding:12px; border-radius:8px;">
+            Pengaturan MikroTik (mode multi-router, default router, kredensial router) dipindahkan ke <a href="/admin/mikrotik/settings" style="font-weight:700;color:var(--primary)">MikroTik &rarr; tab Pengaturan</a>.
           </div>
 
           <div class="form-row" style="margin-top:20px">

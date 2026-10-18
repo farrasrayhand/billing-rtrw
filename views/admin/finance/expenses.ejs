@@ -14,7 +14,7 @@
   </style>
 </head>
 <body>
-<%- include('../partials/sidebar', { activePage: 'expenses', company }) %>
+<%- include('../partials/sidebar', { activePage: 'reports', company }) %>
 <div class="mw">
   <div class="topbar">
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-wallet2"></i> Pengeluaran (Cash Out)</div>
@@ -25,6 +25,8 @@
     </div>
   </div>
   <div class="page">
+    <% const finTab = 'expenses'; %>
+    <%- include('../partials/tabs_finance', { finTab: 'expenses' }) %>
     <% if (msg) { %>
     <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
       <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <%= msg.text %>

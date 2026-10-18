@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-<%- include('partials/sidebar', { activePage: 'cashiers_reports', company }) %>
+<%- include('partials/sidebar', { activePage: 'reports', company }) %>
 
 <div class="mw">
   <div class="topbar">
@@ -24,6 +24,8 @@
   </div>
 
   <div class="page">
+    <% const finTab = 'cashier_reports'; %>
+    <%- include('partials/tabs_finance', { finTab: 'cashier_reports' }) %>
     <% if (msg) { %>
       <div class="alert alert-<%= msg.type==='error'?'d':'s' %>"><%= msg.text %></div>
     <% } %>
