@@ -116,7 +116,7 @@
     .fs11 { font-size: 11px; }
     .mh250 { max-height: 250px; }
     .mh300 { max-height: 300px; }
-    .err-log-box { overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+    .err-log-box { overflow-y: auto; background: var(--bg3); border: 1px solid var(--border); padding: 10px; border-radius: 8px; }
     .fs12 { font-size: 12px; }
     .fs10 { font-size: 10px; }
     .db { display: block; }
@@ -143,9 +143,9 @@
       border: 1px solid rgba(248, 81, 73, 0.3);
     }
     .alert-info {
-      background: rgba(102, 126, 234, 0.1);
-      color: rgb(102, 126, 234);
-      border: 1px solid rgba(102, 126, 234, 0.3);
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
     }
     
     /* Form Styles */
@@ -669,8 +669,8 @@
       datasets: [{
         label: 'CPU Usage (%)',
         data: [],
-        borderColor: 'rgb(102, 126, 234)',
-        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.1)',
         tension: 0.4,
         fill: true
       }]
@@ -696,8 +696,8 @@
       datasets: [{
         label: 'Memory Usage (%)',
         data: [],
-        borderColor: 'rgb(118, 75, 162)',
-        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+        borderColor: '#0369a1',
+        backgroundColor: 'rgba(3, 105, 161, 0.1)',
         tension: 0.4,
         fill: true
       }]

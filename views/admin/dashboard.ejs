@@ -8,35 +8,32 @@
   <style>
     /* ── ONU STATUS DOT ── */
     .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-    .dot-on{background:var(--success);box-shadow:0 0 6px var(--success)}
+    .dot-on{background:var(--success)}
     .dot-off{background:var(--danger)}
-
-    /* ── PULSE ANIMATION (online) ── */
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .pulse{animation:pulse 2s infinite}
 
     /* ── MONITORING SECTION ── */
     #monitoring-section{display:none}
     #dashboard-section{display:block}
 
     /* ── NAV TABS ── */
-    .tab-bar{display:flex;gap:4px;background:var(--bg3);padding:4px;border-radius:10px;margin-bottom:20px;width:fit-content}
-    .tab-btn{padding:8px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
-    .tab-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+    .tab-bar{display:flex;gap:4px;background:#e5e7eb;padding:4px;border-radius:9px;margin-bottom:20px;width:fit-content}
+    .tab-btn{padding:7px 18px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:background-color .15s,color .15s}
+    .tab-btn:hover{color:var(--text)}
+    .tab-btn.active{background:var(--bg2);color:var(--primary);font-weight:600;border-color:var(--border);box-shadow:0 1px 2px rgba(15,23,42,.05)}
     .tab-btn i{margin-right:6px}
 
-    /* ── DEVICE STATUS BADGE ── */
-    .ds-on{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
-    .ds-off{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+    /* ── DEVICE STATUS BADGE (WCAG AA) ── */
+    .ds-on{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+    .ds-off{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
 
-    /* ── LIVE INDICATOR ── */
-    .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 1.5s infinite}
+    /* ── STATUS BAR ── */
+    .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block}
     .realtime-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 
     /* ── CHART WRAPPER ── */
     #donut-wrap{position:relative;width:160px;height:160px;margin:0 auto}
     .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-    .donut-num{font-size:28px;font-weight:700;line-height:1}
+    .donut-num{font-size:28px;font-weight:700;line-height:1;color:var(--text)}
     .donut-lbl{font-size:11px;color:var(--muted);margin-top:2px}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -48,14 +45,16 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="tb-title">
-      <button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      <button class="hb-menu" onclick="toggleSidebar()" aria-label="Toggle Menu"><i class="bi bi-list"></i></button>
       <i class="bi bi-speedometer2"></i>
       <span id="page-title"><%= t('admin.nav.dashboard', 'Dashboard') %></span>
     </div>
     <div class="tb-right">
-      <div class="realtime-bar"><span class="live-dot"></span> <%= t('admin.dashboard.live_update', 'Live Update') %></div>
+      <button type="button" class="btn btn-g btn-sm" onclick="manualRefreshAll()" title="<%= t('common.refresh', 'Refresh') %>">
+        <i class="bi bi-arrow-clockwise"></i> <span class="realtime-bar" style="color:inherit"><%= t('common.refresh', 'Refresh') %></span>
+      </button>
       <span class="adm-badge">
-        <i class="bi bi-person-fill"></i> 
+        <i class="bi bi-person-circle"></i> 
         <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %>
       </span>
       <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i> <%= t('common.logout', 'Logout') %></a>
@@ -64,11 +63,11 @@
 
   <div class="page">
     <!-- TAB NAVIGATION -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab-dash" onclick="showTab('dashboard')">
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" id="tab-dash" role="tab" aria-selected="true" onclick="showTab('dashboard')">
         <i class="bi bi-speedometer2"></i><%= t('admin.nav.dashboard', 'Dashboard') %>
       </button>
-      <button class="tab-btn" id="tab-mon" onclick="showTab('monitoring')">
+      <button class="tab-btn" id="tab-mon" role="tab" aria-selected="false" onclick="showTab('monitoring')">
         <i class="bi bi-router"></i><%= t('admin.dashboard.monitoring_onu', 'Monitoring ONU') %>
       </button>
     </div>
@@ -79,30 +78,30 @@
     <div id="dashboard-section">
 
       <!-- ONU Stats -->
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px">
         <i class="bi bi-router"></i> <%= t('admin.dashboard.onu_status_title', 'Status ONU') %>
       </div>
       <div class="stat-grid">
         <div class="sc p">
-          <i class="bi bi-router sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-router"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.total_onu', 'Total ONU') %></div>
           <div class="sc-val" id="stat-total"><span class="text-muted" style="font-size:16px">...</span></div>
           <div class="sc-sub"><%= t('admin.dashboard.onu_registered', 'Perangkat terdaftar') %></div>
         </div>
         <div class="sc s">
-          <i class="bi bi-wifi sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-wifi"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.online', 'Online') %></div>
           <div class="sc-val" id="stat-online"><span class="text-muted" style="font-size:16px">...</span></div>
           <div class="sc-sub"><%= t('admin.dashboard.active_now', 'Aktif saat ini') %></div>
         </div>
         <div class="sc d">
-          <i class="bi bi-wifi-off sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-wifi-off"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.offline', 'Offline') %></div>
           <div class="sc-val" id="stat-offline"><span class="text-muted" style="font-size:16px">...</span></div>
           <div class="sc-sub"><%= t('admin.dashboard.no_response', 'Tidak merespons') %></div>
         </div>
         <div class="sc w">
-          <i class="bi bi-exclamation-triangle sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-exclamation-triangle"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.warning', 'Warning') %></div>
           <div class="sc-val" id="stat-warning"><span class="text-muted" style="font-size:16px">...</span></div>
           <div class="sc-sub"><%= t('admin.dashboard.needs_attention', 'Perlu perhatian') %></div>
@@ -111,30 +110,30 @@
 
       <!-- Billing Stats -->
       <% if (typeof billing !== 'undefined' && billing) { %>
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:20px 0 10px;display:flex;align-items:center;gap:6px">
         <i class="bi bi-receipt"></i> <%= t('admin.dashboard.billing_summary_month', 'Ringkasan Billing Bulan Ini') %>
       </div>
       <div class="stat-grid">
         <div class="sc s" style="cursor:pointer" onclick="location.href='/admin/billing'">
-          <i class="bi bi-cash-stack sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-cash-stack"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.revenue_month', 'Pendapatan Bulan Ini') %></div>
           <div class="sc-val" style="font-size:20px">Rp&nbsp;<%= billing.thisMonth.toLocaleString('id-ID') %></div>
           <div class="sc-sub"><%= t('admin.dashboard.collected', 'Sudah terkumpul') %></div>
         </div>
         <div class="sc p" style="cursor:pointer" onclick="location.href='/admin/customers'">
-          <i class="bi bi-people sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-people"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.active_customers', 'Pelanggan Aktif') %></div>
           <div class="sc-val"><%= custStats ? custStats.active : 0 %></div>
           <div class="sc-sub"><%= t('admin.dashboard.from', 'Dari') %> <%= custStats ? custStats.total : 0 %> <%= t('admin.dashboard.total_customers_suffix', 'total pelanggan') %></div>
         </div>
         <div class="sc d" style="cursor:pointer" onclick="location.href='/admin/billing?status=unpaid'">
-          <i class="bi bi-hourglass sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-hourglass"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.unpaid_invoices', 'Tagihan Belum Bayar') %></div>
           <div class="sc-val"><%= billing.unpaidCount %></div>
           <div class="sc-sub"><%= t('admin.dashboard.awaiting_payment', 'Menunggu pembayaran') %></div>
         </div>
         <div class="sc w" style="cursor:pointer" onclick="location.href='/admin/reports'">
-          <i class="bi bi-bar-chart-line sc-icon"></i>
+          <div class="sc-icon"><i class="bi bi-bar-chart-line"></i></div>
           <div class="sc-label"><%= t('admin.dashboard.total_receivable', 'Total Piutang') %></div>
           <div class="sc-val" style="font-size:20px">Rp&nbsp;<%= billing.pendingAmount.toLocaleString('id-ID') %></div>
           <div class="sc-sub"><%= t('admin.dashboard.not_collected', 'Belum tertagih') %></div>
@@ -147,7 +146,7 @@
 
         <!-- Donut Chart -->
         <div class="card">
-          <div class="card-hd"><h6><i class="bi bi-pie-chart"></i> <%= t('admin.dashboard.onu_status_title', 'Status ONU') %></h6></div>
+          <div class="card-hd"><h6><i class="bi bi-pie-chart"></i> <%= t('admin.dashboard.onu_status_title', 'Raslo Koneksi ONU') %></h6></div>
           <div class="card-bd" style="display:flex;flex-direction:column;align-items:center;gap:16px">
             <div id="donut-wrap">
               <canvas id="donutChart"></canvas>
@@ -166,7 +165,7 @@
                 <span id="leg-offline" class="fw6" style="color:var(--danger)">-</span>
               </div>
             </div>
-            <div style="font-size:11px;color:var(--muted);text-align:center" id="last-update-time">—</div>
+            <div style="font-size:11px;color:var(--muted);text-align:center" id="last-update-time">-</div>
           </div>
         </div>
 
@@ -174,40 +173,40 @@
         <div style="display:flex;flex-direction:column;gap:14px">
           <!-- Quick Actions -->
           <div class="card">
-            <div class="card-hd"><h6><i class="bi bi-lightning-charge"></i> <%= t('admin.dashboard.quick_actions', 'Aksi Cepat') %></h6></div>
+            <div class="card-hd"><h6><i class="bi bi-grid"></i> <%= t('admin.dashboard.quick_actions', 'Aksi Cepat') %></h6></div>
             <div class="card-bd quick-actions-grid">
-              <a href="/admin/customers" class="btn btn-g" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <a href="/admin/customers" class="btn btn-g" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-person-plus" style="font-size:20px;color:var(--primary)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_add_customer', 'Tambah Pelanggan') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_add_customer', 'Tambah Pelanggan') %></span>
               </a>
-              <a href="/admin/packages" class="btn btn-g" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <a href="/admin/packages" class="btn btn-g" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-box-seam" style="font-size:20px;color:var(--success)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_manage_packages', 'Kelola Paket') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_manage_packages', 'Kelola Paket') %></span>
               </a>
-              <a href="/admin/billing" class="btn btn-g" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <a href="/admin/billing" class="btn btn-g" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-receipt" style="font-size:20px;color:var(--warning)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_create_invoice', 'Buat Tagihan') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_create_invoice', 'Buat Tagihan') %></span>
               </a>
-              <a href="/admin/reports" class="btn btn-g" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <a href="/admin/reports" class="btn btn-g" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-bar-chart-line" style="font-size:20px;color:var(--info)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_reports', 'Laporan') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_reports', 'Laporan') %></span>
               </a>
-              <button class="btn btn-g" onclick="showTab('monitoring')" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <button class="btn btn-g" onclick="showTab('monitoring')" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-router" style="font-size:20px;color:var(--danger)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_monitor_onu', 'Monitor ONU') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_monitor_onu', 'Monitor ONU') %></span>
               </button>
-              <a href="/admin/bulk" class="btn btn-g" style="flex-direction:column;gap:4px;padding:14px 10px;text-align:center">
+              <a href="/admin/bulk" class="btn btn-g" style="flex-direction:column;gap:6px;padding:14px 10px;text-align:center;background:var(--bg3)">
                 <i class="bi bi-layers" style="font-size:20px;color:var(--muted)"></i>
-                <span style="font-size:12px"><%= t('admin.dashboard.qa_bulk', 'Bulk Config') %></span>
+                <span style="font-size:12px;font-weight:600"><%= t('admin.dashboard.qa_bulk', 'Bulk Config') %></span>
               </a>
             </div>
           </div>
 
           <!-- Top Offline Devices -->
-          <div class="card" style="flex:1">
+          <div class="card" style="flex:1;margin-bottom:0">
             <div class="card-hd">
               <h6><i class="bi bi-exclamation-circle"></i> <%= t('admin.dashboard.latest_offline', 'ONU Offline Terbaru') %></h6>
-              <button class="btn btn-g btn-sm" onclick="showTab('monitoring')"><i class="bi bi-arrow-right"></i> <%= t('common.view_all', 'Lihat Semua') %></button>
+              <button class="btn btn-g btn-sm" onclick="showTab('monitoring')"><%= t('common.view_all', 'Lihat Semua') %></button>
             </div>
             <div id="offline-list" style="padding:0">
               <div class="text-center text-muted" style="padding:24px;font-size:13px"><%= t('common.loading', 'Memuat data...') %></div>
@@ -224,10 +223,10 @@
 
       <!-- Stats mini -->
       <div class="stat-grid" style="margin-bottom:18px">
-        <div class="sc p"><i class="bi bi-router sc-icon"></i><div class="sc-label"><%= t('admin.dashboard.total_onu', 'Total ONU') %></div><div class="sc-val" id="m-total">-</div></div>
-        <div class="sc s"><i class="bi bi-wifi sc-icon"></i><div class="sc-label"><%= t('admin.dashboard.online', 'Online') %></div><div class="sc-val" id="m-online">-</div></div>
-        <div class="sc d"><i class="bi bi-wifi-off sc-icon"></i><div class="sc-label"><%= t('admin.dashboard.offline', 'Offline') %></div><div class="sc-val" id="m-offline">-</div></div>
-        <div class="sc i"><i class="bi bi-percent sc-icon"></i><div class="sc-label"><%= t('admin.dashboard.uptime', 'Uptime') %></div><div class="sc-val" id="m-pct">-%</div></div>
+        <div class="sc p"><div class="sc-icon"><i class="bi bi-router"></i></div><div class="sc-label"><%= t('admin.dashboard.total_onu', 'Total ONU') %></div><div class="sc-val" id="m-total">-</div></div>
+        <div class="sc s"><div class="sc-icon"><i class="bi bi-wifi"></i></div><div class="sc-label"><%= t('admin.dashboard.online', 'Online') %></div><div class="sc-val" id="m-online">-</div></div>
+        <div class="sc d"><div class="sc-icon"><i class="bi bi-wifi-off"></i></div><div class="sc-label"><%= t('admin.dashboard.offline', 'Offline') %></div><div class="sc-val" id="m-offline">-</div></div>
+        <div class="sc i"><div class="sc-icon"><i class="bi bi-percent"></i></div><div class="sc-label"><%= t('admin.dashboard.uptime', 'Uptime') %></div><div class="sc-val" id="m-pct">-%</div></div>
       </div>
 
       <!-- Search & Filter -->
@@ -248,15 +247,12 @@
           <i class="bi bi-arrow-clockwise"></i> <%= t('common.refresh', 'Refresh') %>
         </button>
         <div class="realtime-bar" style="margin-left:auto">
-          <span class="live-dot"></span> <%= t('admin.dashboard.realtime', 'Realtime Monitoring') %>
-        </div>
-        <div class="realtime-bar">
           <i class="bi bi-arrow-repeat"></i> TR-069 terakhir: <strong id="monitor-sync-time">-</strong>
         </div>
       </div>
 
       <!-- Bulk Actions Panel -->
-      <div id="monBulkActionsPanel" style="display: none; background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.15); padding: 12px 20px; border-radius: 12px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
+      <div id="monBulkActionsPanel" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 20px; border-radius: 12px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
           <div style="font-size: 13px; font-weight: 600; color: var(--text);">
               <span id="monSelectedCount">0</span> perangkat terpilih
           </div>
@@ -546,7 +542,7 @@ function updateDonut(online, offline) {
     data: {
       datasets: [{
         data: [online, offline],
-        backgroundColor: ['#3fb950', '#f85149'],
+        backgroundColor: ['#15803d', '#dc2626'],
         borderWidth: 0,
         hoverOffset: 4
       }]
@@ -764,32 +760,32 @@ async function showDetail(tag) {
     const syncStateText = d.syncInProgress ? `${I18N.syncRunning} (${d.syncPendingCount || 0})` : (d.syncStatusLabel || '-');
     const connected = Array.isArray(d.connectedUsers) ? d.connectedUsers : [];
     document.getElementById('device-detail').innerHTML = `
-      <div style="padding:14px 16px;border-radius:12px;margin-bottom:16px;font-weight:700;border:1px solid var(--border);background:${isOn ? 'rgba(16,185,129,.10)' : 'rgba(239,68,68,.10)'};color:${isOn ? 'var(--success)' : 'var(--danger)'}">
+      <div style="padding:14px 16px;border-radius:10px;margin-bottom:16px;font-weight:700;border:1px solid var(--border);background:${isOn ? '#dcfce7' : '#fee2e2'};color:${isOn ? '#166534' : '#991b1b'}">
         <i class="bi bi-circle-fill" style="font-size:10px"></i>
         ${isOn ? I18N.online : I18N.offline}
-        <span style="color:var(--muted);font-weight:600">— ${I18N.lastInform}: ${lastInformText} | ${I18N.lastSync}: ${lastSyncText} | Queue: ${syncStateText}</span>
+        <span style="color:var(--muted);font-weight:600">&bull; ${I18N.lastInform}: ${lastInformText} | ${I18N.lastSync}: ${lastSyncText} | Queue: ${syncStateText}</span>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
           <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:var(--muted)"><i class="bi bi-info-circle"></i> Device Info</div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">Tag</span><span style="font-weight:800">${d.phone || '-'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">Model</span><span>${d.model || '-'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">Serial</span><code style="color:var(--info)">${d.serialNumber || '-'}</code></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Tag</span><span style="font-weight:800">${d.phone || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Model</span><span>${d.model || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Serial</span><code style="color:var(--info)">${d.serialNumber || '-'}</code></div>
           <div style="display:flex;justify-content:space-between;padding:8px 18px"><span style="color:var(--muted)">SW Version</span><span>${d.softwareVersion || '-'}</span></div>
         </div>
 
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
           <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:var(--muted)"><i class="bi bi-diagram-3"></i> Network Info</div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">PPPoE User</span><span>${d.pppoeUsername || '-'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">IP</span><code>${d.pppoeIP || '-'}</code></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">RX Power</span><span class="badge" style="background:var(--primary);color:white">${d.rxPower || '-'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid rgba(51,65,85,.10)"><span style="color:var(--muted)">SSID</span><span>${d.ssid || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">PPPoE User</span><span>${d.pppoeUsername || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">IP</span><code>${d.pppoeIP || '-'}</code></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">RX Power</span><span class="badge bp">${d.rxPower || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">SSID</span><span>${d.ssid || '-'}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 18px"><span style="color:var(--muted)">Uptime</span><span>${d.uptime || '-'}</span></div>
         </div>
       </div>
 
-      <div style="margin-top:16px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="margin-top:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div><i class="bi bi-people"></i> Connected Clients (Live)</div>
           <span class="badge bm">${connected.length}</span>
@@ -800,9 +796,9 @@ async function showDetail(tag) {
             const isWiFi = iface.toLowerCase().includes('wifi') || iface.toLowerCase().includes('wlan') || iface.toLowerCase().includes('802.11');
             const isUon = String(u.status || '').toLowerCase() === 'online';
             return `
-              <div style="background:var(--sub-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+              <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                  <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,.10);color:var(--primary)">
+                  <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:var(--primary)">
                     <i class="bi bi-${isWiFi ? 'wifi' : 'ethernet'}"></i>
                   </div>
                   <div style="flex:1">
@@ -918,7 +914,7 @@ function showToast(msg, type = 's') {
   
   const t = document.createElement('div');
   t.className = 'toast-notif';
-  t.style.cssText = `position:fixed;bottom:32px;right:32px;z-index:10000;background:var(--bg2);border-left:5px solid var(--${type==='s'?'success':'danger'});border-radius:8px;padding:16px 24px;font-size:14px;display:flex;align-items:center;gap:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);animation:slideInRight .3s ease;color:var(--text);min-width:300px`;
+  t.style.cssText = `position:fixed;bottom:32px;right:32px;z-index:10000;background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--${type==='s'?'success':'danger'});border-radius:8px;padding:16px 24px;font-size:14px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 25px rgba(15,23,42,.12);animation:slideInRight .3s ease;color:var(--text);min-width:300px`;
   
   const icon = type === 's' ? 'check-circle-fill' : 'exclamation-circle-fill';
   const color = type === 's' ? 'var(--success)' : 'var(--danger)';
@@ -1051,9 +1047,9 @@ function showGenieACSMessage(msg, type) {
   messageDiv.style.display = 'block';
   
   const colors = {
-    success: { bg: 'rgba(63, 185, 80, 0.15)', border: 'rgba(63, 185, 80, 0.3)', text: '#3fb950' },
-    danger: { bg: 'rgba(248, 81, 73, 0.15)', border: 'rgba(248, 81, 73, 0.3)', text: '#f85149' },
-    info: { bg: 'rgba(102, 126, 234, 0.15)', border: 'rgba(102, 126, 234, 0.3)', text: '#667eea' }
+    success: { bg: '#dcfce7', border: '#bbf7d0', text: '#166534' },
+    danger: { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' },
+    info: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af' }
   };
   
   const color = colors[type] || colors.info;

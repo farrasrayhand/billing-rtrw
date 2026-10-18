@@ -111,7 +111,7 @@
       <div class="card-hd">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <h6 style="margin:0;"><i class="bi bi-people"></i> <%= t('admin.customers.list', 'Daftar Pelanggan') %> (<%= customers.length %>)</h6>
-          <span id="bulkCustCount" class="badge" style="display:none;background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);font-size:11px;padding:4px 8px;">0 dipilih</span>
+          <span id="bulkCustCount" class="badge" style="display:none;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:11px;padding:4px 8px;">0 dipilih</span>
           <button type="button" class="btn btn-d btn-sm" id="bulkCustDeleteBtn" style="display:none;" title="Hapus Pelanggan Terpilih">
             <i class="bi bi-trash"></i> Hapus Terpilih
           </button>
@@ -187,7 +187,7 @@
                   <%= c.name %>
                   <i class="bi bi-info-circle-fill" style="font-size:12px;opacity:0.75;"></i>
                 </a>
-                <div style="font-size:11px;font-weight:700;color:#10b981;margin-top:2px;display:flex;align-items:center;gap:4px;" title="Saldo Dompet Pelanggan">
+                <div style="font-size:11px;font-weight:700;color:var(--success);margin-top:2px;display:flex;align-items:center;gap:4px;" title="Saldo Dompet Pelanggan">
                   <i class="bi bi-wallet2"></i> Rp <%= Number(c.balance || 0).toLocaleString('id-ID') %>
                 </div>
               </td>
@@ -231,7 +231,7 @@
                   }
                 %>
                 <% if (isOnline) { %>
-                  <span class="badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.35);font-weight:700">
+                  <span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:700">
                     <i class="bi bi-circle-fill" style="font-size:7px;margin-right:4px"></i>ONLINE
                   </span>
                   <div style="font-size:12px;font-weight:800;color:var(--text);margin-top:3px">
@@ -241,19 +241,19 @@
                     <span class="conn-ip"><%= session.ip %></span><% if (session.type) { %> (<%= session.type.toUpperCase() %>)<% } %>
                   </div>
                 <% } else { %>
-                  <span class="badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.25)">
+                  <span class="badge" style="background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb">
                     <i class="bi bi-circle-fill" style="font-size:7px;margin-right:4px"></i>OFFLINE
                   </span>
                   <div style="font-size:10px;color:var(--muted);margin-top:3px">Tidak Terhubung</div>
                 <% } %>
                 <div style="font-size:11px;margin-top:4px;display:flex;gap:6px;font-family:monospace;flex-wrap:wrap">
-                  <span style="color:#38bdf8" title="Download (Receive)"><i class="bi bi-arrow-down"></i>RX: <strong class="conn-rx"><%= fmtB(rxBytes) %></strong></span>
-                  <span style="color:#f472b6" title="Upload (Transmit)"><i class="bi bi-arrow-up"></i>TX: <strong class="conn-tx"><%= fmtB(txBytes) %></strong></span>
+                  <span style="color:var(--info)" title="Download (Receive)"><i class="bi bi-arrow-down"></i>RX: <strong class="conn-rx"><%= fmtB(rxBytes) %></strong></span>
+                  <span style="color:#be185d" title="Upload (Transmit)"><i class="bi bi-arrow-up"></i>TX: <strong class="conn-tx"><%= fmtB(txBytes) %></strong></span>
                 </div>
               </td>
               <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                 <div><%= c.address || '-' %></div>
-                <% if (c.area) { %><div style="font-size:11px;color:#818cf8"><i class="bi bi-geo-alt"></i> <%= c.area %></div><% } %>
+                <% if (c.area) { %><div style="font-size:11px;color:var(--primary)"><i class="bi bi-geo-alt"></i> <%= c.area %></div><% } %>
               </td>
               <td>
                 <% if (c.status==='active') { %><span class="badge bs"><i class="bi bi-circle-fill" style="font-size:7px"></i><%= t('admin.customers.filter.active', 'Aktif') %></span>
@@ -276,7 +276,7 @@
                 <a href="/admin/customers/<%= c.id %>/sticker-onu" target="_blank" class="btn btn-g btn-icon btn-sm" title="Cetak Stiker Modem / ONU"><i class="bi bi-qr-code"></i></a>
                 <button class="btn btn-s btn-icon btn-sm" title="<%= t('admin.customers.actions.generate_invoice', 'Generate Tagihan') %>" data-idx="<%= i %>" onclick="openGenInvoice(+this.dataset.idx)"><i class="bi bi-lightning-charge"></i></button>
                 <button class="btn btn-p btn-icon btn-sm" title="<%= t('admin.customers.actions.pay_invoice', 'Bayar Tagihan') %>" data-idx="<%= i %>" onclick="openPayInvoice(+this.dataset.idx)"><i class="bi bi-cash-coin"></i></button>
-                <button class="btn btn-g btn-icon btn-sm" title="Kelola / Top-Up Saldo Dompet" data-idx="<%= i %>" onclick="openTopupModal(+this.dataset.idx)" style="color:#10b981;"><i class="bi bi-wallet2"></i></button>
+                <button class="btn btn-g btn-icon btn-sm" title="Kelola / Top-Up Saldo Dompet" data-idx="<%= i %>" onclick="openTopupModal(+this.dataset.idx)" style="color:var(--success);"><i class="bi bi-wallet2"></i></button>
                 <% if (typeof session !== 'undefined' && session && !session.isCashier) { %>
                 <% if (c.package_id && (c.package_promo_cycles || 0) > 0) { %>
                 <form method="POST" action="/admin/customers/<%= c.id %>/billing/reset-promo-cycles" style="display:inline" onsubmit="return confirm('Reset counter siklus promo untuk pelanggan ini? Tagihan berikutnya akan memakai harga promo lagi sesuai pengaturan paket.')">
@@ -378,7 +378,7 @@
               <select class="fs" name="package_id" required>
                 <option value="">-- Pilih Paket --</option>
                 <% packages.forEach(p => { %>
-                <option value="<%= p.id %>"><%= p.name %> — Rp <%= p.price.toLocaleString('id-ID') %></option>
+                <option value="<%= p.id %>"><%= p.name %> - Rp <%= p.price.toLocaleString('id-ID') %></option>
                 <% }) %>
               </select>
             </div>
@@ -678,7 +678,7 @@
               <select class="fs" name="package_id" id="e_package" required>
                 <option value="">-- Pilih Paket --</option>
                 <% packages.forEach(p => { %>
-                <option value="<%= p.id %>"><%= p.name %> — Rp <%= p.price.toLocaleString('id-ID') %></option>
+                <option value="<%= p.id %>"><%= p.name %> - Rp <%= p.price.toLocaleString('id-ID') %></option>
                 <% }) %>
               </select>
             </div>
@@ -917,8 +917,8 @@
     <form method="POST" id="payInvoiceForm">
       <div class="mbody">
         <div class="alert alert-i"><i class="bi bi-info-circle"></i> <%= t('admin.customers.pay_invoice_hint', 'Untuk pembayaran di muka: pilih periode. Jika tagihan belum ada, sistem akan membuat tagihan lalu langsung menandai Lunas.') %></div>
-        <div id="payInvoicePaidSummary" style="margin:-2px 0 12px 0;color:rgba(148,163,184,1);font-size:12px"></div>
-        <div id="payInvoiceTotal" style="margin:-2px 0 14px 0;padding:10px 12px;border:1px solid rgba(148,163,184,.25);border-radius:12px;background:rgba(15,23,42,0.28);font-weight:700"></div>
+        <div id="payInvoicePaidSummary" style="margin:-2px 0 12px 0;color:var(--muted);font-size:12px"></div>
+        <div id="payInvoiceTotal" style="margin:-2px 0 14px 0;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);font-weight:700"></div>
         <div class="fg">
           <label class="fl"><%= t('admin.customers.pay_invoice_customer', 'Pelanggan') %></label>
           <input class="fc" id="payInvoiceCustomer" readonly>
@@ -931,10 +931,10 @@
                 ? ['January','February','March','April','May','June','July','August','September','October','November','December']
                 : ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
                  for(let m=1;m<=12;m++){%>
-              <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(148,163,184,.25);border-radius:12px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
                 <input type="checkbox" class="pay-month" name="months" value="<%= m %>" <%= m===new Date().getMonth()+1?'checked':'' %> style="width:16px;height:16px">
                 <span style="font-size:13px"><%= payMns[m-1] %></span>
-                <span class="pay-month-badge" style="margin-left:auto;font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(34,197,94,.12);color:rgba(34,197,94,1);display:none"><%= t('admin.customers.paid_badge', 'Lunas') %></span>
+                <span class="pay-month-badge" style="margin-left:auto;font-size:11px;padding:3px 8px;border-radius:999px;background:#dcfce7;color:#166534;display:none"><%= t('admin.customers.paid_badge', 'Lunas') %></span>
               </label>
               <% } %>
             </div>
@@ -995,7 +995,7 @@
     </div>
     <div class="mbody" style="padding:16px 20px">
       <!-- Status Badge & Quick Info -->
-      <div class="d-flex justify-content-between align-items-center mb-3 p-3" style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:12px">
+      <div class="d-flex justify-content-between align-items-center mb-3 p-3" style="background:var(--bg3);border:1px solid var(--border);border-radius:12px">
         <div>
           <h5 id="v_cust_name" class="m-0 font-weight-bold" style="color:var(--text);font-size:16px">-</h5>
           <span class="text-muted" style="font-size:12px">ID Pelanggan: #<strong id="v_cust_id">-</strong></span>
@@ -1008,33 +1008,33 @@
       <!-- Grid Data MikroTik & Koneksi -->
       <div class="mb-3">
         <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-router"></i> Data Informasi Koneksi MikroTik</div>
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px">
           <table class="tbl" style="width:100%;border-collapse:collapse;font-size:12px">
             <tr>
               <td style="width:38%;color:var(--muted);padding:6px 0">Username PPPoE / Hotspot</td>
               <td style="padding:6px 0">
-                <code id="v_username" style="font-weight:700;color:#38bdf8;font-size:13px">-</code>
+                <code id="v_username" style="font-weight:700;color:var(--info);font-size:13px">-</code>
                 <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_username', 'Username')"><i class="bi bi-copy"></i> Copy</button>
               </td>
             </tr>
             <tr>
               <td style="color:var(--muted);padding:6px 0">Password PPPoE / Hotspot</td>
               <td style="padding:6px 0">
-                <code id="v_password" style="font-weight:700;color:#f472b6;font-size:13px">-</code>
+                <code id="v_password" style="font-weight:700;color:#be185d;font-size:13px">-</code>
                 <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_password', 'Password')"><i class="bi bi-copy"></i> Copy</button>
               </td>
             </tr>
             <tr>
               <td style="color:var(--muted);padding:6px 0">IP Address (Sesi / Static)</td>
               <td style="padding:6px 0">
-                <code id="v_ip" style="font-weight:700;color:#4ade80;font-size:13px">-</code>
+                <code id="v_ip" style="font-weight:700;color:var(--success);font-size:13px">-</code>
                 <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_ip', 'IP Address')"><i class="bi bi-copy"></i> Copy</button>
               </td>
             </tr>
             <tr>
               <td style="color:var(--muted);padding:6px 0">MAC Address / Caller-ID</td>
               <td style="padding:6px 0">
-                <code id="v_mac" style="font-weight:700;color:#fbbf24;font-size:12px">-</code>
+                <code id="v_mac" style="font-weight:700;color:var(--warning);font-size:12px">-</code>
                 <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_mac', 'MAC Address')"><i class="bi bi-copy"></i> Copy</button>
               </td>
             </tr>
@@ -1057,18 +1057,18 @@
       <!-- Grid Trafik Data & Pemakaian -->
       <div class="mb-3">
         <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-arrow-down-up"></i> Data Statistik Trafik Data & Pemakaian</div>
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px">
           <div class="row g-2 text-center mb-2">
             <div class="col-6">
-              <div style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:10px">
-                <div style="font-size:11px;color:#38bdf8;font-weight:700"><i class="bi bi-arrow-down-circle me-1"></i>RX (Download)</div>
+              <div style="background:#e0f2fe;border:1px solid #bae6fd;border-radius:8px;padding:10px">
+                <div style="font-size:11px;color:var(--info);font-weight:700"><i class="bi bi-arrow-down-circle me-1"></i>RX (Download)</div>
                 <div id="v_rx_fmt" style="font-size:18px;font-weight:900;color:var(--text);margin-top:2px">-</div>
                 <div id="v_rx_bytes" style="font-size:11px;color:var(--muted)">0 Bytes</div>
               </div>
             </div>
             <div class="col-6">
-              <div style="background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);border-radius:8px;padding:10px">
-                <div style="font-size:11px;color:#f472b6;font-weight:700"><i class="bi bi-arrow-up-circle me-1"></i>TX (Upload)</div>
+              <div style="background:#fce7f3;border:1px solid #fbcfe8;border-radius:8px;padding:10px">
+                <div style="font-size:11px;color:#be185d;font-weight:700"><i class="bi bi-arrow-up-circle me-1"></i>TX (Upload)</div>
                 <div id="v_tx_fmt" style="font-size:18px;font-weight:900;color:var(--text);margin-top:2px">-</div>
                 <div id="v_tx_bytes" style="font-size:11px;color:var(--muted)">0 Bytes</div>
               </div>
@@ -1084,7 +1084,7 @@
       <!-- Info Pelanggan Tambahan -->
       <div>
         <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-person-vcard"></i> Data Informasi Pelanggan</div>
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px">
           <table class="tbl" style="width:100%;border-collapse:collapse;font-size:12px">
             <tr>
               <td style="width:38%;color:var(--muted);padding:6px 0">NIK / No. KTP</td>
@@ -1115,7 +1115,7 @@
             <tr>
               <td style="color:var(--muted);padding:6px 0">Saldo Dompet Pelanggan</td>
               <td style="padding:6px 0">
-                <span id="v_balance" style="font-weight:700;color:#10b981;font-size:14px">Rp 0</span>
+                <span id="v_balance" style="font-weight:700;color:var(--success);font-size:14px">Rp 0</span>
                 <button type="button" class="btn btn-s btn-sm py-0 px-2 ms-2" onclick="openTopupFromDetail()"><i class="bi bi-wallet2"></i> Kelola Saldo</button>
               </td>
             </tr>
@@ -1136,7 +1136,7 @@
     </div>
     <div class="mf d-flex justify-content-between align-items-center">
       <form id="v_disconnect_form" method="POST" action="" style="display:inline" onsubmit="return confirm('Apakah Anda yakin ingin MEMUTUS koneksi aktif pelanggan ini dari MikroTik?')">
-        <button type="submit" class="btn btn-d btn-sm fw-bold" style="background:#ef4444;color:#fff;border:none;padding:6px 14px">
+        <button type="submit" class="btn btn-d btn-sm fw-bold" style="background:var(--danger);color:#fff;border:none;padding:6px 14px">
           <i class="bi bi-power me-1"></i> Putus Sesi Active MikroTik
         </button>
       </form>
@@ -1155,7 +1155,7 @@
     <form method="POST" id="topupBalanceForm" action="">
       <div class="mbody" style="padding:16px 20px;">
         <!-- Info Pelanggan & Saldo Sekarang -->
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px;margin-bottom:16px;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;">
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Pelanggan</div>
@@ -1163,7 +1163,7 @@
             </div>
             <div class="text-end">
               <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Saldo Saat Ini</div>
-              <div id="topupCurrentBalance" style="font-weight:800;color:#10b981;font-size:16px;margin-top:2px;">Rp 0</div>
+              <div id="topupCurrentBalance" style="font-weight:800;color:var(--success);font-size:16px;margin-top:2px;">Rp 0</div>
             </div>
           </div>
         </div>
@@ -1172,18 +1172,18 @@
         <div class="fg" style="margin-bottom:14px;">
           <label class="fl" style="font-weight:600;margin-bottom:6px;">Jenis Transaksi Saldo</label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid rgba(16,185,129,0.4);border-radius:10px;cursor:pointer;background:rgba(16,185,129,0.06);">
-              <input type="radio" name="action_type" value="add" checked onchange="updateTopupActionUI()" style="width:16px;height:16px;accent-color:#10b981;">
+            <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #bbf7d0;border-radius:10px;cursor:pointer;background:#dcfce7;">
+              <input type="radio" name="action_type" value="add" checked onchange="updateTopupActionUI()" style="width:16px;height:16px;accent-color:#15803d;">
               <div>
-                <div style="font-weight:700;font-size:13px;color:#10b981;"><i class="bi bi-plus-circle"></i> Tambah / Deposit</div>
-                <div style="font-size:10px;color:var(--muted);">Setor tunai / penambahan</div>
+                <div style="font-weight:700;font-size:13px;color:#166534;"><i class="bi bi-plus-circle"></i> Tambah / Deposit</div>
+                <div style="font-size:10px;color:#374151;">Setor tunai / penambahan</div>
               </div>
             </label>
-            <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;cursor:pointer;background:rgba(239,68,68,0.04);">
-              <input type="radio" name="action_type" value="deduct" onchange="updateTopupActionUI()" style="width:16px;height:16px;accent-color:#ef4444;">
+            <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #fecaca;border-radius:10px;cursor:pointer;background:#fee2e2;">
+              <input type="radio" name="action_type" value="deduct" onchange="updateTopupActionUI()" style="width:16px;height:16px;accent-color:#dc2626;">
               <div>
-                <div style="font-weight:700;font-size:13px;color:#ef4444;"><i class="bi bi-dash-circle"></i> Potong / Koreksi</div>
-                <div style="font-size:10px;color:var(--muted);">Penyesuaian / refund</div>
+                <div style="font-weight:700;font-size:13px;color:#991b1b;"><i class="bi bi-dash-circle"></i> Potong / Koreksi</div>
+                <div style="font-size:10px;color:#374151;">Penyesuaian / refund</div>
               </div>
             </label>
           </div>
@@ -1221,9 +1221,9 @@
 
         <!-- Checkbox Notifikasi WhatsApp -->
         <div class="fg" style="margin-bottom:6px;">
-          <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:8px;cursor:pointer;">
-            <input type="checkbox" name="send_wa" id="topupSendWa" checked style="width:16px;height:16px;accent-color:#10b981;">
-            <span style="font-size:12px;font-weight:600;color:var(--text);"><i class="bi bi-whatsapp text-success me-1"></i> Kirim Struk / Notifikasi WhatsApp ke Pelanggan</span>
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" name="send_wa" id="topupSendWa" checked style="width:16px;height:16px;accent-color:#15803d;">
+            <span style="font-size:12px;font-weight:600;color:#166534;"><i class="bi bi-whatsapp text-success me-1"></i> Kirim Struk / Notifikasi WhatsApp ke Pelanggan</span>
           </label>
         </div>
       </div>
@@ -1326,13 +1326,13 @@ function viewCustDetail(idx) {
     if (document.getElementById('v_online_badge')) {
       if (isOnline) {
         document.getElementById('v_online_badge').innerHTML = `
-          <span class="badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.35);font-size:12px;padding:6px 12px;font-weight:800">
+          <span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:12px;padding:6px 12px;font-weight:800">
             <i class="bi bi-circle-fill" style="font-size:8px;margin-right:6px"></i>ONLINE
           </span>
         `;
       } else {
         document.getElementById('v_online_badge').innerHTML = `
-          <span class="badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.25);font-size:12px;padding:6px 12px">
+          <span class="badge" style="background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb;font-size:12px;padding:6px 12px">
             <i class="bi bi-circle-fill" style="font-size:8px;margin-right:6px"></i>OFFLINE
           </span>
         `;

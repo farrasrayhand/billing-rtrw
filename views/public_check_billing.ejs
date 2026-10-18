@@ -10,55 +10,57 @@
   <link rel="icon" href="/img/logo.png">
   <style>
     body{
-      background: radial-gradient(1200px 600px at 10% 0%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%),
-        radial-gradient(900px 450px at 100% 0%, rgba(59, 130, 246, 0.18) 0%, rgba(15, 23, 42, 0) 55%),
-        #0f172a;
-      color:#e2e8f0;
+      background: #f3f4f6;
+      color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
+    :focus-visible{outline:2px solid #2563eb;outline-offset:2px}
     .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
-    .cardx{background: rgba(30, 41, 59, 0.92);backdrop-filter: blur(10px);border: 1px solid #334155;border-radius: 20px;box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);overflow:hidden;max-width: 720px;width:100%}
-    .head{background: linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(59, 130, 246, 0.2) 100%);padding:22px 20px;border-bottom:1px solid rgba(148,163,184,.18)}
+    .cardx{background: #ffffff;border: 1px solid #e5e7eb;border-radius: 16px;box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);overflow:hidden;max-width: 720px;width:100%}
+    .head{background: #f8fafc;padding:20px 22px;border-bottom:1px solid #e5e7eb}
     .body{padding:22px 20px}
-    .form-control,.form-select{background: rgba(15, 23, 42, 0.6);border: 1px solid #334155;color:#e2e8f0;border-radius: 12px}
-    .form-control:focus,.form-select:focus{background: rgba(15, 23, 42, 0.75);border-color: rgba(99, 102, 241, 0.85);box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);color:#e2e8f0}
-    .muted{color: rgba(148, 163, 184, 0.9)}
+    .form-control,.form-select{background: #ffffff;border: 1px solid #cbd5e1;color:#111827;border-radius: 10px}
+    .form-control:focus,.form-select:focus{background: #ffffff;border-color: #2563eb;box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);color:#111827}
+    .muted{color: #4b5563}
     .tbl{width:100%;border-collapse:separate;border-spacing:0}
-    .tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid rgba(148,163,184,.18);vertical-align:middle}
-    .tbl thead th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:rgba(148,163,184,.95)}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid rgba(148,163,184,.18)}
-    .pill-u{background: rgba(248, 81, 73, .12);color:#fca5a5;border-color: rgba(248, 81, 73, .28)}
-    .pill-p{background: rgba(63, 185, 80, .12);color:#86efac;border-color: rgba(63, 185, 80, .28)}
-    .btnx{border-radius:12px;font-weight:700}
-    .btn-primary{background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);border:none}
-    a{color:#a5b4fc}
+    .tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;color:#111827}
+    .tbl thead th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#374151;background:#f8fafc;font-weight:700}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid #e5e7eb}
+    .pill-u{background: #fee2e2;color:#991b1b;border-color: #fecaca}
+    .pill-p{background: #dcfce7;color:#166534;border-color: #bbf7d0}
+    .btnx{border-radius:10px;font-weight:700}
+    .btn-primary{background: #2563eb;border:1px solid #2563eb;color:#ffffff}
+    .btn-primary:hover{background: #1d4ed8;border-color:#1d4ed8;color:#ffffff}
+    .btn-outline-secondary-custom{background:#ffffff;border:1px solid #cbd5e1;color:#374151}
+    .btn-outline-secondary-custom:hover{background:#f8fafc;border-color:#2563eb;color:#2563eb}
+    a{color:#2563eb;font-weight:600}
     .payment-methods-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
     @media (max-width: 390px){.payment-methods-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .pay-scroll{max-height: 220px; overflow:auto; padding-right: 4px}
     .pm-radio{position:absolute;opacity:0;pointer-events:none}
-    .pay-method-item{display:flex;align-items:center;gap:12px;padding:12px 12px;background: rgba(15, 23, 42, 0.55);border: 1px solid rgba(148, 163, 184, 0.16);border-radius: 14px;cursor:pointer;transition: all .2s ease}
-    .pay-method-item:hover{background: rgba(15, 23, 42, 0.75);border-color: rgba(99, 102, 241, 0.7);transform: translateY(-1px);box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35)}
-    .pm-radio:checked + .pay-method-item{background: rgba(99, 102, 241, 0.12);border-color: rgba(99, 102, 241, 0.85);box-shadow: 0 18px 34px rgba(99, 102, 241, 0.12)}
-    .p-icon{width:42px;height:42px;background: rgba(30, 41, 59, 0.9);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#6366f1;box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);overflow:hidden;flex:0 0 auto}
-    .p-logo{width:100%;height:100%;object-fit:contain;padding:7px;background: rgba(255, 255, 255, 0.95)}
+    .pay-method-item{display:flex;align-items:center;gap:12px;padding:12px 12px;background: #f8fafc;border: 1px solid #cbd5e1;border-radius: 12px;cursor:pointer;transition: border-color .2s, background-color .2s}
+    .pay-method-item:hover{background: #ffffff;border-color: #2563eb}
+    .pm-radio:checked + .pay-method-item{background: #eff6ff;border-color: #2563eb;border-width: 2px}
+    .p-icon{width:42px;height:42px;background: #eff6ff;border:1px solid #bfdbfe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#2563eb;overflow:hidden;flex:0 0 auto}
+    .p-logo{width:100%;height:100%;object-fit:contain;padding:7px;background: #ffffff}
     .p-badge{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;letter-spacing:.2px;text-transform:uppercase}
-    .pb-qris{background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95));color:#0b1220}
-    .pb-dana{background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(14,165,233,0.95));color:#0b1220}
-    .pb-ovo{background: linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95));color:#0b1220}
-    .pb-shopeepay{background: linear-gradient(135deg, rgba(249,115,22,0.95), rgba(244,63,94,0.95));color:#0b1220}
-    .pb-linkaja{background: linear-gradient(135deg, rgba(239,68,68,0.95), rgba(244,63,94,0.95));color:#0b1220}
-    .pb-gopay{background: linear-gradient(135deg, rgba(34,197,94,0.95), rgba(16,185,129,0.95));color:#0b1220}
-    .pb-bank{background: linear-gradient(135deg, rgba(15,23,42,0.82), rgba(30,41,59,0.92));color:#e2e8f0}
+    .pb-qris{background: #2563eb;color:#ffffff}
+    .pb-dana{background: #0284c7;color:#ffffff}
+    .pb-ovo{background: #7c3aed;color:#ffffff}
+    .pb-shopeepay{background: #ea580c;color:#ffffff}
+    .pb-linkaja{background: #dc2626;color:#ffffff}
+    .pb-gopay{background: #15803d;color:#ffffff}
+    .pb-bank{background: #374151;color:#ffffff}
     .p-info{display:flex;flex-direction:column;min-width:0}
-    .p-name{font-size:14px;font-weight:700;color:#f8fafc}
-    .p-sub{font-size:12px;color: rgba(148, 163, 184, 0.9);display:flex;flex-wrap:wrap;gap:6px}
-    .p-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(148, 163, 184, 0.22);background: rgba(15, 23, 42, 0.35);color: rgba(226, 232, 240, 0.92);font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap}
+    .p-name{font-size:14px;font-weight:700;color:#111827}
+    .p-sub{font-size:12px;color: #4b5563;display:flex;flex-wrap:wrap;gap:6px}
+    .p-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid #bfdbfe;background: #eff6ff;color: #1d4ed8;font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap}
     @media (max-width: 576px){
       .pay-method-item{flex-direction:column;align-items:flex-start;gap:10px;padding:12px}
       .p-sub{display:none}
       .p-name{font-size:13px}
-      .p-icon{width:42px;height:42px;font-size:20px}
+      .p-icon{width:40px;height:40px;font-size:18px}
     }
     @media (max-width: 576px){.wrap{padding:10px}.cardx{border-radius:15px}.body{padding:18px 14px}}
   </style>
@@ -69,10 +71,10 @@
       <div class="head">
         <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
           <div>
-            <div class="fw-bold" style="font-size:18px">Cek Tagihan</div>
+            <div class="fw-bold" style="font-size:18px;color:#111827">Cek Tagihan</div>
             <div class="muted small"><%= settings.company_header || 'Portal ISP' %></div>
           </div>
-          <a class="btn btn-outline-light btn-sm btnx" href="/customer/login">
+          <a class="btn btn-outline-secondary-custom btn-sm btnx" href="/customer/login">
             <i class="bi bi-box-arrow-in-right me-1"></i> Login
           </a>
         </div>
@@ -95,24 +97,24 @@
         </form>
 
         <% if (error) { %>
-          <div class="alert alert-danger">
+          <div class="alert alert-danger" style="background:#fee2e2;border:1px solid #fecaca;color:#991b1b">
             <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
           </div>
         <% } %>
         <% if (info) { %>
-          <div class="alert alert-success">
+          <div class="alert alert-success" style="background:#dcfce7;border:1px solid #bbf7d0;color:#166534">
             <i class="bi bi-check-circle me-2"></i><%= info %>
           </div>
         <% } %>
 
         <% if (query && !customer && (!matches || matches.length === 0)) { %>
-          <div class="alert alert-warning">
+          <div class="alert alert-warning" style="background:#fef3c7;border:1px solid #fde68a;color:#92400e">
             <i class="bi bi-info-circle me-2"></i>Pelanggan tidak ditemukan. Pastikan input sudah benar.
           </div>
         <% } %>
 
         <% if (!customer && matches && matches.length > 0) { %>
-          <div class="mb-2 fw-bold">Hasil Pencarian</div>
+          <div class="mb-2 fw-bold" style="color:#111827">Hasil Pencarian</div>
           <div class="muted small mb-2">Pilih pelanggan untuk melihat detail tagihan</div>
           <div class="table-responsive">
             <table class="tbl">
@@ -130,13 +132,13 @@
                     <td>
                       <div class="fw-semibold"><%= m.customer_name %></div>
                       <div class="muted small">
-                        ID: <%= m.customer_id %><% if (m.customer_phone) { %> • WA: <%= m.customer_phone %><% } %>
+                        ID: <%= m.customer_id %><% if (m.customer_phone) { %> &bull; WA: <%= m.customer_phone %><% } %>
                       </div>
                     </td>
                     <td class="text-end fw-semibold"><%= Number(m.unpaid_count || 0) %></td>
                     <td class="text-end fw-semibold">Rp <%= Number(m.total_amount || 0).toLocaleString('id-ID') %></td>
                     <td class="text-end">
-                      <a class="btn btn-outline-light btn-sm btnx" href="/customer/check-billing?q=<%= encodeURIComponent(String(m.customer_id)) %>">
+                      <a class="btn btn-outline-secondary-custom btn-sm btnx" href="/customer/check-billing?q=<%= encodeURIComponent(String(m.customer_id)) %>">
                         Lihat
                       </a>
                     </td>
@@ -151,11 +153,11 @@
           <div class="mb-3">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
               <div>
-                <div class="fw-bold"><%= customer.name %></div>
+                <div class="fw-bold" style="color:#111827"><%= customer.name %></div>
                 <div class="muted small">
                   ID: <%= customer.id %>
-                  <% if (customer.phone) { %> • WA: <%= customer.phone %><% } %>
-                  <% if (customer.package_name) { %> • Paket: <%= customer.package_name %><% } %>
+                  <% if (customer.phone) { %> &bull; WA: <%= customer.phone %><% } %>
+                  <% if (customer.package_name) { %> &bull; Paket: <%= customer.package_name %><% } %>
                 </div>
               </div>
               <div>
@@ -172,11 +174,11 @@
           <% const monthNames = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']; %>
 
           <% if (!unpaidInvoices || unpaidInvoices.length === 0) { %>
-            <div class="alert alert-success">
+            <div class="alert alert-success" style="background:#dcfce7;border:1px solid #bbf7d0;color:#166534">
               <i class="bi bi-check-circle me-2"></i>Semua tagihan sudah lunas.
             </div>
           <% } else { %>
-            <div class="mb-2 fw-bold">Tagihan Belum Dibayar</div>
+            <div class="mb-2 fw-bold" style="color:#111827">Tagihan Belum Dibayar</div>
             <div class="table-responsive">
               <table class="tbl">
                 <thead>
@@ -213,12 +215,12 @@
               </table>
             </div>
 
-            <div class="mt-3" style="border-top:1px solid rgba(148,163,184,.18); padding-top: 14px">
+            <div class="mt-3" style="border-top:1px solid #e5e7eb; padding-top: 14px">
               <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                <div class="fw-bold">Pembayaran</div>
+                <div class="fw-bold" style="color:#111827">Pembayaran</div>
                 <div class="muted small">
                   <span id="pay_inv_text"></span>
-                  <span id="pay_amount_text"></span>
+                  <span id="pay_amount_text" class="fw-bold" style="color:#111827"></span>
                 </div>
               </div>
 
@@ -324,7 +326,7 @@
                                   <span class="p-chip">Gratis</span>
                                 <% } %>
                                 <% if (ch.active === false) { %>
-                                  <span class="p-chip" style="background: rgba(248, 81, 73, .12); color:#fca5a5">Nonaktif</span>
+                                  <span class="p-chip" style="background: #fee2e2; color:#991b1b; border-color:#fecaca">Nonaktif</span>
                                 <% } %>
                               </span>
                             </div>
@@ -334,7 +336,7 @@
                     </div>
                   </div>
                 <% } else { %>
-                  <div class="alert alert-warning">
+                  <div class="alert alert-warning" style="background:#fef3c7;border:1px solid #fde68a;color:#92400e">
                     <i class="bi bi-exclamation-triangle me-2"></i>Metode pembayaran tidak tersedia saat ini.
                   </div>
                 <% } %>
@@ -346,7 +348,7 @@
                   </label>
                 </div>
 
-                <button id="payBtn" class="btn btn-primary btnx" type="submit" disabled>
+                <button id="payBtn" class="btn btn-primary btnx py-2" type="submit" disabled>
                   <i class="bi bi-credit-card me-1"></i> Bayar
                 </button>
               </form>
@@ -400,7 +402,7 @@
           <% const paidInvoices = (invoices || []).filter(i => i.status === 'paid'); %>
           <% if (paidInvoices.length > 0) { %>
             <div class="mt-4">
-              <div class="mb-2 fw-bold">Riwayat (Lunas)</div>
+              <div class="mb-2 fw-bold" style="color:#111827">Riwayat (Lunas)</div>
               <div class="muted small">Menampilkan <%= Math.min(paidInvoices.length, 10) %> data terbaru</div>
               <div class="table-responsive mt-2">
                 <table class="tbl">

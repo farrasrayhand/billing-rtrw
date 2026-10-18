@@ -14,10 +14,10 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .type-technician { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-    .type-admin { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-    .type-cashier { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-    .type-collector { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+    .type-technician { background: #eff6ff; color: #1e40af; }
+    .type-admin { background: #f3e8ff; color: #5b21b6; }
+    .type-cashier { background: #dcfce7; color: #166534; }
+    .type-collector { background: #fef3c7; color: #92400e; }
     
     .time-info {
       font-size: 12px;
@@ -36,8 +36,8 @@
       text-decoration: underline;
     }
     .late-badge {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: #fee2e2;
+      color: #991b1b;
       padding: 2px 8px;
       border-radius: 10px;
       font-size: 11px;
@@ -157,45 +157,45 @@
 
     <!-- Breakdown by Type -->
     <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-top:16px">
-      <div class="sc" style="border-left:3px solid #3b82f6">
+      <div class="sc">
         <div class="sc-label">👷 Teknisi</div>
         <div class="sc-val"><%= techStats.total || 0 %></div>
         <div class="sc-sub">
-          <span style="color:#22c55e"><%= techStats.checked_in || 0 %> aktif</span> • 
-          <span style="color:#3b82f6"><%= techStats.checked_out || 0 %> selesai</span>
+          <span style="color:var(--success)"><%= techStats.checked_in || 0 %> aktif</span> • 
+          <span style="color:var(--primary)"><%= techStats.checked_out || 0 %> selesai</span>
         </div>
       </div>
-      <div class="sc" style="border-left:3px solid #a855f7">
+      <div class="sc">
         <div class="sc-label">👨‍💼 Admin</div>
         <div class="sc-val"><%= adminStats.total || 0 %></div>
         <div class="sc-sub">
-          <span style="color:#22c55e"><%= adminStats.checked_in || 0 %> aktif</span> • 
-          <span style="color:#3b82f6"><%= adminStats.checked_out || 0 %> selesai</span>
+          <span style="color:var(--success)"><%= adminStats.checked_in || 0 %> aktif</span> • 
+          <span style="color:var(--primary)"><%= adminStats.checked_out || 0 %> selesai</span>
         </div>
       </div>
-      <div class="sc" style="border-left:3px solid #22c55e">
+      <div class="sc">
         <div class="sc-label">💰 Kasir</div>
         <div class="sc-val"><%= cashierStats.total || 0 %></div>
         <div class="sc-sub">
-          <span style="color:#22c55e"><%= cashierStats.checked_in || 0 %> aktif</span> • 
-          <span style="color:#3b82f6"><%= cashierStats.checked_out || 0 %> selesai</span>
+          <span style="color:var(--success)"><%= cashierStats.checked_in || 0 %> aktif</span> • 
+          <span style="color:var(--primary)"><%= cashierStats.checked_out || 0 %> selesai</span>
         </div>
       </div>
-      <div class="sc" style="border-left:3px solid #f97316">
+      <div class="sc">
         <div class="sc-label">🚶 Kolektor</div>
         <div class="sc-val"><%= collectorStats.total || 0 %></div>
         <div class="sc-sub">
-          <span style="color:#22c55e"><%= collectorStats.checked_in || 0 %> aktif</span> • 
-          <span style="color:#3b82f6"><%= collectorStats.checked_out || 0 %> selesai</span>
+          <span style="color:var(--success)"><%= collectorStats.checked_in || 0 %> aktif</span> • 
+          <span style="color:var(--primary)"><%= collectorStats.checked_out || 0 %> selesai</span>
         </div>
       </div>
     </div>
 
     <!-- Late Check-ins Alert -->
     <% if (lateCheckIns.length > 0) { %>
-    <div class="card" style="margin-top:20px;border-left:3px solid #ef4444">
+    <div class="card" style="margin-top:20px">
       <div class="card-hd">
-        <h6><i class="bi bi-exclamation-triangle"></i> Terlambat Check-in (<%= lateCheckIns.length %>)</h6>
+        <h6><i class="bi bi-exclamation-triangle" style="color:var(--danger)"></i> Terlambat Check-in (<%= lateCheckIns.length %>)</h6>
       </div>
       <div class="tbl-wrap">
         <table class="dtbl">
@@ -229,9 +229,9 @@
 
     <!-- Not Checked Out Alert -->
     <% if (notCheckedOut.length > 0) { %>
-    <div class="card" style="margin-top:20px;border-left:3px solid #f59e0b">
+    <div class="card" style="margin-top:20px">
       <div class="card-hd">
-        <h6><i class="bi bi-bell"></i> Belum Check-out (<%= notCheckedOut.length %>)</h6>
+        <h6><i class="bi bi-bell" style="color:var(--warning)"></i> Belum Check-out (<%= notCheckedOut.length %>)</h6>
       </div>
       <div class="tbl-wrap">
         <table class="dtbl">

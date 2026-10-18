@@ -25,7 +25,7 @@
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-router"></i> <%= t('admin.nav.mikrotik_monitoring', 'Monitoring MikroTik') %></div>
     <div class="tb-right" style="display:flex;align-items:center;gap:15px">
       <div class="router-selector" style="display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:10px;">
-        <i class="bi bi-hdd-network small" style="color:#60a5fa;"></i>
+        <i class="bi bi-hdd-network small" style="color:var(--primary);"></i>
         <select id="global-router-id" class="fs" style="padding:4px 8px;font-size:13px;border-radius:6px;cursor:pointer;" onchange="changeRouter()">
           <option value="" <%= (!selectedRouterId) ? 'selected' : '' %>><%= t('admin.mikrotik.default_router', '-- Default / Semua Router --') %></option>
           <% routers.forEach(r => { %>
@@ -33,7 +33,7 @@
           <% }) %>
         </select>
       </div>
-      <button id="auto-refresh-toggle" onclick="toggleAutoRefresh()" class="btn btn-sm" style="background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid rgba(34,197,94,0.3)" title="Auto-refresh aktif (10 detik)">
+      <button id="auto-refresh-toggle" onclick="toggleAutoRefresh()" class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" title="Auto-refresh aktif (10 detik)">
         <i class="bi bi-arrow-clockwise"></i>
         <span id="refresh-status">Auto</span>
       </button>
@@ -1555,16 +1555,16 @@
     const status = document.getElementById('refresh-status');
     
     if (isAutoRefreshEnabled) {
-      btn.style.background = 'rgba(34,197,94,0.2)';
-      btn.style.color = '#22c55e';
-      btn.style.borderColor = 'rgba(34,197,94,0.3)';
+      btn.style.background = '#dcfce7';
+      btn.style.color = '#166534';
+      btn.style.borderColor = '#bbf7d0';
       btn.title = 'Auto-refresh aktif (10 detik)';
       if (status) status.textContent = 'Auto';
       startAutoRefresh();
     } else {
-      btn.style.background = 'rgba(239,68,68,0.2)';
-      btn.style.color = '#ef4444';
-      btn.style.borderColor = 'rgba(239,68,68,0.3)';
+      btn.style.background = '#fee2e2';
+      btn.style.color = '#991b1b';
+      btn.style.borderColor = '#fecaca';
       btn.title = 'Auto-refresh nonaktif (klik untuk aktifkan)';
       if (status) status.textContent = 'Manual';
       stopAutoRefresh();

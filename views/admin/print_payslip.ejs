@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Slip Gaji — <%= slip.employee_name %></title>
+  <title>Slip Gaji - <%= slip.employee_name %></title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:20px}
@@ -23,9 +23,9 @@
     .sign-box{text-align:center;width:40%}
     .sign-line{border-top:1px solid #333;margin-top:60px;padding-top:4px}
     .status-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
-    .status-draft{background:#eee;color:#666}
-    .status-approved{background:#dbeafe;color:#2563eb}
-    .status-paid{background:#dcfce7;color:#16a34a}
+    .status-draft{background:#eee;color:#4b5563}
+    .status-approved{background:#dbeafe;color:#1e40af}
+    .status-paid{background:#dcfce7;color:#166534}
     @media print{
       @page{size:A4 portrait;margin:10mm 15mm}
       body{padding:0;background:#fff !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
@@ -37,15 +37,15 @@
 </head>
 <body>
 <div class="no-print">
-  <button onclick="window.print()" style="padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Cetak Slip Gaji</button>
-  <button onclick="window.close()" style="padding:10px 24px;background:#666;color:#fff;border:none;border-radius:8px;cursor:pointer">✕ Tutup</button>
+  <button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Cetak Slip Gaji</button>
+  <button onclick="window.close()" style="padding:10px 24px;background:#4b5563;color:#fff;border:none;border-radius:8px;cursor:pointer">✕ Tutup</button>
 </div>
 
 <div class="slip">
   <div class="header">
     <div class="company"><%= company %></div>
     <div class="slip-title">SLIP GAJI KARYAWAN</div>
-    <div style="font-size:11px;color:#888;margin-top:4px">Periode: <%= ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][slip.period_month] %> <%= slip.period_year %></div>
+    <div style="font-size:11px;color:#4b5563;margin-top:4px">Periode: <%= ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][slip.period_month] %> <%= slip.period_year %></div>
   </div>
 
   <div class="info-grid">
@@ -64,9 +64,9 @@
     <% if(slip.meal_allowance) { %><tr><td>Tunjangan Makan</td><td class="amount">Rp <%= slip.meal_allowance.toLocaleString('id-ID') %></td></tr><% } %>
     <% if(slip.phone_allowance) { %><tr><td>Tunjangan Pulsa</td><td class="amount">Rp <%= slip.phone_allowance.toLocaleString('id-ID') %></td></tr><% } %>
     <% if(slip.other_allowance) { %><tr><td>Tunjangan Lain (<%= slip.other_allowance_note || '-' %>)</td><td class="amount">Rp <%= slip.other_allowance.toLocaleString('id-ID') %></td></tr><% } %>
-    <% if(slip.ticket_bonus) { %><tr><td>Bonus Tiket (<%= slip.total_tickets_resolved %> tiket selesai)</td><td class="amount" style="color:#16a34a">+Rp <%= slip.ticket_bonus.toLocaleString('id-ID') %></td></tr><% } %>
-    <% if(slip.collection_commission) { %><tr><td>Komisi Tagihan (Rp <%= slip.total_collection_amount.toLocaleString('id-ID') %>)</td><td class="amount" style="color:#16a34a">+Rp <%= slip.collection_commission.toLocaleString('id-ID') %></td></tr><% } %>
-    <% if(slip.overtime_bonus) { %><tr><td>Lembur (<%= slip.overtime_hours %> jam)</td><td class="amount" style="color:#16a34a">+Rp <%= slip.overtime_bonus.toLocaleString('id-ID') %></td></tr><% } %>
+    <% if(slip.ticket_bonus) { %><tr><td>Bonus Tiket (<%= slip.total_tickets_resolved %> tiket selesai)</td><td class="amount" style="color:#15803d">+Rp <%= slip.ticket_bonus.toLocaleString('id-ID') %></td></tr><% } %>
+    <% if(slip.collection_commission) { %><tr><td>Komisi Tagihan (Rp <%= slip.total_collection_amount.toLocaleString('id-ID') %>)</td><td class="amount" style="color:#15803d">+Rp <%= slip.collection_commission.toLocaleString('id-ID') %></td></tr><% } %>
+    <% if(slip.overtime_bonus) { %><tr><td>Lembur (<%= slip.overtime_hours %> jam)</td><td class="amount" style="color:#15803d">+Rp <%= slip.overtime_bonus.toLocaleString('id-ID') %></td></tr><% } %>
     <tr style="font-weight:600;background:#f9f9f9"><td>Total Pendapatan</td><td class="amount">Rp <%= slip.gross_salary.toLocaleString('id-ID') %></td></tr>
 
     <% if(slip.total_deductions > 0) { %>
@@ -81,7 +81,7 @@
   </table>
 
   <% if(slip.notes) { %>
-  <div style="font-size:11px;color:#666;margin-bottom:16px">Catatan: <%= slip.notes %></div>
+  <div style="font-size:11px;color:#4b5563;margin-bottom:16px">Catatan: <%= slip.notes %></div>
   <% } %>
 
   <div class="footer">
@@ -95,8 +95,8 @@
     </div>
   </div>
 
-  <div style="text-align:center;margin-top:16px;font-size:10px;color:#888">
-    Dicetak: <%= getNowLocal() %> — Slip ID: #<%= slip.id %>
+  <div style="text-align:center;margin-top:16px;font-size:10px;color:#4b5563">
+    Dicetak: <%= getNowLocal() %> | Slip ID: #<%= slip.id %>
   </div>
 </div>
 

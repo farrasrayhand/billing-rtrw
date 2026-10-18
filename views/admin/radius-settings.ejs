@@ -10,8 +10,8 @@
     .mtab { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); cursor: pointer; transition: all .2s; }
     .mtab:hover { color: var(--text); background: rgba(0,0,0,0.05); }
     .mtab.active { color: #ffffff !important; background: var(--primary) !important; border-color: var(--primary) !important; box-shadow: 0 4px 12px var(--pdim); }
-    html[data-theme="light"] .mtab:hover { color: #0f172a !important; background: #f1f5f9 !important; }
-    html[data-theme="light"] .mtab.active { color: #ffffff !important; background: #4f46e5 !important; border-color: #4f46e5 !important; }
+    html[data-theme="light"] .mtab:hover { color: #111827 !important; background: #f3f4f6 !important; }
+    html[data-theme="light"] .mtab.active { color: #ffffff !important; background: var(--primary) !important; border-color: var(--primary) !important; }
 
     .settings-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; }
 
@@ -361,7 +361,7 @@
               <div class="fg" style="margin-bottom:0;">
                 <label class="fl">2. Script Integrasi RADIUS & Isolir di MikroTik (RouterOS Terminal)</label>
                 <small class="text-muted" style="font-size:11px;display:block;margin-bottom:6px;">Copy dan pastekan seluruh script di bawah ini ke <strong>Terminal MikroTik</strong> (IP server otomatis terisi dari IP di atas):</small>
-                <textarea id="mikrotik-script-area" class="fc" rows="14" style="font-family:monospace;font-size:11px;background:var(--bg3);color:#10b981;line-height:1.4;white-space:pre;" readonly># =========================================================
+                <textarea id="mikrotik-script-area" class="fc" rows="14" style="font-family:monospace;font-size:11px;background:var(--bg3);color:var(--text);line-height:1.4;white-space:pre;" readonly># =========================================================
 # SCRIPT SETUP OTOMATIS RADIUS BILLING & ISOLIR MIKROTIK
 # =========================================================
 

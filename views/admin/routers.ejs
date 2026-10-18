@@ -280,14 +280,14 @@
     <div class="card mb-3" style="border:none; background:transparent;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <h5 class="fw-bold text-white mb-0"><i class="bi bi-cpu text-primary me-2"></i>Daftar Router MikroTik (<%= routers.length %>)</h5>
+          <h5 class="fw-bold mb-0" style="color:var(--text)"><i class="bi bi-cpu text-primary me-2"></i>Daftar Router MikroTik (<%= routers.length %>)</h5>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <div class="d-flex gap-1 bg-dark p-1 rounded-3 border border-secondary border-opacity-25">
+          <div class="d-flex gap-1 p-1 rounded-3" style="background:var(--bg2); border:1px solid var(--border);">
             <button type="button" class="view-toggle-btn active" id="btn-view-grid" onclick="switchView('grid')"><i class="bi bi-grid-fill me-1"></i> Grid Kartu</button>
             <button type="button" class="view-toggle-btn" id="btn-view-table" onclick="switchView('table')"><i class="bi bi-table me-1"></i> Tabel</button>
           </div>
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="openIsolirScriptModal()"><i class="bi bi-filetype-txt me-1"></i> Script Isolir</button>
+          <button type="button" class="btn btn-g btn-sm" onclick="openIsolirScriptModal()"><i class="bi bi-filetype-txt me-1"></i> Script Isolir</button>
           <button class="btn btn-p btn-sm" onclick="openModal('addModal')"><i class="bi bi-plus-lg me-1"></i> Tambah Router</button>
         </div>
       </div>
@@ -471,15 +471,15 @@
 
       <!-- TAB 1: Auto Setup via API -->
       <div id="isolir-tab-auto">
-        <div class="alert alert-info p-3 small mb-3" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:#e0e7ff;">
-          <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1 text-info"></i> Otomatisasi Redirect Halaman Isolir</h6>
-          <p class="mb-0 small" style="opacity:0.9;">
+        <div class="alert alert-info p-3 small mb-3" style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;">
+          <h6 class="fw-bold mb-1" style="color:#1e40af;"><i class="bi bi-info-circle me-1"></i> Otomatisasi Redirect Halaman Isolir</h6>
+          <p class="mb-0 small">
             Sistem akan mengirimkan perintah API ke MikroTik untuk membuat <strong>Rule NAT Redirect (Port 80/443)</strong>, <strong>Firewall Rule (LIST_ISOLIR)</strong>, serta memasang <strong>Hook Script on-up di Profil PPPoE Isolir</strong> secara otomatis.
           </p>
         </div>
 
         <div class="form-group mb-3">
-          <label class="fl fw-bold text-white mb-2">Pilih Router MikroTik Target *</label>
+          <label class="fl fw-bold mb-2" style="color:var(--text)">Pilih Router MikroTik Target *</label>
           <select class="fs w-100" id="isolir-modal-router-select">
             <% routers.forEach(r => { %>
               <option value="<%= r.id %>"><%= r.name %> (<%= r.host %>:<%= r.port %>)</option>
@@ -497,8 +497,8 @@
       <!-- TAB 2: RouterOS Manual Script (.rsc) -->
       <div id="isolir-tab-script" style="display:none;">
         <p class="small text-muted mb-2">Script ini di-generate otomatis berdasarkan IP server & URL billing (app_url). Anda dapat menyalin dan menempelkannya di Winbox Terminal MikroTik.</p>
-        <div id="isolir-script-meta" class="small text-muted mb-2 fw-bold" style="color:#a5b4fc !important;"></div>
-        <textarea id="isolir-script-body" class="fc" readonly rows="14" style="width:100%;font-family:ui-monospace,monospace;font-size:12px;background:rgba(15,23,42,0.9);color:#818cf8;border-radius:8px;"></textarea>
+        <div id="isolir-script-meta" class="small mb-2 fw-bold" style="color:var(--text);"></div>
+        <textarea id="isolir-script-body" class="fc" readonly rows="14" style="width:100%;font-family:ui-monospace,monospace;font-size:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;"></textarea>
       </div>
     </div>
     <div class="mf">
@@ -708,7 +708,7 @@ async function openLiveDetailModal(id) {
     const pppoeRows = (l.activePppoeList || []).map((p, idx) => `
       <tr>
         <td class="text-muted">${idx + 1}</td>
-        <td class="fw-bold text-white">${p.name}</td>
+        <td class="fw-bold" style="color:var(--text)">${p.name}</td>
         <td class="text-info font-monospace">${p.address}</td>
         <td class="text-warning">${p.uptime}</td>
         <td class="text-muted font-monospace">${p.callerId}</td>
@@ -718,7 +718,7 @@ async function openLiveDetailModal(id) {
     const hsRows = (l.activeHotspotList || []).map((h, idx) => `
       <tr>
         <td class="text-muted">${idx + 1}</td>
-        <td class="fw-bold text-white">${h.user}</td>
+        <td class="fw-bold" style="color:var(--text)">${h.user}</td>
         <td class="text-info font-monospace">${h.address}</td>
         <td class="text-muted font-monospace">${h.mac}</td>
         <td class="text-warning">${h.uptime}</td>
@@ -729,7 +729,7 @@ async function openLiveDetailModal(id) {
       <!-- Top Overview Header -->
       <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background:var(--bg3); border:1px solid var(--border);">
         <div>
-          <h5 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+          <h5 class="fw-bold mb-1 d-flex align-items-center gap-2" style="color:var(--text)">
             <i class="bi bi-hdd-network text-info"></i> ${r.name}
           </h5>
           <span class="small text-muted font-monospace">${r.host}:${r.port} | User: ${r.user}</span>
@@ -744,7 +744,7 @@ async function openLiveDetailModal(id) {
       ${l.error ? `<div class="alert alert-d mb-3"><i class="bi bi-exclamation-triangle"></i> Error: ${l.error}</div>` : ''}
 
       <!-- Modal Internal Tabs Navigation -->
-      <div class="d-flex gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+      <div class="d-flex gap-2 mb-3 pb-2" style="border-bottom:1px solid var(--border)">
         <button type="button" class="modal-tab-btn active" id="mtab-btn-sys" onclick="switchModalTab('sys')">
           <i class="bi bi-cpu me-1"></i> Sistem & Metrik
         </button>
@@ -760,20 +760,20 @@ async function openLiveDetailModal(id) {
       <div id="mtab-content-sys">
         <div class="row g-2 mb-3">
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
+            <div class="p-3 text-center rounded-3" style="background:var(--bg3); border:1px solid var(--border)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">CPU Load</small>
               <h4 class="fw-extrabold mb-0 ${l.cpuLoad > 80 ? 'text-danger' : (l.cpuLoad > 50 ? 'text-warning' : 'text-success')}">${l.cpuLoad}%</h4>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
+            <div class="p-3 text-center rounded-3" style="background:var(--bg3); border:1px solid var(--border)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">RAM Used</small>
               <h4 class="fw-extrabold mb-0 text-info">${memPercent}%</h4>
               <small class="text-muted" style="font-size:10px;">${formatBytes(usedMem)} / ${formatBytes(l.totalMemory)}</small>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-3 text-center rounded-3 border border-secondary border-opacity-25" style="background:var(--bg3)">
+            <div class="p-3 text-center rounded-3" style="background:var(--bg3); border:1px solid var(--border)">
               <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">Disk Storage</small>
               <h4 class="fw-extrabold mb-0 text-warning">${hddPercent}%</h4>
               <small class="text-muted" style="font-size:10px;">${formatBytes(usedHdd)} / ${formatBytes(l.totalHdd)}</small>
@@ -781,12 +781,12 @@ async function openLiveDetailModal(id) {
           </div>
         </div>
 
-        <div class="table-responsive border border-secondary border-opacity-25 rounded-3 mb-3">
-          <table class="table table-dark table-sm table-borderless mb-0 small">
+        <div class="table-responsive rounded-3 mb-3" style="border:1px solid var(--border)">
+          <table class="table table-sm table-borderless mb-0 small" style="color:var(--text)">
             <tbody>
               <tr>
                 <td class="text-muted ps-3 py-2" style="width:35%;">Identity RouterOS:</td>
-                <td class="fw-bold text-white py-2">${l.identity}</td>
+                <td class="fw-bold py-2" style="color:var(--text)">${l.identity}</td>
               </tr>
               <tr>
                 <td class="text-muted ps-3 py-2">Board / Tipe Model:</td>
@@ -798,7 +798,7 @@ async function openLiveDetailModal(id) {
               </tr>
               <tr>
                 <td class="text-muted ps-3 py-2">Spesifikasi CPU:</td>
-                <td class="text-white py-2">${l.architecture} (${l.cpuCount} Core @ ${l.cpuFrequency} MHz)</td>
+                <td class="py-2" style="color:var(--text)">${l.architecture} (${l.cpuCount} Core @ ${l.cpuFrequency} MHz)</td>
               </tr>
               <tr>
                 <td class="text-muted ps-3 py-2">Router Uptime:</td>
@@ -810,19 +810,19 @@ async function openLiveDetailModal(id) {
 
         <div class="row g-2">
           <div class="col-4">
-            <div class="p-2 border border-secondary border-opacity-25 rounded-3 text-center bg-dark bg-opacity-50">
+            <div class="p-2 rounded-3 text-center" style="background:var(--bg3); border:1px solid var(--border)">
               <span class="d-block text-muted" style="font-size:11px;">Pelanggan DB</span>
-              <span class="fw-bold fs-5 text-white">${l.customersCount}</span>
+              <span class="fw-bold fs-5" style="color:var(--text)">${l.customersCount}</span>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-2 border border-secondary border-opacity-25 rounded-3 text-center bg-dark bg-opacity-50">
+            <div class="p-2 rounded-3 text-center" style="background:var(--bg3); border:1px solid var(--border)">
               <span class="d-block text-muted" style="font-size:11px;">PPPoE Sesi Aktif</span>
               <span class="fw-bold fs-5 text-success">${l.activePppoe}</span>
             </div>
           </div>
           <div class="col-4">
-            <div class="p-2 border border-secondary border-opacity-25 rounded-3 text-center bg-dark bg-opacity-50">
+            <div class="p-2 rounded-3 text-center" style="background:var(--bg3); border:1px solid var(--border)">
               <span class="d-block text-muted" style="font-size:11px;">Hotspot User Aktif</span>
               <span class="fw-bold fs-5 text-warning">${l.activeHotspot}</span>
             </div>
@@ -832,9 +832,9 @@ async function openLiveDetailModal(id) {
 
       <!-- Tab 2: PPPoE Active Sessions List -->
       <div id="mtab-content-pppoe" style="display:none;">
-        <div class="table-responsive border border-secondary border-opacity-25 rounded-3" style="max-height: 280px; overflow-y: auto;">
-          <table class="table table-dark table-hover table-sm mb-0 small">
-            <thead class="sticky-top bg-dark">
+        <div class="table-responsive rounded-3" style="max-height: 280px; overflow-y: auto; border:1px solid var(--border);">
+          <table class="table table-hover table-sm mb-0 small" style="color:var(--text)">
+            <thead class="sticky-top" style="background:var(--bg3)">
               <tr>
                 <th>#</th>
                 <th>Username</th>
@@ -852,9 +852,9 @@ async function openLiveDetailModal(id) {
 
       <!-- Tab 3: Hotspot Active Sessions List -->
       <div id="mtab-content-hs" style="display:none;">
-        <div class="table-responsive border border-secondary border-opacity-25 rounded-3" style="max-height: 280px; overflow-y: auto;">
-          <table class="table table-dark table-hover table-sm mb-0 small">
-            <thead class="sticky-top bg-dark">
+        <div class="table-responsive rounded-3" style="max-height: 280px; overflow-y: auto; border:1px solid var(--border);">
+          <table class="table table-hover table-sm mb-0 small" style="color:var(--text)">
+            <thead class="sticky-top" style="background:var(--bg3)">
               <tr>
                 <th>#</th>
                 <th>User / Voucher</th>

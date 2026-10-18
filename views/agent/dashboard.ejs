@@ -8,36 +8,42 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     :root{
-      --bg:#0f172a;
-      --panel: rgba(30, 41, 59, 0.92);
-      --panel2: rgba(15, 23, 42, 0.55);
-      --border:#334155;
-      --muted:#94a3b8;
-      --text:#e2e8f0;
-      --brand1:#6366f1;
-      --brand2:#3b82f6;
-      --danger:#ef4444;
-      --success:#22c55e;
-      --warn:#f59e0b;
+      --bg:#f3f4f6;
+      --panel:#ffffff;
+      --panel2:#f8fafc;
+      --border:#e5e7eb;
+      --input-border:#cbd5e1;
+      --muted:#4b5563;
+      --text:#111827;
+      --text-secondary:#374151;
+      --primary:#2563eb;
+      --brand1:#2563eb;
+      --brand2:#1d4ed8;
+      --danger:#dc2626;
+      --success:#15803d;
+      --warn:#b45309;
     }
 
     body{
-      background: radial-gradient(1200px 600px at 10% 0%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%),
-        radial-gradient(900px 450px at 100% 0%, rgba(59, 130, 246, 0.18) 0%, rgba(15, 23, 42, 0) 55%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;
       padding-bottom: calc(110px + env(safe-area-inset-bottom));
       -webkit-tap-highlight-color: transparent;
     }
 
+    :focus-visible{
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
     .topbar{
       position: sticky;
       top: 0;
       z-index: 20;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     }
 
     .topbar .inner{
@@ -58,11 +64,11 @@
     }
 
     .brand .icon{
-      width:42px;height:42px;border-radius:14px;
+      width:42px;height:42px;border-radius:12px;
       display:flex;align-items:center;justify-content:center;
-      background: rgba(99, 102, 241, 0.12);
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      color: #c7d2fe;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary);
       flex: 0 0 auto;
     }
 
@@ -71,6 +77,7 @@
       letter-spacing: -0.02em;
       font-size: 14px;
       line-height: 1.1;
+      color: var(--text);
       margin:0;
       white-space: nowrap;
       overflow: hidden;
@@ -86,12 +93,17 @@
     }
 
     .btn-logout{
-      background: transparent;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      color: var(--text);
-      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 10px;
       padding: 8px 10px;
       font-weight: 700;
+      text-decoration: none;
+    }
+    .btn-logout:hover{
+      background: var(--panel2);
+      color: var(--primary);
     }
 
     .wrap{
@@ -103,8 +115,8 @@
     .cardx{
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
       overflow: hidden;
     }
 
@@ -114,7 +126,7 @@
 
     .cardx .hd{
       padding: 14px 16px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      border-bottom: 1px solid var(--border);
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -126,6 +138,7 @@
       font-size: 13px;
       font-weight: 800;
       letter-spacing: -0.01em;
+      color: var(--text);
       display:flex;
       align-items:center;
       gap:8px;
@@ -139,11 +152,11 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding: 8px 10px;
+      padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.45);
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      color: var(--text);
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
       font-weight: 700;
       font-size: 12px;
       white-space: nowrap;
@@ -157,55 +170,72 @@
 
     .kpi .k{
       background: var(--panel2);
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 12px;
     }
-    .k .lbl{ font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    .k .val{ font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
+    .k .lbl{ font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+    .k .val{ font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
 
     .form-control, .form-select{
-      background: rgba(15, 23, 42, 0.55);
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: var(--panel);
+      border: 1px solid var(--input-border);
       color: var(--text);
-      border-radius: 14px;
-      padding: 12px 12px;
+      border-radius: 10px;
+      padding: 11px 12px;
     }
     .form-control:focus, .form-select:focus{
-      background: rgba(15, 23, 42, 0.55);
+      background: var(--panel);
       color: var(--text);
-      border-color: rgba(99, 102, 241, 0.75);
-      box-shadow: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
-    .form-control::placeholder{ color: rgba(148,163,184,0.75); }
+    .form-control::placeholder{ color: var(--muted); }
 
     .btn-action{
-      background: linear-gradient(135deg, var(--brand1) 0%, var(--brand2) 100%);
+      background: var(--primary);
       border: none;
-      color: #fff;
-      border-radius: 14px;
-      padding: 12px 12px;
-      font-weight: 900;
-      box-shadow: 0 14px 28px rgba(99, 102, 241, 0.22);
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-weight: 700;
+      min-height: 44px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-action:hover{
+      background: var(--brand2);
+      color: #ffffff;
     }
 
     .btn-ghost{
-      background: transparent;
-      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: var(--panel);
+      border: 1px solid var(--input-border);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-weight: 700;
+    }
+    .btn-ghost:hover{
+      background: var(--panel2);
       color: var(--text);
-      border-radius: 14px;
-      padding: 12px 12px;
-      font-weight: 800;
     }
 
     .btn-mini{
-      background: transparent;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 8px 10px;
-      font-weight: 800;
+      background: var(--panel);
+      border: 1px solid var(--input-border);
+      color: var(--text-secondary);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-weight: 700;
       font-size: 12px;
+    }
+    .btn-mini:hover{
+      background: var(--panel2);
+      color: var(--text);
     }
 
     .listx{
@@ -215,8 +245,8 @@
     }
     .itemx{
       background: var(--panel2);
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 12px;
     }
     .itemx .top{
@@ -225,32 +255,34 @@
       align-items:flex-start;
       gap: 10px;
     }
-    .itemx .t1{ font-weight: 900; }
+    .itemx .t1{ font-weight: 800; color: var(--text); }
     .itemx .t2{ font-size: 12px; color: var(--muted); }
     .badgey{
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding: 6px 10px;
+      padding: 5px 10px;
       border-radius: 999px;
       font-size: 11px;
-      font-weight: 900;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      background: rgba(15, 23, 42, 0.55);
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-secondary);
     }
-    .badgey.d{ color: #fecaca; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); }
-    .badgey.s{ color: #bbf7d0; border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); }
-    .badgey.w{ color: #fde68a; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); }
+    .badgey.d{ color: #991b1b; border-color: #fecaca; background: #fee2e2; }
+    .badgey.s{ color: #166534; border-color: #bbf7d0; background: #dcfce7; }
+    .badgey.w{ color: #92400e; border-color: #fde68a; background: #fef3c7; }
 
     .tbl{
       width:100%;
       border-collapse: collapse;
     }
     .tbl td{
-      border-top: 1px solid rgba(148, 163, 184, 0.12);
+      border-top: 1px solid var(--border);
       padding: 10px 0;
       font-size: 12px;
       vertical-align: top;
+      color: var(--text);
     }
     .tbl td:first-child{ color: var(--muted); width: 120px; padding-right: 12px; }
 
@@ -275,11 +307,11 @@
     .payment-radio-agent{position:absolute;opacity:0;pointer-events:none}
     .payment-card-agent{
       background:var(--panel2);
-      border:2px solid rgba(148,163,184,0.18);
-      border-radius:14px;
+      border:1px solid var(--border);
+      border-radius:12px;
       padding:14px 12px;
       cursor:pointer;
-      transition:all .25s cubic-bezier(0.4,0,0.2,1);
+      transition:all .2s ease;
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -288,31 +320,21 @@
       position:relative;
       overflow:hidden;
     }
-    .payment-card-agent::before{
-      content:'';
-      position:absolute;
-      top:0;left:0;right:0;bottom:0;
-      background:linear-gradient(135deg,rgba(99,102,241,0.05) 0%,rgba(59,130,246,0.05) 100%);
-      opacity:0;
-      transition:opacity .25s ease;
-    }
     .payment-card-agent:hover{
-      border-color:var(--brand1);
-      transform:translateY(-2px);
-      box-shadow:0 12px 30px rgba(0,0,0,0.3),0 0 0 1px rgba(99,102,241,0.2);
+      border-color:var(--primary);
+      background:#eff6ff;
     }
-    .payment-card-agent:hover::before{opacity:1}
     .payment-radio-agent:checked + .payment-card-agent{
-      border-color:var(--brand1);
-      background:rgba(99,102,241,0.12);
-      box-shadow:0 8px 20px rgba(99,102,241,0.3);
+      border:2px solid var(--primary);
+      background:#eff6ff;
+      box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
     }
     .payment-radio-agent:checked + .payment-card-agent::after{
       content:'✓';
       position:absolute;
       top:8px;right:8px;
       width:20px;height:20px;
-      background:linear-gradient(135deg,#6366f1,#3b82f6);
+      background:var(--primary);
       border-radius:50%;
       display:flex;
       align-items:center;
@@ -320,7 +342,6 @@
       font-size:12px;
       font-weight:900;
       color:#fff;
-      box-shadow:0 4px 12px rgba(99,102,241,0.4);
     }
     
     .payment-icon-agent{
@@ -330,22 +351,22 @@
       align-items:center;
       justify-content:center;
       font-size:22px;
-      box-shadow:0 6px 16px rgba(0,0,0,0.3);
+      box-shadow:0 1px 2px rgba(16, 24, 40, 0.06);
       position:relative;
       z-index:1;
     }
-    .badge-qris{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
-    .badge-dana{background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff}
-    .badge-ovo{background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff}
-    .badge-shopee{background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff}
-    .badge-linkaja{background:linear-gradient(135deg,#ef4444,#f43f5e);color:#fff}
-    .badge-gopay{background:linear-gradient(135deg,#22c55e,#10b981);color:#fff}
-    .badge-bank{background:linear-gradient(135deg,#1e293b,#334155);color:#e2e8f0}
+    .badge-qris{background:#2563eb;color:#fff}
+    .badge-dana{background:#0284c7;color:#fff}
+    .badge-ovo{background:#6d28d9;color:#fff}
+    .badge-shopee{background:#ea580c;color:#fff}
+    .badge-linkaja{background:#dc2626;color:#fff}
+    .badge-gopay{background:#15803d;color:#fff}
+    .badge-bank{background:#f3f4f6;color:#111827;border:1px solid #cbd5e1}
     
     .payment-name-agent{
       font-size:13px;
       font-weight:700;
-      color:#f1f5f9;
+      color:var(--text);
       line-height:1.3;
       position:relative;
       z-index:1;
@@ -363,9 +384,9 @@
       right: 0;
       bottom: 0;
       z-index: 30;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(148, 163, 184, 0.14);
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -1px 2px rgba(16, 24, 40, 0.04);
       padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
     }
     .bn-wrap{
@@ -373,31 +394,31 @@
       margin: 0 auto;
       display:flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
     .bn-item{
       flex: 1 1 0;
       background: transparent;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       padding: 10px 8px;
       color: var(--muted);
       text-decoration: none;
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 8px;
-      font-weight: 900;
+      gap: 6px;
+      font-weight: 700;
       font-size: 12px;
       min-height: 44px;
     }
     .bn-item i{ font-size: 16px; color: var(--muted); }
     .bn-item.active{
-      border-color: rgba(99, 102, 241, 0.55);
-      background: rgba(99, 102, 241, 0.12);
-      color: #c7d2fe;
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: var(--primary);
     }
-    .bn-item.active i{ color: #c7d2fe; }
+    .bn-item.active i{ color: var(--primary); }
 
     .vgrid{
       display:grid;
@@ -409,8 +430,8 @@
     }
     .vcard{
       background: var(--panel2);
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 12px;
       cursor: pointer;
       user-select: none;
@@ -418,8 +439,8 @@
     }
     .vcard:active{ transform: scale(0.99); }
     .vcard.sel{
-      background: rgba(99, 102, 241, 0.14);
-      border-color: rgba(99, 102, 241, 0.55);
+      background: #eff6ff;
+      border-color: var(--primary);
     }
     .vcard .t{
       display:flex;
@@ -428,8 +449,9 @@
       align-items:flex-start;
     }
     .vcard .nm{
-      font-weight: 900;
+      font-weight: 800;
       letter-spacing: -0.01em;
+      color: var(--text);
     }
     .vcard .sm{
       font-size: 12px;
@@ -440,7 +462,8 @@
       min-width: 120px;
     }
     .vcard .pr .sell{
-      font-weight: 900;
+      font-weight: 800;
+      color: var(--text);
     }
     .vcard .meta{
       margin-top: 10px;
@@ -452,25 +475,25 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding: 6px 10px;
+      padding: 5px 10px;
       border-radius: 999px;
       font-size: 11px;
-      font-weight: 900;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      background: rgba(15, 23, 42, 0.55);
-      color: var(--text);
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-secondary);
     }
-    .chip.g{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); color:#bbf7d0; }
-    .chip.r{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color:#fecaca; }
-    .chip.b{ border-color: rgba(99,102,241,0.35); background: rgba(99,102,241,0.10); color:#c7d2fe; }
+    .chip.g{ border-color: #bbf7d0; background: #dcfce7; color:#166534; }
+    .chip.r{ border-color: #fecaca; background: #fee2e2; color:#991b1b; }
+    .chip.b{ border-color: #bfdbfe; background: #eff6ff; color:#1e40af; }
 
-    .df-tone-pulsa{ background: rgba(99,102,241,0.15); }
-    .df-tone-data{ background: rgba(34,197,94,0.12); }
-    .df-tone-pln{ background: rgba(245,158,11,0.12); }
-    .df-tone-game{ background: rgba(236,72,153,0.12); }
-    .df-tone-wifi{ background: rgba(59,130,246,0.12); }
-    .df-tone-ewallet{ background: rgba(16,185,129,0.12); }
-    .df-tone-voucher{ background: rgba(168,85,247,0.12); }
+    .df-tone-pulsa{ background: #eff6ff; color: #2563eb; }
+    .df-tone-data{ background: #dcfce7; color: #15803d; }
+    .df-tone-pln{ background: #fef3c7; color: #b45309; }
+    .df-tone-game{ background: #fce7f3; color: #be185d; }
+    .df-tone-wifi{ background: #e0f2fe; color: #0369a1; }
+    .df-tone-ewallet{ background: #dcfce7; color: #15803d; }
+    .df-tone-voucher{ background: #f3e8ff; color: #6d28d9; }
 
     @media (min-width: 900px){
       .kpi{ grid-template-columns: 1fr 1fr 1fr 1fr; }
@@ -493,7 +516,7 @@
 
   <div class="wrap" id="section-top">
     <% if (msg) { %>
-      <div class="alert alert-<%= msg.type==='error' ? 'danger' : msg.type==='warning' ? 'warning' : msg.type==='info' ? 'info' : 'success' %> py-2 rounded-4" style="background: rgba(15,23,42,0.55); border:1px solid rgba(148,163,184,0.14); color: var(--text)">
+      <div class="alert alert-<%= msg.type==='error' ? 'danger' : msg.type==='warning' ? 'warning' : msg.type==='info' ? 'info' : 'success' %> py-2 rounded-3">
         <%= msg.text %>
       </div>
     <% } %>
@@ -686,57 +709,57 @@
         const topupBankHolder = pObj.bank_holder || settings?.bank_account_holder || '';
         const topupPayLink = activeTopup.payment_link || '';
       %>
-      <div class="modal fade show" id="modalTopupCheckout" tabindex="-1" style="display:block;background:rgba(0,0,0,0.75);z-index:9999" aria-modal="true" role="dialog">
+      <div class="modal fade show" id="modalTopupCheckout" tabindex="-1" style="display:block;background:rgba(17,24,39,0.5);z-index:9999" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
-          <div class="modal-content" style="background:#0f172a;border:1px solid rgba(99,102,241,0.3);border-radius:20px;color:#fff;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7)">
-            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 20px">
-              <h6 class="modal-title d-flex align-items-center gap-2" style="font-weight:700;font-size:15px;color:#f8fafc">
+          <div class="modal-content" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;color:#111827;overflow:hidden;box-shadow:0 20px 25px -5px rgba(16,24,40,0.12)">
+            <div class="modal-header" style="border-bottom:1px solid #e5e7eb;padding:16px 20px">
+              <h6 class="modal-title d-flex align-items-center gap-2" style="font-weight:700;font-size:15px;color:#111827">
                 <i class="bi bi-qr-code-scan text-primary"></i> Pembayaran Deposit Saldo
               </h6>
-              <a href="/agent" class="btn-close btn-close-white" style="font-size:12px"></a>
+              <a href="/agent" class="btn-close" style="font-size:12px"></a>
             </div>
             <div class="modal-body text-center" style="padding:24px 20px">
               <% if (topupQrImage) { %>
-                <div style="background:#fff;padding:14px;border-radius:16px;display:inline-block;margin-bottom:16px;box-shadow:0 10px 25px rgba(0,0,0,0.3)">
+                <div style="background:#ffffff;padding:14px;border-radius:16px;border:1px solid #e5e7eb;display:inline-block;margin-bottom:16px;box-shadow:0 1px 2px rgba(16,24,40,0.04)">
                   <img src="<%= topupQrImage %>" alt="QRIS Dinamis" style="width:220px;height:220px;display:block;object-fit:contain">
                 </div>
-                <div style="font-size:12.5px;color:#94a3b8;margin-bottom:16px">
+                <div style="font-size:12.5px;color:#4b5563;margin-bottom:16px">
                   <i class="bi bi-phone"></i> Pindai QRIS di atas dengan Mobile Banking atau E-Wallet apapun (GoPay, OVO, Dana, ShopeePay, BCA, Livin, dll).
                 </div>
               <% } %>
 
-              <div style="background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;text-align:left;margin-bottom:16px">
-                <div class="d-flex justify-content-between mb-1" style="font-size:12px;color:#94a3b8">
+              <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;text-align:left;margin-bottom:16px">
+                <div class="d-flex justify-content-between mb-1" style="font-size:12px;color:#4b5563">
                   <span>Nominal Deposit:</span>
-                  <span class="text-white fw-bold">Rp <%= Number(activeTopup.amount || 0).toLocaleString('id-ID') %></span>
+                  <span class="fw-bold" style="color:#111827">Rp <%= Number(activeTopup.amount || 0).toLocaleString('id-ID') %></span>
                 </div>
                 <% if (topupUniqueCode > 0) { %>
-                  <div class="d-flex justify-content-between mb-1" style="font-size:12px;color:#38bdf8">
+                  <div class="d-flex justify-content-between mb-1" style="font-size:12px;color:#0369a1">
                     <span>Kode Unik:</span>
                     <span class="fw-bold">+Rp <%= topupUniqueCode %></span>
                   </div>
                 <% } %>
-                <div class="d-flex justify-content-between pt-2" style="border-top:1px dashed rgba(255,255,255,0.12);font-size:14px">
-                  <span class="fw-bold text-white">TOTAL BAYAR:</span>
-                  <span class="fw-bold text-success" style="font-size:16px">Rp <%= topupTotalAmount.toLocaleString('id-ID') %></span>
+                <div class="d-flex justify-content-between pt-2" style="border-top:1px dashed #cbd5e1;font-size:14px">
+                  <span class="fw-bold" style="color:#111827">TOTAL BAYAR:</span>
+                  <span class="fw-bold" style="font-size:16px;color:#15803d">Rp <%= topupTotalAmount.toLocaleString('id-ID') %></span>
                 </div>
               </div>
 
               <% if (topupVaNumber) { %>
-                <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:12px;margin-bottom:16px;text-align:left">
-                  <div style="font-size:11px;color:#94a3b8">Nomor Virtual Account:</div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:16px;text-align:left">
+                  <div style="font-size:11px;color:#4b5563">Nomor Virtual Account:</div>
                   <div class="d-flex justify-content-between align-items-center mt-1">
-                    <span class="fw-bold text-white" style="font-size:16px;letter-spacing:1px"><%= topupVaNumber %></span>
+                    <span class="fw-bold" style="font-size:16px;letter-spacing:1px;color:#111827"><%= topupVaNumber %></span>
                     <button class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText('<%= topupVaNumber %>');alert('Nomor VA disalin!')" style="font-size:11px;border-radius:8px">Salin</button>
                   </div>
                 </div>
               <% } else if (topupBankAccount) { %>
-                <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:12px;margin-bottom:16px;text-align:left">
-                  <div style="font-size:11px;color:#94a3b8">Transfer Bank <%= topupBankName %>:</div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:16px;text-align:left">
+                  <div style="font-size:11px;color:#4b5563">Transfer Bank <%= topupBankName %>:</div>
                   <div class="d-flex justify-content-between align-items-center mt-1">
                     <div>
-                      <div class="fw-bold text-white" style="font-size:15px"><%= topupBankAccount %></div>
-                      <div style="font-size:11px;color:#94a3b8">a.n. <%= topupBankHolder %></div>
+                      <div class="fw-bold" style="font-size:15px;color:#111827"><%= topupBankAccount %></div>
+                      <div style="font-size:11px;color:#4b5563">a.n. <%= topupBankHolder %></div>
                     </div>
                     <button class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText('<%= topupBankAccount %>');alert('Nomor Rekening disalin!')" style="font-size:11px;border-radius:8px">Salin</button>
                   </div>
@@ -744,18 +767,18 @@
               <% } %>
 
               <% if (topupPayLink && !topupQrImage) { %>
-                <a href="<%= topupPayLink %>" target="_blank" class="btn btn-primary w-100 mb-3" style="border-radius:12px;font-weight:600;padding:10px">
+                <a href="<%= topupPayLink %>" target="_blank" class="btn btn-primary w-100 mb-3" style="border-radius:10px;font-weight:600;padding:10px;background:#2563eb;border-color:#2563eb">
                   <i class="bi bi-box-arrow-up-right me-1"></i> Buka Link Pembayaran Gateway
                 </a>
               <% } %>
 
-              <div class="d-flex align-items-center justify-content-center gap-2" style="font-size:12px;color:#38bdf8">
+              <div class="d-flex align-items-center justify-content-center gap-2" style="font-size:12px;color:#0369a1;font-weight:600">
                 <span class="spinner-border spinner-border-sm" role="status"></span>
                 <span>Menunggu pembayaran... Saldo otomatis bertambah!</span>
               </div>
             </div>
-            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.08);padding:12px 20px">
-              <a href="/agent" class="btn btn-secondary w-100" style="border-radius:12px;font-size:13px">Tutup</a>
+            <div class="modal-footer" style="border-top:1px solid #e5e7eb;padding:12px 20px">
+              <a href="/agent" class="btn btn-outline-secondary w-100" style="border-radius:10px;font-size:13px">Tutup</a>
             </div>
           </div>
         </div>
@@ -916,7 +939,7 @@
                 <button class="btn-mini" type="button" data-bs-toggle="dropdown">
                   <i class="bi bi-funnel"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" id="df_categoryMenu" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.18);">
+                <ul class="dropdown-menu dropdown-menu-end" id="df_categoryMenu" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);">
                   <li><a class="dropdown-item" href="#" data-category="" style="color:var(--text)">Semua Kategori</a></li>
                   <% (digiflazzCategories || []).forEach(cat => { %>
                     <li><a class="dropdown-item" href="#" data-category="<%= encodeURIComponent(cat) %>" style="color:var(--text)"><%= cat %></a></li>
@@ -939,13 +962,13 @@
                   return 'other';
                 };
                 const groupMeta = {
-                  pulsa: { title: 'Pulsa', icon: 'bi-phone', tone: 'rgba(99,102,241,0.15)' },
-                  data: { title: 'Data', icon: 'bi-wifi', tone: 'rgba(34,197,94,0.12)' },
-                  pln: { title: 'PLN', icon: 'bi-lightning-charge', tone: 'rgba(245,158,11,0.12)' },
-                  game: { title: 'Game', icon: 'bi-controller', tone: 'rgba(236,72,153,0.12)' },
-                  wifi: { title: 'WiFi', icon: 'bi-router', tone: 'rgba(59,130,246,0.12)' },
-                  ewallet: { title: 'E-Wallet', icon: 'bi-wallet2', tone: 'rgba(16,185,129,0.12)' },
-                  voucher: { title: 'Voucher', icon: 'bi-ticket-perforated', tone: 'rgba(168,85,247,0.12)' }
+                  pulsa: { title: 'Pulsa', icon: 'bi-phone', tone: '#eff6ff' },
+                  data: { title: 'Data', icon: 'bi-wifi', tone: '#dcfce7' },
+                  pln: { title: 'PLN', icon: 'bi-lightning-charge', tone: '#fef3c7' },
+                  game: { title: 'Game', icon: 'bi-controller', tone: '#fce7f3' },
+                  wifi: { title: 'WiFi', icon: 'bi-router', tone: '#e0f2fe' },
+                  ewallet: { title: 'E-Wallet', icon: 'bi-wallet2', tone: '#dcfce7' },
+                  voucher: { title: 'Voucher', icon: 'bi-ticket-perforated', tone: '#f3e8ff' }
                 };
                 const calcGroup = (groupKey) => {
                   const brandsInGroup = (digiflazzBrandsData || []).filter(b => groupKeyOf(b.category) === groupKey);
@@ -964,7 +987,7 @@
                   <div class="itemx" role="button" tabindex="0" data-group="<%= key %>" style="cursor:pointer">
                     <div class="top">
                       <div class="d-flex align-items-center gap-2" style="min-width:0">
-                        <div class="df-tone-<%= key %>" style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(148,163,184,0.14);flex:0 0 auto">
+                        <div class="df-tone-<%= key %>" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;flex:0 0 auto">
                           <i class="bi <%= meta.icon %>"></i>
                         </div>
                         <div style="min-width:0">
@@ -1023,7 +1046,7 @@
 
             <div class="modal fade" id="df_orderModal" tabindex="-1">
               <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 rounded-4" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.18); color: var(--text);">
+                <div class="modal-content rounded-4" style="background: #ffffff; border: 1px solid #e5e7eb; color: var(--text);">
                   <div class="modal-header border-0 pb-0">
                     <h5 class="fw-bold">Konfirmasi Pembelian</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1066,11 +1089,11 @@
 
             <div class="modal fade" id="df_resultModal" tabindex="-1">
               <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 rounded-4" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.18); color: var(--text);">
+                <div class="modal-content rounded-4" style="background: #ffffff; border: 1px solid #e5e7eb; color: var(--text);">
                   <div class="modal-body p-4">
                     <div class="text-center mb-3">
-                      <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" id="df_resultIconWrap" style="width:72px;height:72px;background:rgba(34,197,94,0.12)">
-                        <i class="bi bi-check2" id="df_resultIcon" style="font-size:32px"></i>
+                      <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" id="df_resultIconWrap" style="width:72px;height:72px;background:#dcfce7">
+                        <i class="bi bi-check2" id="df_resultIcon" style="font-size:32px;color:#15803d"></i>
                       </div>
                       <h5 class="fw-bold mt-3 mb-1" id="df_resultTitle"></h5>
                       <div class="t2" id="df_resultSubtitle"></div>
@@ -1558,20 +1581,20 @@
         if (!wrap || !icon) return;
         const s = String(status || '').toLowerCase();
         if (s === 'success') {
-          wrap.style.background = 'rgba(34,197,94,0.12)';
+          wrap.style.background = '#dcfce7';
           icon.className = 'bi bi-check2';
-          icon.style.color = '#22c55e';
+          icon.style.color = '#15803d';
           return;
         }
         if (s === 'pending') {
-          wrap.style.background = 'rgba(245,158,11,0.12)';
+          wrap.style.background = '#fef3c7';
           icon.className = 'bi bi-clock';
-          icon.style.color = '#f59e0b';
+          icon.style.color = '#b45309';
           return;
         }
-        wrap.style.background = 'rgba(239,68,68,0.12)';
+        wrap.style.background = '#fee2e2';
         icon.className = 'bi bi-x-lg';
-        icon.style.color = '#ef4444';
+        icon.style.color = '#dc2626';
       };
 
       const df_showResultModal = async (result) => {

@@ -1,34 +1,155 @@
+:root {
+  --bg: #f3f4f6;
+  --bg-dark: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg2: #ffffff;
+  --bg3: #f8fafc;
+  --border: #e5e7eb;
+  --glass-border: #e5e7eb;
+  --input-border: #cbd5e1;
+  --text-main: #111827;
+  --text-secondary: #374151;
+  --text-muted: #4b5563;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --warning: #b45309;
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --info: #0369a1;
+  --info-bg: #e0f2fe;
+  --info-text: #075985;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background-color: var(--bg);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
-.card {
-  border-radius: 1.2rem;
-  border: none;
+
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
-.card .form-label {
-  font-weight: 500;
+
+.bg-mesh {
+  background-color: #f3f4f6;
 }
+
+.card,
+.glass-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+  color: #111827;
+}
+
+.card .form-label,
+.form-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-control,
+.form-select,
+.form-input {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #111827;
+  border-radius: 10px;
+}
+
+.form-control::placeholder,
+.form-input::placeholder {
+  color: #4b5563;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-input:focus {
+  background-color: #ffffff;
+  border-color: #2563eb;
+  color: #111827;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 .btn-primary {
-  background: linear-gradient(90deg, #6366f1 0%, #2563eb 100%);
-  border: none;
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.stat-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #111827;
+}
+
+.modal-content {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  color: #111827;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.table {
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.table thead th {
+  background-color: #f8fafc;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
   font-weight: 600;
 }
-.btn-primary:hover {
-  background: linear-gradient(90deg, #2563eb 0%, #6366f1 100%);
+
+.otp-input {
+  letter-spacing: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #111827;
 }
+
 img[alt="Logo"] {
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 6px;
 }
 
 /* Style untuk judul Portal Pelanggan */
 .login-header h4 {
   font-size: 1.25rem;
   margin-bottom: 0.5rem;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #111827;
 }
 
 /* Style untuk header perusahaan */
@@ -36,6 +157,5 @@ img[alt="Logo"] {
   font-size: 1.5rem;
   font-weight: 600;
   margin-top: 0.5rem;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #374151;
 }

@@ -10,16 +10,16 @@
   <link rel="stylesheet" href="/css/admin.css">
   <style>
     .onu-card {
-      background: rgba(30,41,59,.6);
-      border: 1px solid rgba(71,85,105,.4);
+      background: var(--bg2, #ffffff);
+      border: 1px solid var(--border, #e5e7eb);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
       transition: all 0.2s;
     }
     .onu-card:hover {
-      background: rgba(30,41,59,.8);
-      border-color: rgba(71,85,105,.6);
+      background: var(--bg3, #f8fafc);
+      border-color: #cbd5e1;
     }
     .onu-status {
       display: inline-block;
@@ -29,16 +29,16 @@
       font-weight: 600;
     }
     .onu-status.online {
-      background: rgba(34,197,94,.18);
-      color: #bbf7d0;
+      background: #dcfce7;
+      color: #166534;
     }
     .onu-status.offline {
-      background: rgba(239,68,68,.18);
-      color: #fca5a5;
+      background: #fee2e2;
+      color: #991b1b;
     }
     .onu-status.unconfigured {
-      background: rgba(245,158,11,.18);
-      color: #fde68a;
+      background: #fef3c7;
+      color: #92400e;
     }
     .vendor-badge {
       display: inline-block;
@@ -49,45 +49,45 @@
       text-transform: uppercase;
     }
     .vendor-zte {
-      background: rgba(59,130,246,.18);
-      color: #93c5fd;
+      background: #eff6ff;
+      color: #1e40af;
     }
     .vendor-huawei {
-      background: rgba(239,68,68,.18);
-      color: #fca5a5;
+      background: #fee2e2;
+      color: #991b1b;
     }
     .vendor-fiberhome {
-      background: rgba(13,148,136,.18);
-      color: #99f6e4;
+      background: #ccfbf1;
+      color: #115e59;
     }
     .vendor-vsol {
-      background: rgba(16,185,129,.18);
-      color: #a7f3d0;
+      background: #dcfce7;
+      color: #166534;
     }
     .vendor-cdata {
-      background: rgba(234,88,12,.18);
-      color: #fed7aa;
+      background: #ffedd5;
+      color: #9a3412;
     }
     .vendor-hsgq {
-      background: rgba(124,58,237,.18);
-      color: #ddd6fe;
+      background: #f3e8ff;
+      color: #5b21b6;
     }
     .vendor-hioso {
-      background: rgba(217,119,6,.18);
-      color: #fde68a;
+      background: #fef3c7;
+      color: #92400e;
     }
     .tab-buttons {
       display: flex;
       gap: 8px;
       margin-bottom: 20px;
-      border-bottom: 2px solid rgba(71,85,105,.3);
+      border-bottom: 2px solid var(--border, #e5e7eb);
       padding-bottom: 0;
     }
     .tab-btn {
       padding: 12px 20px;
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--muted, #4b5563);
       cursor: pointer;
       font-weight: 600;
       border-bottom: 3px solid transparent;
@@ -95,11 +95,11 @@
       margin-bottom: -2px;
     }
     .tab-btn:hover {
-      color: #e2e8f0;
+      color: var(--text, #111827);
     }
     .tab-btn.active {
-      color: #3b82f6;
-      border-bottom-color: #3b82f6;
+      color: var(--primary, #2563eb);
+      border-bottom-color: var(--primary, #2563eb);
     }
     .tab-content {
       display: none;
@@ -348,22 +348,22 @@
             <% } %>
             
             <!-- Advanced Configuration with Toggle Cards -->
-            <div style="margin-top:24px;padding-top:24px;border-top:2px solid rgba(71,85,105,.3)">
-              <h6 style="margin:0 0 16px 0;color:#e2e8f0"><i class="bi bi-gear-fill"></i> Konfigurasi Lanjutan</h6>
+            <div style="margin-top:24px;padding-top:24px;border-top:2px solid var(--border, #e5e7eb)">
+              <h6 style="margin:0 0 16px 0;color:var(--text, #111827)"><i class="bi bi-gear-fill"></i> Konfigurasi Lanjutan</h6>
               
               <!-- WiFi Configuration Card -->
-              <div style="background:rgba(30,41,59,.4);border:1px solid rgba(71,85,105,.4);border-radius:12px;padding:16px;margin-bottom:12px">
+              <div style="background:var(--bg3, #f8fafc);border:1px solid var(--border, #e5e7eb);border-radius:12px;padding:16px;margin-bottom:12px">
                 <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px">
                   <div style="display:flex;align-items:center;gap:10px">
-                    <i class="bi bi-wifi" style="font-size:20px;color:#3b82f6"></i>
+                    <i class="bi bi-wifi" style="font-size:20px;color:#2563eb"></i>
                     <div>
-                      <div style="font-weight:700;color:#e2e8f0">Konfigurasi WiFi</div>
+                      <div style="font-weight:700;color:var(--text, #111827)">Konfigurasi WiFi</div>
                       <div class="hint" style="font-size:12px;margin-top:2px">Set SSID dan password WiFi ONU</div>
                     </div>
                   </div>
                   <input type="checkbox" id="enableWifi" onchange="toggleWifiFields()" style="width:20px;height:20px;cursor:pointer">
                 </label>
-                <div id="wifiFields" style="display:none;padding-top:12px;border-top:1px solid rgba(71,85,105,.3)">
+                <div id="wifiFields" style="display:none;padding-top:12px;border-top:1px solid var(--border, #e5e7eb)">
                   <div class="form-row2">
                     <div class="fg" style="margin:0">
                       <label class="fl">WiFi SSID</label>
@@ -378,18 +378,18 @@
               </div>
 
               <!-- LAN Mode Card -->
-              <div style="background:rgba(30,41,59,.4);border:1px solid rgba(71,85,105,.4);border-radius:12px;padding:16px;margin-bottom:12px">
+              <div style="background:var(--bg3, #f8fafc);border:1px solid var(--border, #e5e7eb);border-radius:12px;padding:16px;margin-bottom:12px">
                 <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px">
                   <div style="display:flex;align-items:center;gap:10px">
-                    <i class="bi bi-ethernet" style="font-size:20px;color:#10b981"></i>
+                    <i class="bi bi-ethernet" style="font-size:20px;color:#15803d"></i>
                     <div>
-                      <div style="font-weight:700;color:#e2e8f0">Mode LAN</div>
+                      <div style="font-weight:700;color:var(--text, #111827)">Mode LAN</div>
                       <div class="hint" style="font-size:12px;margin-top:2px">Bridge (MikroTik dial) atau Router (ONU dial)</div>
                     </div>
                   </div>
                   <input type="checkbox" id="enableLanMode" onchange="toggleLanModeFields()" style="width:20px;height:20px;cursor:pointer">
                 </label>
-                <div id="lanModeFields" style="display:none;padding-top:12px;border-top:1px solid rgba(71,85,105,.3)">
+                <div id="lanModeFields" style="display:none;padding-top:12px;border-top:1px solid var(--border, #e5e7eb)">
                   <div class="fg" style="margin:0 0 12px 0">
                     <label class="fl">Pilih Mode</label>
                     <select class="fs" name="lanMode" id="lanMode" onchange="togglePPPoEFields()">
@@ -414,18 +414,18 @@
               </div>
 
               <!-- MikroTik Integration Card -->
-              <div id="mikrotikCard" style="background:rgba(30,41,59,.4);border:1px solid rgba(71,85,105,.4);border-radius:12px;padding:16px">
+              <div id="mikrotikCard" style="background:var(--bg3, #f8fafc);border:1px solid var(--border, #e5e7eb);border-radius:12px;padding:16px">
                 <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px">
                   <div style="display:flex;align-items:center;gap:10px">
-                    <i class="bi bi-router" style="font-size:20px;color:#f59e0b"></i>
+                    <i class="bi bi-router" style="font-size:20px;color:#b45309"></i>
                     <div>
-                      <div style="font-weight:700;color:#e2e8f0">Integrasi MikroTik</div>
+                      <div style="font-weight:700;color:var(--text, #111827)">Integrasi MikroTik</div>
                       <div class="hint" style="font-size:12px;margin-top:2px">Auto-create PPPoE secret di MikroTik</div>
                     </div>
                   </div>
                   <input type="checkbox" name="createMikrotikPPPoE" id="createMikrotikPPPoE" onchange="toggleMikrotikFields()" style="width:20px;height:20px;cursor:pointer">
                 </label>
-                <div id="mikrotikPPPoEFields" style="display:none;padding-top:12px;border-top:1px solid rgba(71,85,105,.3)">
+                <div id="mikrotikPPPoEFields" style="display:none;padding-top:12px;border-top:1px solid var(--border, #e5e7eb)">
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
                     <div class="fg" style="margin:0">
                       <label class="fl">PPPoE Username</label>
@@ -444,21 +444,21 @@
               </div>
 
               <!-- TR069/CWMP Configuration Card -->
-              <div style="background:rgba(30,41,59,.4);border:1px solid rgba(71,85,105,.4);border-radius:12px;padding:16px;margin-top:12px">
+              <div style="background:var(--bg3, #f8fafc);border:1px solid var(--border, #e5e7eb);border-radius:12px;padding:16px;margin-top:12px">
                 <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px">
                   <div style="display:flex;align-items:center;gap:10px">
-                    <i class="bi bi-cloud-arrow-up" style="font-size:20px;color:#8b5cf6"></i>
+                    <i class="bi bi-cloud-arrow-up" style="font-size:20px;color:#6d28d9"></i>
                     <div>
-                      <div style="font-weight:700;color:#e2e8f0">TR069/CWMP Configuration</div>
+                      <div style="font-weight:700;color:var(--text, #111827)">TR069/CWMP Configuration</div>
                       <div class="hint" style="font-size:12px;margin-top:2px">Remote management via ACS (Auto Configuration Server)</div>
                     </div>
                   </div>
                   <input type="checkbox" id="enableTR069" onchange="toggleTR069Fields()" style="width:20px;height:20px;cursor:pointer">
                 </label>
-                <div id="tr069Fields" style="display:none;padding-top:12px;border-top:1px solid rgba(71,85,105,.3)">
+                <div id="tr069Fields" style="display:none;padding-top:12px;border-top:1px solid var(--border, #e5e7eb)">
                   <div style="display:grid;grid-template-columns:1fr;gap:12px">
                     <div class="fg" style="margin:0">
-                      <label class="fl">ACS URL <span style="color:#ef4444">*</span></label>
+                      <label class="fl">ACS URL <span style="color:#dc2626">*</span></label>
                       <input type="text" class="fc" name="tr069AcsUrl" placeholder="http://acs.example.com:7547">
                       <div class="hint" style="font-size:11px;margin-top:4px">Format: http://host:port atau https://host:port</div>
                     </div>
@@ -585,7 +585,7 @@ async function scanUnconfiguredONUs() {
       });
       listDiv.innerHTML = html;
     } else {
-      listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-check-circle" style="font-size:32px;color:#22c55e"></i><p>Tidak ada ONU yang belum terkonfigurasi</p></div>';
+      listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-check-circle" style="font-size:32px;color:#15803d"></i><p>Tidak ada ONU yang belum terkonfigurasi</p></div>';
     }
   } catch (error) {
     listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
@@ -748,16 +748,16 @@ async function scanConfiguredONUs() {
               <div>
                 <span class="vendor-badge vendor-${vendorClass}">${onu.vendor || 'ZTE'}</span>
                 <span class="onu-status ${onu.status.toLowerCase() === 'online' ? 'online' : 'offline'}">${onu.status}</span>
-                <span style="margin-left: 8px; font-weight: 700; color: #e2e8f0;">${onu.name}</span>
+                <span style="margin-left: 8px; font-weight: 700; color: var(--text, #111827);">${onu.name}</span>
               </div>
               <div style="display:flex;gap:6px">
                 <button onclick="renameConfiguredOnu('${data.oltId}', '${onu.index}', '${onu.name}')" class="btn btn-g btn-sm" title="Rename ONU">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button onclick="rebootConfiguredOnu('${data.oltId}', '${onu.index}')" class="btn btn-g btn-sm" style="color:#f59e0b" title="Reboot ONU">
+                <button onclick="rebootConfiguredOnu('${data.oltId}', '${onu.index}')" class="btn btn-g btn-sm" style="color:#b45309" title="Reboot ONU">
                   <i class="bi bi-arrow-clockwise"></i>
                 </button>
-                <button onclick="deleteConfiguredOnu('${onu.index}', '${onu.sn}')" class="btn btn-g btn-sm" style="color:#ef4444" title="Hapus/Delete ONU">
+                <button onclick="deleteConfiguredOnu('${onu.index}', '${onu.sn}')" class="btn btn-g btn-sm" style="color:#dc2626" title="Hapus/Delete ONU">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -773,7 +773,7 @@ async function scanConfiguredONUs() {
               </div>
               <div>
                 <div class="hint" style="font-size:11px">Sinyal RX / TX</div>
-                <div style="font-weight:600; color:${parseFloat(onu.rx) < -27 ? '#fca5a5' : '#e2e8f0'}">${onu.rx} / ${onu.tx}</div>
+                <div style="font-weight:600; color:${parseFloat(onu.rx) < -27 ? '#dc2626' : '#111827'}">${onu.rx} / ${onu.tx}</div>
               </div>
               <div>
                 <div class="hint" style="font-size:11px">Uptime / Jarak</div>
@@ -782,19 +782,19 @@ async function scanConfiguredONUs() {
               ${onu.customer_name ? `
               <div>
                 <div class="hint" style="font-size:11px">Nama Pelanggan</div>
-                <div style="font-weight:600; color:#38bdf8"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>
+                <div style="font-weight:600; color:#0369a1"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>
               </div>
               ` : ''}
               ${onu.wifi_ssid && onu.wifi_ssid !== '-' ? `
               <div>
                 <div class="hint" style="font-size:11px">WiFi SSID (ACS)</div>
-                <div style="font-weight:600; color:#3b82f6"><i class="bi bi-wifi"></i> ${onu.wifi_ssid}</div>
+                <div style="font-weight:600; color:#2563eb"><i class="bi bi-wifi"></i> ${onu.wifi_ssid}</div>
               </div>
               ` : ''}
               ${onu.client_count !== undefined && onu.client_count > 0 ? `
               <div>
                 <div class="hint" style="font-size:11px">Klien Connected (ACS)</div>
-                <div style="font-weight:600; color:#10b981"><i class="bi bi-people"></i> ${onu.client_count} device</div>
+                <div style="font-weight:600; color:#15803d"><i class="bi bi-people"></i> ${onu.client_count} device</div>
               </div>
               ` : ''}
             </div>
@@ -804,7 +804,7 @@ async function scanConfiguredONUs() {
       listDiv.innerHTML = html;
     } else {
       const errorMsg = data.error || 'Tidak ada ONU terkonfigurasi yang ditemukan';
-      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#f59e0b"></i><p>\${errorMsg}</p></div>`;
+      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>\${errorMsg}</p></div>`;
     }
   } catch (error) {
     listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';

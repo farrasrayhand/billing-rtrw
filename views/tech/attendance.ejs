@@ -6,78 +6,78 @@
 </div>
 
 <% if (msg) { %>
-  <div class="alert alert-<%= msg.type === 'error' ? 'danger' : 'success' %> alert-dismissible fade show rounded-4" role="alert" style="font-size: 13px;">
+  <div class="alert alert-<%= msg.type === 'error' ? 'danger' : 'success' %> alert-dismissible fade show rounded-3" role="alert" style="font-size: 13px;">
     <i class="bi bi-<%= msg.type === 'error' ? 'exclamation-circle' : 'check-circle' %>-fill me-2"></i>
     <%= msg.text %>
-    <button type="button" class="btn-close btn-close-white" style="font-size: 10px;" data-bs-dismiss="alert"></button>
+    <button type="button" class="btn-close" style="font-size: 10px;" data-bs-dismiss="alert"></button>
   </div>
 <% } %>
 
 <!-- Status Hari Ini -->
-<div class="t-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-  <h6 class="fw-bold mb-3" style="color: white;"><i class="bi bi-clock-history me-2"></i>Status Hari Ini</h6>
+<div class="t-card">
+  <h6 class="fw-bold mb-3" style="color: #111827;"><i class="bi bi-clock-history text-primary me-2"></i>Status Hari Ini</h6>
   
   <% if (todayAttendance) { %>
     <% if (todayAttendance.status === 'checked_in') { %>
-      <span class="badge-status" style="background: rgba(16, 185, 129, 0.3); color: #10b981; border: 1px solid #10b981;">
+      <span class="badge-status badge-resolved">
         <i class="bi bi-check-circle-fill"></i> Sudah Check-in
       </span>
     <% } else { %>
-      <span class="badge-status" style="background: rgba(100, 116, 139, 0.3); color: #cbd5e1; border: 1px solid #94a3b8;">
+      <span class="badge-status bm">
         <i class="bi bi-check-all"></i> Sudah Check-out
       </span>
     <% } %>
 
-    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; margin-top: 15px;">
-      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">Check-in</span>
-        <span style="color: white; font-weight: 600; font-size: 13px;">
+    <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 15px; margin-top: 15px;">
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+        <span style="color: #4b5563; font-size: 13px;">Check-in</span>
+        <span style="color: #111827; font-weight: 600; font-size: 13px;">
           <%= formatTimeLocal(todayAttendance.check_in_time) %>
         </span>
       </div>
 
       <% if (todayAttendance.check_out_time) { %>
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-          <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">Check-out</span>
-          <span style="color: white; font-weight: 600; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+          <span style="color: #4b5563; font-size: 13px;">Check-out</span>
+          <span style="color: #111827; font-weight: 600; font-size: 13px;">
             <%= formatTimeLocal(todayAttendance.check_out_time) %>
           </span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">Durasi Kerja</span>
-          <span style="color: white; font-weight: 600; font-size: 13px;">
+          <span style="color: #4b5563; font-size: 13px;">Durasi Kerja</span>
+          <span style="color: #111827; font-weight: 600; font-size: 13px;">
             <%= Math.floor(todayAttendance.work_duration_minutes / 60) %> jam <%= todayAttendance.work_duration_minutes % 60 %> menit
           </span>
         </div>
       <% } %>
 
       <% if (todayAttendance.check_in_note) { %>
-        <div style="padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 8px;">
-          <span style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Catatan Check-in:</span>
-          <div style="color: white; font-size: 13px; margin-top: 4px;"><%= todayAttendance.check_in_note %></div>
+        <div style="padding: 8px 0; border-top: 1px solid #e5e7eb; margin-top: 8px;">
+          <span style="color: #4b5563; font-size: 12px;">Catatan Check-in:</span>
+          <div style="color: #111827; font-size: 13px; margin-top: 4px;"><%= todayAttendance.check_in_note %></div>
         </div>
       <% } %>
 
       <% if (todayAttendance.check_out_note) { %>
-        <div style="padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 8px;">
-          <span style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Catatan Check-out:</span>
-          <div style="color: white; font-size: 13px; margin-top: 4px;"><%= todayAttendance.check_out_note %></div>
+        <div style="padding: 8px 0; border-top: 1px solid #e5e7eb; margin-top: 8px;">
+          <span style="color: #4b5563; font-size: 12px;">Catatan Check-out:</span>
+          <div style="color: #111827; font-size: 13px; margin-top: 4px;"><%= todayAttendance.check_out_note %></div>
         </div>
       <% } %>
 
       <% if (todayAttendance.check_in_photo || todayAttendance.check_out_photo) { %>
-        <div style="padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 8px;">
-          <span style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Foto Absensi:</span>
+        <div style="padding: 8px 0; border-top: 1px solid #e5e7eb; margin-top: 8px;">
+          <span style="color: #4b5563; font-size: 12px;">Foto Absensi:</span>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
             <% if (todayAttendance.check_in_photo) { %>
-              <a href="<%= todayAttendance.check_in_photo %>" target="_blank" style="color: white; text-decoration: none; font-size: 12px;">
-                <img src="<%= todayAttendance.check_in_photo %>" alt="Foto check-in" style="width: 72px; height: 72px; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 4px;">
+              <a href="<%= todayAttendance.check_in_photo %>" target="_blank" style="color: #111827; text-decoration: none; font-size: 12px; font-weight: 600;">
+                <img src="<%= todayAttendance.check_in_photo %>" alt="Foto check-in" style="width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1; display: block; margin-bottom: 4px;">
                 Check-in
               </a>
             <% } %>
             <% if (todayAttendance.check_out_photo) { %>
-              <a href="<%= todayAttendance.check_out_photo %>" target="_blank" style="color: white; text-decoration: none; font-size: 12px;">
-                <img src="<%= todayAttendance.check_out_photo %>" alt="Foto check-out" style="width: 72px; height: 72px; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 4px;">
+              <a href="<%= todayAttendance.check_out_photo %>" target="_blank" style="color: #111827; text-decoration: none; font-size: 12px; font-weight: 600;">
+                <img src="<%= todayAttendance.check_out_photo %>" alt="Foto check-out" style="width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1; display: block; margin-bottom: 4px;">
                 Check-out
               </a>
             <% } %>
@@ -87,29 +87,29 @@
     </div>
 
     <% if (todayAttendance.status === 'checked_in') { %>
-      <textarea id="checkoutNote" class="form-control mt-3" placeholder="Catatan check-out (opsional)" rows="2" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 13px;"></textarea>
+      <textarea id="checkoutNote" class="form-control mt-3" placeholder="Catatan check-out (opsional)" rows="2" style="background: #ffffff; border: 1px solid #cbd5e1; color: #111827; font-size: 13px;"></textarea>
       
       <div class="mt-3 text-center">
-        <label style="display: block; color: rgba(255, 255, 255, 0.8); font-size: 12px; margin-bottom: 8px;">Foto selfie check-out (wajib)</label>
+        <label style="display: block; color: #374151; font-weight: 600; font-size: 12px; margin-bottom: 8px;">Foto selfie check-out (wajib)</label>
         <input id="checkoutPhoto" type="file" accept="image/*" capture="user" onchange="updatePhotoInfo('checkoutPhoto', 'checkoutPhotoInfo', 'checkoutPhotoPreviewWrap', 'checkoutPhotoPreview')" style="display: none;">
         
         <div style="margin: 12px 0;">
-          <button type="button" onclick="document.getElementById('checkoutPhoto').click()" class="btn d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; background: #7c3aed; color: white; font-size: 24px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
+          <button type="button" onclick="document.getElementById('checkoutPhoto').click()" class="btn d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; background: #2563eb; color: #ffffff; font-size: 24px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
             <i class="bi bi-camera-fill"></i>
           </button>
-          <div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
+          <div style="font-size: 11px; color: #4b5563; margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
         </div>
 
-        <div id="checkoutPhotoInfo" style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 6px;">Belum ada foto selfie dipilih. Foto wajib untuk check-out.</div>
-        <div id="checkoutPhotoStatus" style="display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; background: rgba(239, 68, 68, 0.18); color: #fecaca;">Foto wajib</div>
+        <div id="checkoutPhotoInfo" style="font-size: 11px; color: #4b5563; margin-top: 6px;">Belum ada foto selfie dipilih. Foto wajib untuk check-out.</div>
+        <div id="checkoutPhotoStatus" style="display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b;">Foto wajib</div>
         
         <div style="margin-top: 8px;">
           <button type="button" onclick="clearSelectedPhoto('checkoutPhoto')" class="btn btn-sm btn-outline-danger" id="checkoutPhotoClearBtn" style="display: none; border-radius: 8px; font-size: 11px;">Hapus Foto</button>
         </div>
         
         <div id="checkoutPhotoPreviewWrap" style="display: none; margin-top: 8px;">
-          <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-bottom: 6px;">Preview foto final yang akan dikirim:</div>
-          <img id="checkoutPhotoPreview" alt="Preview foto check-out" style="width: 100%; max-width: 240px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18); object-fit: cover;">
+          <div style="font-size: 11px; color: #4b5563; margin-bottom: 6px;">Preview foto final yang akan dikirim:</div>
+          <img id="checkoutPhotoPreview" alt="Preview foto check-out" style="width: 100%; max-width: 240px; border-radius: 12px; border: 1px solid #cbd5e1; object-fit: cover;">
         </div>
       </div>
       <button id="checkoutSubmitBtn" class="btn btn-danger btn-action mt-2" onclick="checkout(event)" disabled style="opacity: 0.55; cursor: not-allowed;">
@@ -118,36 +118,36 @@
     <% } %>
 
   <% } else { %>
-    <span class="badge-status" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444;">
+    <span class="badge-status badge-open">
       <i class="bi bi-x-circle-fill"></i> Belum Check-in
     </span>
-    <p style="color: rgba(255, 255, 255, 0.8); margin: 15px 0 0 0; font-size: 13px;">
+    <p style="color: #4b5563; margin: 15px 0 0 0; font-size: 13px;">
       Silakan lakukan check-in untuk memulai hari kerja Anda.
     </p>
     
-    <textarea id="checkinNote" class="form-control mt-3" placeholder="Catatan check-in (opsional)" rows="2" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 13px;"></textarea>
+    <textarea id="checkinNote" class="form-control mt-3" placeholder="Catatan check-in (opsional)" rows="2" style="background: #ffffff; border: 1px solid #cbd5e1; color: #111827; font-size: 13px;"></textarea>
     
     <div class="mt-3 text-center">
-      <label style="display: block; color: rgba(255, 255, 255, 0.8); font-size: 12px; margin-bottom: 8px;">Foto selfie check-in (wajib)</label>
+      <label style="display: block; color: #374151; font-weight: 600; font-size: 12px; margin-bottom: 8px;">Foto selfie check-in (wajib)</label>
       <input id="checkinPhoto" type="file" accept="image/*" capture="user" onchange="updatePhotoInfo('checkinPhoto', 'checkinPhotoInfo', 'checkinPhotoPreviewWrap', 'checkinPhotoPreview')" style="display: none;">
       
       <div style="margin: 12px 0;">
-        <button type="button" onclick="document.getElementById('checkinPhoto').click()" class="btn d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; background: #10b981; color: white; font-size: 24px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
+        <button type="button" onclick="document.getElementById('checkinPhoto').click()" class="btn d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; background: #15803d; color: #ffffff; font-size: 24px; box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
           <i class="bi bi-camera-fill"></i>
         </button>
-        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
+        <div style="font-size: 11px; color: #4b5563; margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
       </div>
 
-      <div id="checkinPhotoInfo" style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 6px;">Belum ada foto selfie dipilih. Foto wajib untuk check-in.</div>
-      <div id="checkinPhotoStatus" style="display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; background: rgba(239, 68, 68, 0.18); color: #fecaca;">Foto wajib</div>
+      <div id="checkinPhotoInfo" style="font-size: 11px; color: #4b5563; margin-top: 6px;">Belum ada foto selfie dipilih. Foto wajib untuk check-in.</div>
+      <div id="checkinPhotoStatus" style="display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b;">Foto wajib</div>
       
       <div style="margin-top: 8px;">
         <button type="button" onclick="clearSelectedPhoto('checkinPhoto')" class="btn btn-sm btn-outline-danger" id="checkinPhotoClearBtn" style="display: none; border-radius: 8px; font-size: 11px;">Hapus Foto</button>
       </div>
       
       <div id="checkinPhotoPreviewWrap" style="display: none; margin-top: 8px;">
-        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-bottom: 6px;">Preview foto final yang akan dikirim:</div>
-        <img id="checkinPhotoPreview" alt="Preview foto check-in" style="width: 100%; max-width: 240px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18); object-fit: cover;">
+        <div style="font-size: 11px; color: #4b5563; margin-bottom: 6px;">Preview foto final yang akan dikirim:</div>
+        <img id="checkinPhotoPreview" alt="Preview foto check-in" style="width: 100%; max-width: 240px; border-radius: 12px; border: 1px solid #cbd5e1; object-fit: cover;">
       </div>
     </div>
     <button id="checkinSubmitBtn" class="btn btn-success btn-action mt-2" onclick="checkin(event)" disabled style="opacity: 0.55; cursor: not-allowed;">
@@ -155,8 +155,8 @@
     </button>
   <% } %>
 
-  <div id="locationInfo" style="display: none; font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 10px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
-    <i class="bi bi-geo-alt-fill"></i> Mengambil lokasi GPS...
+  <div id="locationInfo" style="display: none; font-size: 11px; color: #374151; margin-top: 10px; padding: 8px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+    <i class="bi bi-geo-alt-fill text-primary"></i> Mengambil lokasi GPS...
   </div>
 </div>
 
@@ -166,20 +166,20 @@
 </h6>
 
 <div class="stat-grid">
-  <div class="stat-box" style="border-left: 3px solid #3b82f6;">
+  <div class="stat-box">
     <div class="val text-primary"><%= summary.total_days || 0 %></div>
     <div class="lbl">Total Hari</div>
   </div>
-  <div class="stat-box" style="border-left: 3px solid #10b981;">
+  <div class="stat-box">
     <div class="val text-success"><%= summary.completed_days || 0 %></div>
     <div class="lbl">Hari Lengkap</div>
   </div>
-  <div class="stat-box" style="border-left: 3px solid #f59e0b;">
+  <div class="stat-box">
     <div class="val text-warning"><%= summary.total_minutes ? Math.floor(summary.total_minutes / 60) : 0 %></div>
     <div class="lbl">Total Jam</div>
   </div>
-  <div class="stat-box" style="border-left: 3px solid #8b5cf6;">
-    <div class="val" style="color: #a78bfa;"><%= summary.avg_minutes ? Math.floor(summary.avg_minutes / 60) : 0 %></div>
+  <div class="stat-box">
+    <div class="val text-primary"><%= summary.avg_minutes ? Math.floor(summary.avg_minutes / 60) : 0 %></div>
     <div class="lbl">Rata-rata Jam</div>
   </div>
 </div>
@@ -192,7 +192,7 @@
 <% if (history && history.length > 0) { %>
   <% history.forEach(item => { %>
     <div class="t-card">
-      <div class="fw-bold mb-2" style="font-size: 14px; color: #f8fafc;">
+      <div class="fw-bold mb-2" style="font-size: 14px; color: #111827;">
         <%= parseDateInTimezone(item.check_in_time).toLocaleDateString('id-ID', { 
           weekday: 'long', 
           day: 'numeric',
@@ -243,11 +243,11 @@
     const el = document.getElementById(statusId);
     if (!el) return;
     const palette = {
-      idle: ['rgba(239, 68, 68, 0.18)', '#fecaca'],
-      waiting: ['rgba(245, 158, 11, 0.18)', '#fde68a'],
-      processing: ['rgba(59, 130, 246, 0.18)', '#bfdbfe'],
-      ready: ['rgba(16, 185, 129, 0.18)', '#bbf7d0'],
-      error: ['rgba(239, 68, 68, 0.18)', '#fecaca']
+      idle: ['#fee2e2', '#991b1b'],
+      waiting: ['#fef3c7', '#92400e'],
+      processing: ['#e0f2fe', '#075985'],
+      ready: ['#dcfce7', '#166534'],
+      error: ['#fee2e2', '#991b1b']
     };
     const [bg, color] = palette[mode] || palette.idle;
     el.style.background = bg;

@@ -14,16 +14,16 @@
     .emp-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
     .emp-info{display:flex;align-items:center;gap:12px}
     .emp-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
-    .type-technician .emp-avatar{background:rgba(59,130,246,.15);color:#3b82f6}
-    .type-cashier .emp-avatar{background:rgba(34,197,94,.15);color:#22c55e}
-    .type-collector .emp-avatar{background:rgba(249,115,22,.15);color:#f97316}
+    .type-technician .emp-avatar{background:#eff6ff;color:#1e40af}
+    .type-cashier .emp-avatar{background:#dcfce7;color:#166534}
+    .type-collector .emp-avatar{background:#fef3c7;color:#92400e}
     .emp-name{font-weight:600;font-size:14px;color:var(--text)}
     .emp-role{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
     .emp-salary{font-size:14px;font-weight:700;color:var(--primary)}
     .slip-status{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
-    .slip-draft{background:rgba(125,133,144,.15);color:#7d8590}
-    .slip-approved{background:rgba(59,130,246,.15);color:#3b82f6}
-    .slip-paid{background:rgba(34,197,94,.15);color:#22c55e}
+    .slip-draft{background:#f3f4f6;color:#374151}
+    .slip-approved{background:#eff6ff;color:#1e40af}
+    .slip-paid{background:#dcfce7;color:#166534}
     .period-select{display:flex;gap:8px;align-items:center;margin-bottom:16px}
     .period-select select,.period-select input{padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:13px}
     .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -31,8 +31,8 @@
     .detail-item{background:var(--bg3);padding:12px;border-radius:8px}
     .detail-label{font-size:11px;color:var(--muted);margin-bottom:4px}
     .detail-value{font-size:16px;font-weight:700;color:var(--text)}
-    .detail-value.positive{color:#22c55e}
-    .detail-value.negative{color:#f85149}
+    .detail-value.positive{color:var(--success)}
+    .detail-value.negative{color:var(--danger)}
     .slip-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
     .slip-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
     .slip-breakdown{display:grid;grid-template-columns:1fr auto;gap:4px 16px;font-size:13px}
@@ -69,7 +69,7 @@
     <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="sc p"><i class="bi bi-people sc-icon"></i><div class="sc-label">Total Karyawan</div><div class="sc-val"><%= employees.length %></div><div class="sc-sub">Aktif</div></div>
       <div class="sc s"><i class="bi bi-wallet2 sc-icon"></i><div class="sc-label">Total Gaji Bersih</div><div class="sc-val">Rp <%= summary.total_net.toLocaleString('id-ID') %></div><div class="sc-sub"><%= selectedMonth %>/<%= selectedYear %></div></div>
-      <div class="sc p"><i class="bi bi-file-earmark-text sc-icon"></i><div class="sc-label">Slip Gaji</div><div class="sc-val"><%= summary.total_slips %></div><div class="sc-sub"><span style="color:#7d8590"><%= summary.draft_count %> draft</span> · <span style="color:#3b82f6"><%= summary.approved_count %> approved</span> · <span style="color:#22c55e"><%= summary.paid_count %> paid</span></div></div>
+      <div class="sc p"><i class="bi bi-file-earmark-text sc-icon"></i><div class="sc-label">Slip Gaji</div><div class="sc-val"><%= summary.total_slips %></div><div class="sc-sub"><span style="color:var(--muted)"><%= summary.draft_count %> draft</span> · <span style="color:var(--primary)"><%= summary.approved_count %> approved</span> · <span style="color:var(--success)"><%= summary.paid_count %> paid</span></div></div>
       <div class="sc d"><i class="bi bi-cash-stack sc-icon"></i><div class="sc-label">Total Potongan</div><div class="sc-val">Rp <%= summary.total_deductions.toLocaleString('id-ID') %></div><div class="sc-sub"><%= selectedMonth %>/<%= selectedYear %></div></div>
     </div>
 
@@ -119,7 +119,7 @@
     <div class="tab-content" id="tab-slips">
       <div class="card">
         <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-          <h6><i class="bi bi-receipt"></i> Slip Gaji — <%= selectedMonth %>/<%= selectedYear %></h6>
+          <h6><i class="bi bi-receipt"></i> Slip Gaji - <%= selectedMonth %>/<%= selectedYear %></h6>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <form method="GET" action="/admin/payroll" style="display:flex;gap:6px;align-items:center">
               <select name="month" class="fc" style="width:auto;padding:6px 10px">
@@ -171,14 +171,14 @@
               <% if(slip.meal_allowance){%><span class="label">Tunj. Makan</span><span class="value">Rp <%= slip.meal_allowance.toLocaleString('id-ID') %></span><%}%>
               <% if(slip.phone_allowance){%><span class="label">Tunj. Pulsa</span><span class="value">Rp <%= slip.phone_allowance.toLocaleString('id-ID') %></span><%}%>
               <% if(slip.other_allowance){%><span class="label">Tunj. Lain (<%= slip.other_allowance_note || '-' %>)</span><span class="value">Rp <%= slip.other_allowance.toLocaleString('id-ID') %></span><%}%>
-              <% if(slip.ticket_bonus){%><span class="label">Bonus Tiket (<%= slip.total_tickets_resolved %> tiket)</span><span class="value" style="color:#22c55e">+Rp <%= slip.ticket_bonus.toLocaleString('id-ID') %></span><%}%>
-              <% if(slip.collection_commission){%><span class="label">Komisi Tagihan</span><span class="value" style="color:#22c55e">+Rp <%= slip.collection_commission.toLocaleString('id-ID') %></span><%}%>
-              <% if(slip.overtime_bonus){%><span class="label">Lembur (<%= slip.overtime_hours %> jam)</span><span class="value" style="color:#22c55e">+Rp <%= slip.overtime_bonus.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.ticket_bonus){%><span class="label">Bonus Tiket (<%= slip.total_tickets_resolved %> tiket)</span><span class="value" style="color:var(--success)">+Rp <%= slip.ticket_bonus.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.collection_commission){%><span class="label">Komisi Tagihan</span><span class="value" style="color:var(--success)">+Rp <%= slip.collection_commission.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.overtime_bonus){%><span class="label">Lembur (<%= slip.overtime_hours %> jam)</span><span class="value" style="color:var(--success)">+Rp <%= slip.overtime_bonus.toLocaleString('id-ID') %></span><%}%>
               <div class="sep"></div>
               <span class="label"><strong>Total Pendapatan</strong></span><span class="value"><strong>Rp <%= slip.gross_salary.toLocaleString('id-ID') %></strong></span>
-              <% if(slip.absence_deduction){%><span class="label">Potongan Absen (<%= slip.absent_days %> hari)</span><span class="value" style="color:#f85149">-Rp <%= slip.absence_deduction.toLocaleString('id-ID') %></span><%}%>
-              <% if(slip.late_deduction){%><span class="label">Potongan Terlambat (<%= slip.late_days %> hari)</span><span class="value" style="color:#f85149">-Rp <%= slip.late_deduction.toLocaleString('id-ID') %></span><%}%>
-              <% if(slip.other_deduction){%><span class="label">Potongan Lain (<%= slip.other_deduction_note || '-' %>)</span><span class="value" style="color:#f85149">-Rp <%= slip.other_deduction.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.absence_deduction){%><span class="label">Potongan Absen (<%= slip.absent_days %> hari)</span><span class="value" style="color:var(--danger)">-Rp <%= slip.absence_deduction.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.late_deduction){%><span class="label">Potongan Terlambat (<%= slip.late_days %> hari)</span><span class="value" style="color:var(--danger)">-Rp <%= slip.late_deduction.toLocaleString('id-ID') %></span><%}%>
+              <% if(slip.other_deduction){%><span class="label">Potongan Lain (<%= slip.other_deduction_note || '-' %>)</span><span class="value" style="color:var(--danger)">-Rp <%= slip.other_deduction_note ? slip.other_deduction.toLocaleString('id-ID') : slip.other_deduction.toLocaleString('id-ID') %></span><%}%>
               <div class="sep"></div>
               <span class="label">Hadir: <%= slip.working_days %> hari · Absen: <%= slip.absent_days %> hari</span><span class="value"></span>
               <span class="label total"><strong>GAJI BERSIH</strong></span><span class="value total" style="color:var(--primary);font-size:18px"><strong>Rp <%= slip.net_salary.toLocaleString('id-ID') %></strong></span>
@@ -239,7 +239,7 @@ function switchTab(name){
 }
 
 function editPayroll(type, id, name){
-  document.getElementById('modalTitle').textContent = 'Set Gaji — ' + name;
+  document.getElementById('modalTitle').textContent = 'Set Gaji - ' + name;
   document.getElementById('f_type').value = type;
   document.getElementById('f_id').value = id;
   const d = payrollData[type+'_'+id];

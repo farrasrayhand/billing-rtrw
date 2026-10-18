@@ -94,7 +94,7 @@
               <td style="font-size:11px;max-width:160px">
                 <% if (p.promo_cycles > 0 && p.promo_price != null && p.promo_price !== '') { %>
                   <span class="badge bp">Promo</span> Rp <%= Number(p.promo_price).toLocaleString('id-ID') %> × <%= p.promo_cycles %> bln
-                <% } else { %><span class="text-muted">—</span><% } %>
+                <% } else { %><span class="text-muted">-</span><% } %>
                 <% if (p.prorate_first_invoice) { %><br><span class="badge bs" style="margin-top:4px;display:inline-block">Prorata 1×</span><% } %>
               </td>
               <td>
@@ -155,7 +155,7 @@
         </div>
 
         <!-- Tipe Billing: Pascabayar vs Prabayar -->
-        <div class="form-row" style="background:rgba(99,102,241,0.05);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid rgba(99,102,241,0.15);">
+        <div class="form-row" style="background:#eff6ff;padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid #bfdbfe;">
           <div class="fg">
             <label class="fl"><i class="bi bi-credit-card-2-front text-primary me-1"></i> Tipe Penagihan / Billing *</label>
             <select class="fs" name="billing_type" id="add_billing_type" onchange="toggleAddBillingType(this.value)">
@@ -173,7 +173,7 @@
         </div>
 
         <!-- Kecepatan Berdampingan (Download & Upload) -->
-        <div class="form-row" style="background:rgba(59,130,246,0.04);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid rgba(59,130,246,0.12);">
+        <div class="form-row" style="background:var(--bg3);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid var(--border);">
           <div class="fg">
             <label class="fl" style="color:var(--primary);font-weight:700;"><i class="bi bi-download"></i> Kecepatan Download (Mbps) *</label>
             <input class="fc" name="speed_down" id="add_down" type="number" step="any" min="0" placeholder="Contoh: 10" required>
@@ -185,8 +185,8 @@
         </div>
 
         <!-- Kecepatan UpTo / Maximum Burst Rate (Opsional Manual) -->
-        <div style="background:rgba(16,185,129,0.04);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px dashed rgba(16,185,129,0.25);">
-          <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--success)"><i class="bi bi-speedometer2"></i> Fitur Kecepatan UpTo / Max Rate (Opsional)</div>
+        <div style="background:#dcfce7;padding:12px 14px;border-radius:10px;margin-top:10px;border:1px dashed #bbf7d0;">
+          <div class="fw6" style="font-size:12px;margin-bottom:8px;color:#166534"><i class="bi bi-speedometer2"></i> Fitur Kecepatan UpTo / Max Rate (Opsional)</div>
           <div class="form-row">
             <div class="fg">
               <label class="fl">Download UpTo (Mbps)</label>
@@ -201,7 +201,7 @@
             Bila diisi, paket akan tampil sebagai: <strong>10 Mbps (Up to 20 Mbps)</strong> di invoice & portal pelanggan.
           </small>
         </div>
-        <div style="background: rgba(34,197,94,0.06); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
           <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--success)"><i class="bi bi-percent"></i> Promo & prorata tagihan</div>
           <div class="form-row">
             <div class="fg"><label class="fl">Harga promo (Rp / siklus)</label><input class="fc" name="promo_price" type="number" min="0" placeholder="Opsional, mis. 99000"></div>
@@ -213,7 +213,7 @@
           </div>
         </div>
         
-        <div style="background: rgba(99,102,241,0.06); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
           <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--primary)"><i class="bi bi-calculator"></i> Pengaturan Pajak & Regulasi (PPN & USO)</div>
           <div class="form-row" style="margin-bottom: 8px;">
             <div class="fg">
@@ -250,7 +250,7 @@
         <div class="fg"><label class="fl"><%= t('admin.packages.form.description', 'Deskripsi') %></label><textarea class="fc" name="description" placeholder="<%= t('admin.packages.form.optional', 'Opsional...') %>"></textarea></div>
         
         <!-- Dynamic Speed & FUP Section -->
-        <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px; margin-top: 15px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-top: 15px;">
           <div class="flex ai-c mb8" style="gap:10px">
             <input type="checkbox" name="use_night_speed" id="add_use_night" value="1" onchange="toggleAddNight()">
             <h6 style="font-size:12px; margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-clock"></i> Aktifkan Jam Kalong</h6>
@@ -326,7 +326,7 @@
         </div>
 
         <!-- Tipe Billing: Pascabayar vs Prabayar (Edit) -->
-        <div class="form-row" style="background:rgba(99,102,241,0.05);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid rgba(99,102,241,0.15);">
+        <div class="form-row" style="background:#eff6ff;padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid #bfdbfe;">
           <div class="fg">
             <label class="fl"><i class="bi bi-credit-card-2-front text-primary me-1"></i> Tipe Penagihan / Billing *</label>
             <select class="fs" name="billing_type" id="e_billing_type" onchange="toggleEditBillingType(this.value)">
@@ -344,7 +344,7 @@
         </div>
 
         <!-- Kecepatan Berdampingan (Download & Upload - Edit) -->
-        <div class="form-row" style="background:rgba(59,130,246,0.04);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid rgba(59,130,246,0.12);">
+        <div class="form-row" style="background:var(--bg3);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px solid var(--border);">
           <div class="fg">
             <label class="fl" style="color:var(--primary);font-weight:700;"><i class="bi bi-download"></i> Kecepatan Download (Mbps) *</label>
             <input class="fc" name="speed_down" id="e_down" type="number" step="any" min="0" required>
@@ -356,8 +356,8 @@
         </div>
 
         <!-- Kecepatan UpTo (Batas Maksimum - Edit) -->
-        <div style="background:rgba(16,185,129,0.04);padding:12px 14px;border-radius:10px;margin-top:10px;border:1px dashed rgba(16,185,129,0.25);">
-          <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--success)"><i class="bi bi-speedometer2"></i> Fitur Kecepatan UpTo / Max Rate (Opsional)</div>
+        <div style="background:#dcfce7;padding:12px 14px;border-radius:10px;margin-top:10px;border:1px dashed #bbf7d0;">
+          <div class="fw6" style="font-size:12px;margin-bottom:8px;color:#166534"><i class="bi bi-speedometer2"></i> Fitur Kecepatan UpTo / Max Rate (Opsional)</div>
           <div class="form-row">
             <div class="fg">
               <label class="fl">Download UpTo (Mbps)</label>
@@ -373,7 +373,7 @@
           </small>
         </div>
 
-        <div style="background: rgba(34,197,94,0.06); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
           <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--success)"><i class="bi bi-percent"></i> Promo & prorata tagihan</div>
           <div class="form-row">
             <div class="fg"><label class="fl">Harga promo (Rp / siklus)</label><input class="fc" name="promo_price" id="e_promo_price" type="number" min="0" placeholder="Kosong = tanpa harga promo"></div>
@@ -385,7 +385,7 @@
           </div>
         </div>
         
-        <div style="background: rgba(99,102,241,0.06); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; margin-top: 10px;">
           <div class="fw6" style="font-size:12px;margin-bottom:8px;color:var(--primary)"><i class="bi bi-calculator"></i> Pengaturan Pajak & Regulasi (PPN & USO)</div>
           <div class="form-row" style="margin-bottom: 8px;">
             <div class="fg">
@@ -416,7 +416,7 @@
         <div class="fg" style="margin-top:10px;"><label class="fl"><%= t('admin.packages.form.description', 'Deskripsi') %></label><textarea class="fc" name="description" id="e_desc"></textarea></div>
 
         <!-- Dynamic Speed & FUP Section (Edit) -->
-        <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px; margin-top: 15px;">
+        <div style="background: var(--bg3); border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-top: 15px;">
           <div class="flex ai-c mb8" style="gap:10px">
             <input type="checkbox" name="use_night_speed" id="e_use_night" value="1" onchange="toggleEditNight()">
             <h6 style="font-size:12px; margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-clock"></i> Aktifkan Jam Kalong</h6>

@@ -23,16 +23,16 @@
       margin-bottom: 16px;
     }
     .status-checked-in {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: #dcfce7;
+      color: #166534;
     }
     .status-checked-out {
-      background: rgba(59, 130, 246, 0.15);
-      color: #3b82f6;
+      background: #eff6ff;
+      color: #1e40af;
     }
     .status-not-checked-in {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: #fee2e2;
+      color: #991b1b;
     }
     .info-row {
       display: flex;
@@ -171,7 +171,7 @@
             <input id="checkoutPhoto" type="file" accept="image/*" capture="user" style="display: none;" onchange="updatePhotoInfo('checkoutPhoto', 'checkoutPhotoInfo', 'checkoutPhotoPreviewWrap', 'checkoutPhotoPreview')">
             
             <div style="text-align: center; margin: 16px 0;">
-              <button type="button" onclick="document.getElementById('checkoutPhoto').click()" class="btn btn-p d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; font-size: 24px; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
+              <button type="button" onclick="document.getElementById('checkoutPhoto').click()" class="btn btn-p d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; font-size: 24px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
                 <i class="bi bi-camera-fill"></i>
               </button>
               <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
@@ -179,7 +179,7 @@
 
             <div id="checkoutPhotoInfo" class="photo-help text-center">Belum ada foto diambil. Foto wajib untuk check-out.</div>
             <div style="text-align: center; margin-top: 4px;">
-              <div id="checkoutPhotoStatus" class="photo-help" style="display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(239,68,68,0.18);color:#fecaca">Foto wajib</div>
+              <div id="checkoutPhotoStatus" class="photo-help" style="display:inline-block;padding:4px 10px;border-radius:999px;background:#fee2e2;color:#991b1b">Foto wajib</div>
             </div>
             
             <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
@@ -202,7 +202,7 @@
           <input id="checkinPhoto" type="file" accept="image/*" capture="user" style="display: none;" onchange="updatePhotoInfo('checkinPhoto', 'checkinPhotoInfo', 'checkinPhotoPreviewWrap', 'checkinPhotoPreview')">
           
           <div style="text-align: center; margin: 16px 0;">
-            <button type="button" onclick="document.getElementById('checkinPhoto').click()" class="btn btn-s d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; font-size: 24px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
+            <button type="button" onclick="document.getElementById('checkinPhoto').click()" class="btn btn-s d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; font-size: 24px; box-shadow: 0 4px 12px rgba(21, 128, 61, 0.25); border: none; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'">
               <i class="bi bi-camera-fill"></i>
             </button>
             <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">Ketuk tombol kamera untuk mengambil foto selfie</div>
@@ -210,7 +210,7 @@
 
           <div id="checkinPhotoInfo" class="photo-help text-center">Belum ada foto diambil. Foto wajib untuk check-in.</div>
           <div style="text-align: center; margin-top: 4px;">
-            <div id="checkinPhotoStatus" class="photo-help" style="display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(239,68,68,0.18);color:#fecaca">Foto wajib</div>
+            <div id="checkinPhotoStatus" class="photo-help" style="display:inline-block;padding:4px 10px;border-radius:999px;background:#fee2e2;color:#991b1b">Foto wajib</div>
           </div>
           
           <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
@@ -338,11 +338,11 @@
     const el = document.getElementById(statusId);
     if (!el) return;
     const palette = {
-      idle: ['rgba(239, 68, 68, 0.18)', '#fecaca'],
-      waiting: ['rgba(245, 158, 11, 0.18)', '#fde68a'],
-      processing: ['rgba(59, 130, 246, 0.18)', '#bfdbfe'],
-      ready: ['rgba(16, 185, 129, 0.18)', '#bbf7d0'],
-      error: ['rgba(239, 68, 68, 0.18)', '#fecaca']
+      idle: ['#fee2e2', '#991b1b'],
+      waiting: ['#fef3c7', '#92400e'],
+      processing: ['#eff6ff', '#1e40af'],
+      ready: ['#dcfce7', '#166534'],
+      error: ['#fee2e2', '#991b1b']
     };
     const [bg, color] = palette[mode] || palette.idle;
     el.style.background = bg;
@@ -722,8 +722,8 @@
             msg = 'Akses GPS ditolak. Silakan izinkan lokasi di pengaturan browser Anda.';
           }
           if (locInfo) {
-            locInfo.style.background = 'rgba(239, 68, 68, 0.15)';
-            locInfo.style.color = '#ef4444';
+            locInfo.style.background = '#fee2e2';
+            locInfo.style.color = '#991b1b';
             locInfo.innerHTML = `⚠️ ${msg}`;
           }
         },
@@ -731,8 +731,8 @@
       );
     } else {
       if (locInfo) {
-        locInfo.style.background = 'rgba(239, 68, 68, 0.15)';
-        locInfo.style.color = '#ef4444';
+        locInfo.style.background = '#fee2e2';
+        locInfo.style.color = '#991b1b';
         locInfo.innerHTML = '⚠️ Browser Anda tidak mendukung GPS Geolocation.';
       }
     }

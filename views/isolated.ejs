@@ -2,22 +2,22 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Layanan Terisolir | <%= company %></title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     :root {
-      --bg: #0b132b;
-      --card-bg: #1c2541;
-      --card-border: #3a506b;
-      --primary: #38bdf8;
-      --primary-dark: #0284c7;
-      --accent: #f59e0b;
-      --danger: #ef4444;
-      --danger-bg: rgba(239, 68, 68, 0.12);
-      --success: #10b981;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --card-border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --accent: #b45309;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --success: #15803d;
+      --text: #111827;
+      --text-muted: #4b5563;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -30,6 +30,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+    }
+    :focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
     }
     .wrapper {
       width: 100%;
@@ -55,7 +59,7 @@
     .brand-title {
       font-size: 20px;
       font-weight: 800;
-      color: #ffffff;
+      color: #111827;
       letter-spacing: .3px;
     }
 
@@ -63,9 +67,9 @@
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
+      border-radius: 16px;
       padding: 24px 20px;
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       margin-bottom: 16px;
       position: relative;
       overflow: hidden;
@@ -83,8 +87,8 @@
       align-items: center;
       gap: 6px;
       background: var(--danger-bg);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #991b1b;
+      border: 1px solid #fecaca;
       padding: 6px 14px;
       border-radius: 999px;
       font-size: 11.5px;
@@ -94,16 +98,16 @@
       margin-bottom: 12px;
     }
     .status-badge.success {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.3);
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
     }
 
     h1 {
       font-size: 22px;
       font-weight: 800;
       margin-bottom: 8px;
-      color: #ffffff;
+      color: #111827;
     }
     .sub-desc {
       font-size: 13.5px;
@@ -114,9 +118,9 @@
 
     /* Info Grid Pelanggan */
     .cust-info-box {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       padding: 14px;
       margin-bottom: 20px;
     }
@@ -124,9 +128,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 5px 0;
+      padding: 6px 0;
       font-size: 13px;
-      border-bottom: 1px dashed #1e293b;
+      border-bottom: 1px dashed #e5e7eb;
     }
     .cust-row:last-child {
       border-bottom: none;
@@ -137,15 +141,15 @@
     }
     .cust-row .val {
       font-weight: 700;
-      color: #ffffff;
+      color: #111827;
       text-align: right;
     }
 
     /* Invoice List Cards */
     .section-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
-      color: #cbd5e1;
+      color: #374151;
       text-transform: uppercase;
       letter-spacing: .5px;
       margin-bottom: 12px;
@@ -154,12 +158,12 @@
       gap: 6px;
     }
     .invoice-card {
-      background: #0f172a;
-      border: 1.5px solid #334155;
-      border-radius: 16px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
       padding: 16px;
       margin-bottom: 14px;
-      transition: all .2s ease;
+      transition: border-color .2s ease;
     }
     .invoice-card:hover {
       border-color: var(--primary);
@@ -173,7 +177,7 @@
     .inv-period {
       font-size: 15px;
       font-weight: 800;
-      color: #ffffff;
+      color: #111827;
     }
     .inv-id {
       font-size: 11.5px;
@@ -182,7 +186,7 @@
     .inv-amount {
       font-size: 20px;
       font-weight: 900;
-      color: #38bdf8;
+      color: #2563eb;
       margin-bottom: 14px;
     }
 
@@ -194,61 +198,56 @@
       gap: 8px;
       width: 100%;
       padding: 13px 18px;
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 14.5px;
-      font-weight: 800;
+      font-weight: 700;
       cursor: pointer;
       text-decoration: none;
       border: none;
-      transition: all .2s ease;
+      transition: background-color .2s ease, border-color .2s ease;
       box-sizing: border-box;
     }
     .btn-qris-fast {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0284c7 100%);
+      background: #2563eb;
       color: #ffffff;
-      box-shadow: 0 8px 20px -4px rgba(2, 132, 199, 0.5);
     }
     .btn-qris-fast:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px -4px rgba(2, 132, 199, 0.7);
-    }
-    .btn-qris-fast:active {
-      transform: translateY(0);
+      background: #1d4ed8;
     }
     .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
+      background: #ffffff;
+      color: #374151;
+      border: 1px solid #cbd5e1;
       font-size: 13px;
       padding: 10px 14px;
       margin-top: 8px;
     }
     .btn-secondary:hover {
-      background: #334155;
-      color: #ffffff;
+      background: #f8fafc;
+      color: #111827;
+      border-color: #94a3b8;
     }
     .btn-wa {
-      background: #059669;
+      background: #15803d;
       color: #ffffff;
-      box-shadow: 0 6px 16px -2px rgba(5, 150, 105, 0.4);
       margin-top: 10px;
     }
     .btn-wa:hover {
-      background: #047857;
+      background: #166534;
     }
 
     /* Fallback Search Box */
     .search-box {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       padding: 14px;
       margin-top: 14px;
     }
     .search-title {
       font-size: 12.5px;
       font-weight: 700;
-      color: var(--text-muted);
+      color: #374151;
       margin-bottom: 8px;
     }
     .search-form {
@@ -257,9 +256,9 @@
     }
     .search-input {
       flex: 1;
-      background: #1e293b;
-      border: 1px solid #475569;
-      color: #ffffff;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #111827;
       padding: 10px 12px;
       border-radius: 10px;
       font-size: 13.5px;
@@ -267,11 +266,12 @@
     }
     .search-input:focus {
       border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
     .search-btn {
       width: auto;
       padding: 10px 16px;
-      background: #0284c7;
+      background: #2563eb;
       color: #ffffff;
       border-radius: 10px;
       font-size: 13px;
@@ -284,8 +284,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(11, 19, 43, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(17, 24, 39, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -293,37 +292,32 @@
       z-index: 9999;
       opacity: 0;
       visibility: hidden;
-      transition: all .25s ease;
+      transition: opacity .2s ease;
     }
     .modal-overlay.active {
       opacity: 1;
       visibility: visible;
     }
     .modal-card {
-      background: #1e293b;
-      border: 1px solid #475569;
-      border-radius: 22px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
       width: 100%;
       max-width: 440px;
       max-height: 90vh;
       overflow-y: auto;
       padding: 24px 20px;
-      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       position: relative;
-      transform: scale(0.95);
-      transition: all .25s ease;
       text-align: center;
-    }
-    .modal-overlay.active .modal-card {
-      transform: scale(1);
     }
     .modal-close {
       position: absolute;
       top: 16px;
       right: 18px;
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      color: #cbd5e1;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      color: #374151;
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -334,13 +328,14 @@
       cursor: pointer;
     }
     .modal-close:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+      background: #e5e7eb;
+      color: #111827;
     }
 
     .qr-container {
       background: #ffffff;
-      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
       padding: 14px;
       margin: 16px auto;
       width: 260px;
@@ -348,7 +343,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     .qr-image {
       width: 100%;
@@ -356,8 +351,8 @@
       object-fit: contain;
     }
     .qr-amount-box {
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
       border-radius: 12px;
       padding: 12px;
       margin-bottom: 14px;
@@ -371,18 +366,19 @@
     .qr-amount-val {
       font-size: 24px;
       font-weight: 900;
-      color: #38bdf8;
+      color: #2563eb;
       letter-spacing: .5px;
     }
     .qr-unique-badge {
       display: inline-block;
       font-size: 10.5px;
-      background: rgba(245, 158, 11, 0.2);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
       border-radius: 6px;
       padding: 2px 8px;
       margin-top: 4px;
+      font-weight: 700;
     }
 
     .polling-indicator {
@@ -391,13 +387,14 @@
       justify-content: center;
       gap: 8px;
       font-size: 12.5px;
-      color: #38bdf8;
+      color: #2563eb;
+      font-weight: 600;
       margin: 12px 0 16px 0;
     }
     .spinner-pulse {
       width: 10px;
       height: 10px;
-      background-color: #38bdf8;
+      background-color: #2563eb;
       border-radius: 50%;
       animation: pulse 1.2s infinite ease-in-out;
     }
@@ -427,7 +424,7 @@
     .footer-note {
       text-align: center;
       font-size: 11.5px;
-      color: #64748b;
+      color: #4b5563;
       margin-top: 24px;
       line-height: 1.5;
     }
@@ -442,7 +439,7 @@
       <% if (settings.company_logo) { %>
         <img src="<%= settings.company_logo %>" class="brand-logo" alt="Logo">
       <% } else { %>
-        <i class="bi bi-wifi" style="font-size: 28px; color: #38bdf8;"></i>
+        <i class="bi bi-wifi" style="font-size: 28px; color: #2563eb;"></i>
       <% } %>
       <div class="brand-title"><%= company %></div>
     </div>
@@ -472,7 +469,7 @@
         </div>
 
         <form action="/customer/reconnect" method="POST">
-          <button type="submit" class="btn btn-qris-fast" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <button type="submit" class="btn btn-qris-fast" style="background: #15803d;">
             <i class="bi bi-arrow-repeat"></i> Pulihkan & Refresh Koneksi Sekarang
           </button>
         </form>
@@ -502,7 +499,7 @@
           <% if (customer.package_name) { %>
             <div class="cust-row">
               <span class="label">Paket Langganan</span>
-              <span class="val" style="color: #38bdf8;"><%= customer.package_name %></span>
+              <span class="val" style="color: #2563eb;"><%= customer.package_name %></span>
             </div>
           <% } %>
         </div>
@@ -517,14 +514,14 @@
                 <div class="inv-period">Periode: <%= inv.period_month %> / <%= inv.period_year %></div>
                 <div class="inv-id">Invoice #<%= inv.id %></div>
               </div>
-              <span style="font-size:11px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:3px 8px; border-radius:6px; font-weight:700;">BELUM LUNAS</span>
+              <span style="font-size:11px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:3px 8px; border-radius:6px; font-weight:700;">BELUM LUNAS</span>
             </div>
             
             <div class="inv-amount">Rp <%= Number(inv.amount || 0).toLocaleString('id-ID') %></div>
 
             <!-- Tombol Utama: Bayar Cepat QRIS -->
             <button type="button" class="btn btn-qris-fast" onclick="openQuickQris(<%= inv.id %>, '<%= inv.publicToken %>')">
-              <i class="bi bi-lightning-charge-fill" style="color: #fbbf24;"></i> BAYAR CEPAT VIA QRIS
+              <i class="bi bi-lightning-charge-fill"></i> BAYAR CEPAT VIA QRIS
             </button>
 
             <!-- Tombol Cadangan: Metode Lain -->
@@ -560,7 +557,7 @@
             </button>
           </form>
           <% if (searchQuery && !customer) { %>
-            <div style="font-size: 12px; color: #f87171; margin-top: 8px;">
+            <div style="font-size: 12px; color: #dc2626; margin-top: 8px; font-weight: 600;">
               <i class="bi bi-x-circle"></i> Data untuk "<strong><%= searchQuery %></strong>" tidak ditemukan. Pastikan nomor WhatsApp atau ID sudah benar.
             </div>
           <% } %>
@@ -597,13 +594,13 @@
       <!-- Step 1: Loading -->
       <div id="qrisLoadingState" style="padding: 40px 0;">
         <div class="spinner-pulse" style="width: 20px; height: 20px; margin: 0 auto 16px auto;"></div>
-        <h3 style="font-size: 16px; color: #fff;">Menyiapkan QRIS...</h3>
+        <h3 style="font-size: 16px; color: #111827;">Menyiapkan QRIS...</h3>
         <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Menghubungkan ke gateway pembayaran server</p>
       </div>
 
       <!-- Step 2: Content QRIS -->
       <div id="qrisContentState" style="display: none;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: #38bdf8; font-size: 13px; font-weight: 800; text-transform: uppercase;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: #2563eb; font-size: 13px; font-weight: 800; text-transform: uppercase;">
           <i class="bi bi-qr-code-scan"></i> <span id="qrisGatewayTitle">PEMBAYARAN QRIS</span>
         </div>
         <div id="qrisInvoicePeriod" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Tagihan Internet</div>
@@ -638,12 +635,12 @@
 
         <!-- Checkout Url Button (Jika ada) -->
         <div id="qrisExternalCheckout" style="margin-top: 10px; display: none;">
-          <a id="qrisCheckoutLink" href="#" target="_blank" class="btn btn-secondary" style="background: rgba(2, 132, 199, 0.2); border-color: #0284c7; color: #38bdf8;">
+          <a id="qrisCheckoutLink" href="#" target="_blank" class="btn btn-secondary" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
             <i class="bi bi-box-arrow-up-right"></i> Buka Halaman Gateway
           </a>
         </div>
 
-        <div id="qrisHelpText" style="font-size: 11.5px; color: #94a3b8; margin-top: 14px; line-height: 1.4;">
+        <div id="qrisHelpText" style="font-size: 11.5px; color: #4b5563; margin-top: 14px; line-height: 1.4;">
           Buka aplikasi m-Banking atau E-Wallet (BCA, BRI, Mandiri, DANA, GoPay, OVO, ShopeePay), pilih menu Scan QRIS, lalu arahkan ke barcode di atas atau unggah dari galeri.
         </div>
       </div>
@@ -651,10 +648,10 @@
       <!-- Step 3: Success State -->
       <div id="qrisSuccessState" style="display: none; padding: 20px 0;">
         <i class="bi bi-check-circle-fill success-icon"></i>
-        <h2 style="font-size: 22px; color: #10b981; font-weight: 800; margin-bottom: 6px;">Pembayaran Berhasil!</h2>
-        <p style="font-size: 13.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">
+        <h2 style="font-size: 22px; color: #15803d; font-weight: 800; margin-bottom: 6px;">Pembayaran Berhasil!</h2>
+        <p style="font-size: 13.5px; color: #374151; line-height: 1.5; margin-bottom: 20px;">
           Terima kasih! Pembayaran Anda telah kami terima.<br>
-          <strong style="color: #38bdf8;">Layanan internet Anda sedang diaktifkan kembali otomatis...</strong>
+          <strong style="color: #2563eb;">Layanan internet Anda sedang diaktifkan kembali otomatis...</strong>
         </p>
         <div class="spinner-pulse" style="margin: 0 auto;"></div>
       </div>

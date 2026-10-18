@@ -70,7 +70,7 @@
                   <td><code><%= c.username %></code></td>
                   <td><span class="text-muted"><%= c.password %></span></td>
                   <td><%= c.phone || '-' %></td>
-                  <td><span class="badge" style="background:rgba(99,102,241,0.15);color:#818cf8"><%= c.area || '-' %></span></td>
+                  <td><span class="badge" style="background:#eff6ff;color:#1e40af"><%= c.area || '-' %></span></td>
                   <td>
                     <span class="badge <%= c.is_active ? 'bs' : 'bd' %>"><%= c.is_active ? t('common.active','Aktif') : t('common.inactive','Nonaktif') %></span>
                   </td>
@@ -125,7 +125,7 @@
             <option value="0">Nonaktif (Perlu Approval Admin)</option>
             <option value="1">Aktif (Langsung Lunas)</option>
           </select>
-          <div id="add-mode-badge" class="hint" style="margin-top:8px;font-size:12px;color:#fbbf24">
+          <div id="add-mode-badge" class="hint" style="margin-top:8px;font-size:12px;color:var(--warning)">
             Mode saat ini: Menunggu approval admin/kasir sebelum invoice menjadi lunas.
           </div>
           <div class="hint" style="margin-top:6px;font-size:11px;color:var(--muted)">
@@ -176,7 +176,7 @@
             <option value="0">Nonaktif (Perlu Approval Admin)</option>
             <option value="1">Aktif (Langsung Lunas)</option>
           </select>
-          <div id="edit-mode-badge" class="hint" style="margin-top:8px;font-size:12px;color:#fbbf24">
+          <div id="edit-mode-badge" class="hint" style="margin-top:8px;font-size:12px;color:var(--warning)">
             Mode saat ini: Menunggu approval admin/kasir sebelum invoice menjadi lunas.
           </div>
           <div class="hint" style="margin-top:6px;font-size:11px;color:var(--muted)">
@@ -201,7 +201,7 @@ function updateCollectorModeBadge(mode){
   const badge = document.getElementById(isEdit ? 'edit-mode-badge' : 'add-mode-badge');
   if(!select || !badge) return;
   const enabled = String(select.value) === '1';
-  badge.style.color = enabled ? '#22c55e' : '#fbbf24';
+  badge.style.color = enabled ? '#15803d' : '#b45309';
   badge.innerHTML = enabled
     ? 'Mode saat ini: Pembayaran kolektor akan langsung membuat invoice lunas.'
     : 'Mode saat ini: Pembayaran kolektor akan menunggu approval admin/kasir.';

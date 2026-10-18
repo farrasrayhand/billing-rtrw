@@ -285,30 +285,30 @@
 
       <!-- OID & SNMP Info Section -->
       <div id="oid-info-container" class="onu-main-card" style="margin-top: 15px; display: none;">
-        <div class="card-header d-flex justify-content-between align-items-center" style="background:#0f172a; color:white;">
-          <h4 class="fw-bold m-0 small text-uppercase" style="color:#60a5fa;"><i class="bi bi-diagram-3"></i> Informasi OID & Profil SNMP Perangkat</h4>
+        <div class="card-header d-flex justify-content-between align-items-center" style="background:var(--bg3, #f8fafc); color:var(--text, #111827);">
+          <h4 class="fw-bold m-0 small text-uppercase" style="color:var(--primary, #2563eb);"><i class="bi bi-diagram-3"></i> Informasi OID & Profil SNMP Perangkat</h4>
           <span id="oid-brand-badge" class="brand-badge brand-hioso">-</span>
         </div>
-        <div class="p-3" style="background:#1e293b; color:#f8fafc; font-size:12px;">
+        <div class="p-3" style="background:#ffffff; color:var(--text, #111827); font-size:12px;">
           <div class="row g-3">
             <div class="col-md-4">
-              <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #334155;">
-                <div class="text-muted fw-bold mb-2" style="font-size:11px; text-transform:uppercase; color:#94a3b8;"><i class="bi bi-hdd-rack"></i> Profil & Parameter Connection</div>
-                <div class="mb-1">Profil SNMP: <strong id="oid-profile-name" style="color:#38bdf8;">-</strong></div>
+              <div style="background:var(--bg3, #f8fafc); padding:12px; border-radius:8px; border:1px solid var(--border, #e5e7eb);">
+                <div class="text-muted fw-bold mb-2" style="font-size:11px; text-transform:uppercase; color:var(--muted, #4b5563);"><i class="bi bi-hdd-rack"></i> Profil & Parameter Connection</div>
+                <div class="mb-1">Profil SNMP: <strong id="oid-profile-name" style="color:var(--primary, #2563eb);">-</strong></div>
                 <div class="mb-1">Host OLT: <strong id="oid-host">-</strong></div>
                 <div class="mb-1">Port SNMP: <strong id="oid-port">161</strong></div>
-                <div>Community: <strong id="oid-community" style="color:#4ade80;">public</strong></div>
+                <div>Community: <strong id="oid-community" style="color:var(--success, #15803d);">public</strong></div>
               </div>
             </div>
             <div class="col-md-8">
-              <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #334155;">
-                <div class="text-muted fw-bold mb-2" style="font-size:11px; text-transform:uppercase; color:#94a3b8;"><i class="bi bi-card-checklist"></i> Daftar OID Utama (SNMP Walk & Get)</div>
+              <div style="background:var(--bg3, #f8fafc); padding:12px; border-radius:8px; border:1px solid var(--border, #e5e7eb);">
+                <div class="text-muted fw-bold mb-2" style="font-size:11px; text-transform:uppercase; color:var(--muted, #4b5563);"><i class="bi bi-card-checklist"></i> Daftar OID Utama (SNMP Walk & Get)</div>
                 <div class="table-responsive">
-                  <table class="table table-dark table-sm mb-0" style="font-family:monospace; font-size:11px; border-color:#334155;">
+                  <table class="table table-sm mb-0" style="font-family:monospace; font-size:11px; border-color:var(--border, #e5e7eb); color:var(--text, #111827);">
                     <thead>
                       <tr>
-                        <th style="color:#94a3b8">Deskripsi Metrik</th>
-                        <th style="color:#94a3b8">OID Object Identifier</th>
+                        <th style="color:var(--muted, #4b5563)">Deskripsi Metrik</th>
+                        <th style="color:var(--muted, #4b5563)">OID Object Identifier</th>
                       </tr>
                     </thead>
                     <tbody id="oid-table-body">
@@ -351,7 +351,7 @@
 
       <!-- Unauth ONU Section -->
       <div id="unauth-list-container" style="display: none;">
-        <div class="onu-main-card" style="margin-bottom: 20px; border-left: 4px solid #ffc107;">
+        <div class="onu-main-card" style="margin-bottom: 20px;">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="fw-bold m-0 text-warning small text-uppercase"><i class="bi bi-exclamation-triangle"></i> <%= t('admin.olts.unauth_onu', 'ONU Belum Terdaftar (Unauth)') %></h4>
           </div>
@@ -503,7 +503,7 @@
             <div class="fg"><label class="fl">Telnet port</label><input type="number" name="telnet_port" class="fc" value="23" min="1" max="65535"></div>
             <div class="fg"><label class="fl">Enable password (ZTE)</label><input type="password" name="enable_password" class="fc" placeholder="zxr10 (opsional)"></div>
         </div>
-        <div class="fg"><label class="fl">API Base URL (go-api-c320 ZTE)</label><input type="url" name="api_base_url" class="fc" placeholder="http://127.0.0.1:8081 — kosong jika tidak pakai"></div>
+        <div class="fg"><label class="fl">API Base URL (go-api-c320 ZTE)</label><input type="url" name="api_base_url" class="fc" placeholder="http://127.0.0.1:8081 - kosong jika tidak pakai"></div>
         <div class="fg"><label class="fl"><%= t('admin.olts.form.description', 'Deskripsi / Lokasi') %></label><textarea name="description" class="fc" rows="2"></textarea></div>
         <div id="add-test-result" class="alert alert-i small mt-2" style="display:none; font-size:12px;"></div>
       </div>
@@ -789,8 +789,8 @@ async function loadOltDashboard(id) {
         const prof = oSummary.activeProfile;
         const brand = (oSummary.brand || 'N/A').toUpperCase();
         rowsHtml += `
-          <tr style="border-top:2px solid #334155; background:rgba(255,255,255,0.03);">
-            <td colspan="2" style="color:#38bdf8; font-weight:bold; padding-top:8px;">OLT #${idx+1}: ${oSummary.name} (${oSummary.host}) - Brand: ${brand} [${oSummary.status}]</td>
+          <tr style="border-top:2px solid var(--border, #e5e7eb); background:var(--bg3, #f8fafc);">
+            <td colspan="2" style="color:var(--primary, #2563eb); font-weight:bold; padding-top:8px;">OLT #${idx+1}: ${oSummary.name} (${oSummary.host}) - Brand: ${brand} [${oSummary.status}]</td>
           </tr>
           <tr><td>Profil SNMP Aktif</td><td><code>${prof ? prof.name : (oSummary.error || 'Pending/No Match')}</code></td></tr>
           <tr><td>OID Status Table</td><td><code>${prof ? prof.status_table : '-'}</code></td></tr>
@@ -814,16 +814,16 @@ async function loadOltDashboard(id) {
       oidCommunity.innerText = cfg.community || 'public';
 
       oidTableBody.innerHTML = `
-        <tr><td style="color:#94a3b8">OID Probe Autodeteksi</td><td><code style="color:#4ade80">${prof.probe_oid || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Status ONU</td><td><code>${prof.status_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Nama ONU</td><td><code>${prof.name_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Serial Number (SN)</td><td><code>${prof.sn_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Redaman RX Power</td><td><code>${prof.rx_power_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Redaman TX Power</td><td><code>${prof.tx_power_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Jarak ONU (Distance)</td><td><code>${prof.distance_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Tabel Alasan Offline</td><td><code>${prof.offline_reason_table || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Suhu / CPU / RAM System</td><td><code>${sysOids.temp || '-' } / ${sysOids.cpu || '-'} / ${sysOids.ram || '-'}</code></td></tr>
-        <tr><td style="color:#94a3b8">OID Traffic Uplink In / Out</td><td><code>${sysOids.uplink_rx || '-'} / ${sysOids.uplink_tx || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Probe Autodeteksi</td><td><code style="color:var(--success, #15803d)">${prof.probe_oid || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Status ONU</td><td><code>${prof.status_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Nama ONU</td><td><code>${prof.name_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Serial Number (SN)</td><td><code>${prof.sn_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Redaman RX Power</td><td><code>${prof.rx_power_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Redaman TX Power</td><td><code>${prof.tx_power_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Jarak ONU (Distance)</td><td><code>${prof.distance_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Tabel Alasan Offline</td><td><code>${prof.offline_reason_table || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Suhu / CPU / RAM System</td><td><code>${sysOids.temp || '-' } / ${sysOids.cpu || '-'} / ${sysOids.ram || '-'}</code></td></tr>
+        <tr><td style="color:var(--muted, #4b5563)">OID Traffic Uplink In / Out</td><td><code>${sysOids.uplink_rx || '-'} / ${sysOids.uplink_tx || '-'}</code></td></tr>
       `;
     } else {
       oidInfoBox.style.display = 'none';
@@ -886,7 +886,7 @@ async function loadOltDashboard(id) {
         else if (rxVal < -27) rxClass = 'power-danger';
         else if (rxVal < -24) rxClass = 'power-warning';
         const targetOltId = onu.olt_id || id;
-        const oltBadge = onu.olt_name ? `<span class="badge bg-dark border border-secondary text-info me-1" style="font-size:10px">${onu.olt_name}</span>` : '';
+        const oltBadge = onu.olt_name ? `<span class="badge me-1" style="font-size:10px;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;">${onu.olt_name}</span>` : '';
         
         const custBadge = onu.customer_name ? `<div class="mt-1" style="font-size:11px;color:#2563eb;font-weight:600;"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>` : '';
         

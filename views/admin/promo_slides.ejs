@@ -115,9 +115,9 @@
                 <td><img src="<%= s.image_path %>" style="max-width:100px; height:auto; border-radius:6px; object-fit:cover;" alt="<%= s.title %>"></td>
                 <td>
                   <div style="font-weight:600;"><%= s.title || '(Tanpa Judul)' %></div>
-                  <div style="font-size:12px; color:#888; margin-top:4px;"><%= s.description || '-' %></div>
+                  <div style="font-size:12px; color:var(--muted); margin-top:4px;"><%= s.description || '-' %></div>
                   <% if (s.url) { %>
-                  <div style="font-size:11px; color:#6366f1; margin-top:4px;"><i class="bi bi-link-45deg"></i> <%= s.url %></div>
+                  <div style="font-size:11px; color:var(--primary); margin-top:4px;"><i class="bi bi-link-45deg"></i> <%= s.url %></div>
                   <% } %>
                 </td>
                 <td><strong><%= s.sort_order %></strong></td>
@@ -125,9 +125,9 @@
                 <td><%= s.end_date || '-' %></td>
                 <td>
                   <% if (s.is_active) { %>
-                  <span class="badge" style="background:#22c55e; color:white;"><i class="bi bi-check-circle"></i> Aktif</span>
+                  <span class="badge" style="background:#dcfce7; color:#166534;"><i class="bi bi-check-circle"></i> Aktif</span>
                   <% } else { %>
-                  <span class="badge" style="background:#666; color:white;"><i class="bi bi-x-circle"></i> Nonaktif</span>
+                  <span class="badge" style="background:#f3f4f6; color:var(--muted);"><i class="bi bi-x-circle"></i> Nonaktif</span>
                   <% } %>
                 </td>
                 <td>
@@ -142,7 +142,7 @@
           </table>
         </div>
         <% } else { %>
-        <div style="text-align:center; padding:40px; color:#888;">
+        <div style="text-align:center; padding:40px; color:var(--muted);">
           <i class="bi bi-inbox" style="font-size:48px; display:block; margin-bottom:12px; opacity:0.5;"></i>
           <div>Belum ada promo slide</div>
         </div>
@@ -159,12 +159,12 @@
   .alert-d { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
   .badge { padding:4px 8px; border-radius:4px; font-size:11px; font-weight:600; }
   .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
-  .btn-p { background:#6366f1; color:white; }
-  .btn-p:hover { background:#4f46e5; }
-  .btn-g { background:#64748b; color:white; }
-  .btn-g:hover { background:#475569; }
-  .btn-d { background:#ef4444; color:white; }
-  .btn-d:hover { background:#dc2626; }
+  .btn-p { background:var(--primary); color:white; }
+  .btn-p:hover { background:#1d4ed8; }
+  .btn-g { background:var(--bg2); color:var(--text); border:1px solid var(--border); }
+  .btn-g:hover { background:var(--bg3); }
+  .btn-d { background:var(--danger); color:white; }
+  .btn-d:hover { background:#b91c1c; }
   .btn-sm { padding:6px 10px; font-size:12px; }
 </style>
 
@@ -308,11 +308,11 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    color: #666;
+    color: var(--muted);
   }
   
   .modal-close:hover {
-    color: #000;
+    color: var(--text);
   }
   
   .modal-body {
@@ -343,7 +343,7 @@
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 6px;
-    color: #333;
+    color: var(--text);
   }
   
   .fc {
@@ -356,13 +356,13 @@
   
   .fc:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
   
   .hint {
     font-size: 11px;
-    color: #888;
+    color: var(--muted);
   }
 </style>
 
