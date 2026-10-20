@@ -514,6 +514,43 @@
                 </div>
                 <div style="font-size:10px; color:var(--muted); margin-top:4px">Kirimkan request HTTP POST ke URL ini dari MacroDroid Anda (sudah termasuk kunci rahasia).</div>
               </div>
+              <div class="fg" style="margin-top:10px">
+                <label class="fl">Tes Kirim Notifikasi</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input class="fc" id="webhook_test_content" style="flex:1 1 260px" value="DANA: Kamu menerima Rp 1.234 dari TEST">
+                  <button type="button" class="btn btn-g" onclick="testMacroWebhook()"><i class="bi bi-send"></i> Test Webhook</button>
+                </div>
+                <div id="webhook_test_result" style="font-size:10px;color:var(--muted);margin-top:6px"></div>
+              </div>
+              <script>
+                async function testMacroWebhook() {
+                  const contentEl = document.getElementById('webhook_test_content');
+                  const resultEl = document.getElementById('webhook_test_result');
+                  const content = String(contentEl?.value || '').trim();
+                  if (!content) {
+                    if (resultEl) resultEl.textContent = 'Isi teks notifikasi terlebih dahulu.';
+                    return;
+                  }
+                  if (resultEl) resultEl.textContent = 'Mengirim...';
+                  try {
+                    const res = await fetch('/admin/api/webhook/payment-notif/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ service: 'TEST', content })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.ok) throw new Error(data.error || 'Gagal mengirim');
+                    const r = data.result || {};
+                    if (resultEl) {
+                      resultEl.textContent = r.parsed
+                        ? `OK — nominal terdeteksi Rp ${Number(r.amount).toLocaleString('id-ID')} (status: ${r.status}).`
+                        : `Terkirim, tetapi nominal tidak terdeteksi (status: ${r.status}).`;
+                    }
+                  } catch (e) {
+                    if (resultEl) resultEl.textContent = 'Gagal: ' + (e.message || e);
+                  }
+                }
+              </script>
               <script>
                 (function () {
                   const secretEl = document.getElementById('webhook_secret_input');
@@ -844,13 +881,28 @@ async function loadEwalletLogs() {
       const matchedInvoiceId = Number(r.matched_invoice_id || 0) || 0;
       const matchedVoucherOrderId = Number(r.matched_voucher_order_id || 0) || 0;
       const matchedDonationOrderId = Number(r.matched_donation_order_id || 0) || 0;
-      const matchHtml = matchedInvoiceId
-        ? `<a class="mono" href="/admin/billing?search=${matchedInvoiceId}" target="_blank">INV#${matchedInvoiceId}</a>`
-        : (matchedVoucherOrderId 
-            ? `<span class="mono badge bg-info text-dark">VOUCHER#${matchedVoucherOrderId}</span>` 
-            : (matchedDonationOrderId 
-                ? `<span class="mono badge bg-warning text-dark">DONASI#${matchedDonationOrderId}</span>` 
-                : '<span class="muted">-</span>'));
+      const matchedTopupRequestId = Number(r.matched_topup_request_id || 0) || 0;
+      const matchNote = String(r.match_note || '');
+      const isMatched = matchedInvoiceId || matchedVoucherOrderId || matchedDonationOrderId || matchedTopupRequestId;
+      let matchHtml = '<span class="muted">-</span>';
+      if (matchedInvoiceId) {
+        matchHtml = `<a class="mono" href="/admin/billing?search=${matchedInvoiceId}" target="_blank">INV#${matchedInvoiceId}</a>`;
+      } else if (matchedVoucherOrderId) {
+        matchHtml = `<span class="mono badge bg-info text-dark">VOUCHER#${matchedVoucherOrderId}</span>`;
+      } else if (matchedDonationOrderId) {
+        matchHtml = `<span class="mono badge bg-warning text-dark">DONASI#${matchedDonationOrderId}</span>`;
+      } else if (matchedTopupRequestId) {
+        matchHtml = `<span class="mono badge bg-info text-dark">TOPUP#${matchedTopupRequestId}</span>`;
+      } else if (matchNote === 'AMBIGUOUS') {
+        matchHtml = '<span class="badge" style="background:#fee2e2;color:#991b1b">AMBIGUOUS</span>';
+      } else if (matchNote === 'UNMATCHED') {
+        matchHtml = '<span class="badge" style="background:#fef3c7;color:#92400e">UNMATCHED</span>';
+      } else if (matchNote === 'TEST') {
+        matchHtml = '<span class="badge bg-secondary text-white">TEST</span>';
+      } else if (matchNote) {
+        matchHtml = `<span class="mono">${escHtml(matchNote)}</span>`;
+      }
+      const canAssign = ok === 'Y' && !isMatched && matchNote !== 'TEST';
       return `<tr>
         <td class="mono">${created}</td>
         <td>${svc}</td>
@@ -858,10 +910,11 @@ async function loadEwalletLogs() {
         <td>${okBadge}</td>
         <td>${matchHtml}</td>
         <td style="max-width:720px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${content}">${content}</td>
-        <td>
+        <td style="white-space:nowrap">
           <button type="button" class="btn btn-g btn-sm btn-copy-ew" data-raw="${rawEnc}" data-short="${rawShortEnc}">
             <i class="bi bi-copy"></i>
           </button>
+          ${canAssign ? `<button type="button" class="btn btn-p btn-sm btn-assign-ew" data-id="${Number(r.id || 0)}" title="Tandai invoice lunas dari notifikasi ini"><i class="bi bi-link-45deg"></i></button>` : ''}
         </td>
       </tr>`;
     }).join('');
@@ -877,6 +930,36 @@ async function loadEwalletLogs() {
           alert(`Tersalin:\n${shortText}`);
         } else {
           alert('Gagal menyalin.');
+        }
+      });
+    });
+
+    body.querySelectorAll('.btn-assign-ew').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const notifId = Number(btn.getAttribute('data-id') || 0);
+        if (!notifId) return;
+        const raw = prompt('Masukkan ID invoice yang akan ditandai LUNAS:');
+        if (!raw) return;
+        const invoiceId = Number(String(raw).replace(/[^\d]/g, ''));
+        if (!invoiceId) {
+          alert('ID invoice tidak valid.');
+          return;
+        }
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/admin/api/webhook/payment-notif/${notifId}/assign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoice_id: invoiceId })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.error || 'Gagal assign');
+          alert(`Invoice #${invoiceId} ditandai LUNAS.`);
+          await loadEwalletLogs();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          btn.disabled = false;
         }
       });
     });

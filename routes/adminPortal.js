@@ -5020,7 +5020,7 @@ router.get('/api/webhook/payment-notif/logs', requireAdminSession, (req, res) =>
     }
 
     const sql = `
-      SELECT id, created_at, service, content, parsed_amount, parsed_ok, matched_invoice_id, matched_voucher_order_id, matched_donation_order_id, ip
+      SELECT id, created_at, service, content, parsed_amount, parsed_ok, matched_invoice_id, matched_voucher_order_id, matched_donation_order_id, matched_topup_request_id, match_note, ip
       FROM webhook_payment_notifs
       ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
       ORDER BY id DESC
@@ -5046,6 +5046,75 @@ router.post('/api/webhook/payment-notif/clear', requireAdminSession, restrictToA
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+router.post('/api/webhook/payment-notif/test', requireAdminSession, restrictToAdmin, express.json(), async (req, res) => {
+  try {
+    const port = Number(global.appSettings?.port || getSetting('server_port', 3001)) || 3001;
+    const secret = String(getSettings().webhook_secret || process.env.MY_WEBHOOK_SECRET || 'billing-rtrw-secret-key').trim();
+    const service = String(req.body?.service || 'TEST').trim() || 'TEST';
+    const content = String(req.body?.content || '').trim() || 'DANA: Kamu menerima Rp 1.234 dari TEST';
+    const url = `http://127.0.0.1:${port}/api/webhook/v1/payment-notif?secret_key=${encodeURIComponent(secret)}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-webhook-test': '1' },
+      body: JSON.stringify({ service, content, test: true })
+    });
+    const result = await response.json().catch(() => ({}));
+    res.json({ ok: response.ok, status: response.status, result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+router.post('/api/webhook/payment-notif/:id/assign', requireAdminSession, restrictToAdmin, express.json(), async (req, res) => {
+  try {
+    const notifId = Number(req.params.id);
+    const invoiceId = Number(req.body?.invoice_id);
+    if (!Number.isInteger(notifId) || notifId <= 0) throw new Error('ID notifikasi tidak valid');
+    if (!Number.isInteger(invoiceId) || invoiceId <= 0) throw new Error('ID invoice tidak valid');
+
+    const notif = db.prepare('SELECT * FROM webhook_payment_notifs WHERE id=?').get(notifId);
+    if (!notif) throw new Error('Log notifikasi tidak ditemukan');
+
+    const inv = db.prepare(`
+      SELECT i.id, i.customer_id, i.status, i.amount, i.qris_amount_unique, c.status AS customer_status
+      FROM invoices i
+      JOIN customers c ON c.id = i.customer_id
+      WHERE i.id = ?
+    `).get(invoiceId);
+    if (!inv) throw new Error('Invoice tidak ditemukan');
+    if (String(inv.status) !== 'unpaid') throw new Error('Invoice bukan status BELUM BAYAR');
+
+    const amount = Number(notif.parsed_amount || 0);
+    const note = `MANUAL-ASSIGN: notifikasi #${notifId} Rp ${amount.toLocaleString('id-ID')} (service=${notif.service || '-'})`;
+
+    db.transaction(() => {
+      const updated = db.prepare(`
+        UPDATE invoices
+        SET status='paid',
+            paid_at=NOW_LOCAL(),
+            paid_by_name='MANUAL-WEBHOOK',
+            notes = CASE WHEN notes IS NULL OR notes='' THEN ? ELSE notes || ' | ' || ? END,
+            qris_paid_notif_id=?
+        WHERE id=? AND status='unpaid'
+      `).run(note, note, notifId, invoiceId);
+      if (!updated.changes) throw new Error('Invoice sudah dibayar oleh proses lain');
+      db.prepare('UPDATE webhook_payment_notifs SET matched_invoice_id=?, match_note=? WHERE id=?').run(invoiceId, 'MANUAL', notifId);
+    })();
+
+    if (String(inv.customer_status || '') === 'suspended') {
+      const left = db.prepare("SELECT COUNT(*) AS c FROM invoices WHERE customer_id=? AND status='unpaid'").get(inv.customer_id);
+      if (Number(left?.c || 0) === 0) {
+        try { await customerSvc.activateCustomer(inv.customer_id); } catch (_) {}
+      }
+    }
+
+    res.json({ ok: true, invoice_id: invoiceId, amount });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
   }
 });
 

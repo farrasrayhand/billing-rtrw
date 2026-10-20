@@ -168,9 +168,29 @@ app.get('/lang/:lang', (req, res) => {
 // Konstanta
 const VERSION = '2.0.0';
 
+try { db.exec("ALTER TABLE webhook_payment_notifs ADD COLUMN match_note TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE webhook_payment_notifs ADD COLUMN content_hash TEXT"); } catch (e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_webhook_payment_notifs_hash ON webhook_payment_notifs(content_hash)"); } catch (e) {}
+
 const insertWebhookPaymentNotif = db.prepare(`
-  INSERT INTO webhook_payment_notifs (service, content, parsed_amount, parsed_ok, ip, user_agent)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO webhook_payment_notifs (service, content, parsed_amount, parsed_ok, ip, user_agent, content_hash)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+
+const selectRecentWebhookByHash = db.prepare(`
+  SELECT id, parsed_amount, matched_invoice_id, matched_voucher_order_id,
+         matched_donation_order_id, match_note
+  FROM webhook_payment_notifs
+  WHERE content_hash = ?
+    AND id > COALESCE((SELECT MAX(id) FROM webhook_payment_notifs), 0) - 200
+  ORDER BY id DESC
+  LIMIT 1
+`);
+
+const updateWebhookPaymentNotifNote = db.prepare(`
+  UPDATE webhook_payment_notifs
+  SET match_note = ?
+  WHERE id = ?
 `);
 
 const updateWebhookPaymentNotifMatchInvoice = db.prepare(`
@@ -426,6 +446,53 @@ function getIp(req) {
   return String((req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.ip || '');
 }
 
+const webhookRateBuckets = new Map();
+function webhookRateLimiter(req, res, next) {
+  const ip = getIp(req) || 'unknown';
+  const windowMs = 60000;
+  const max = Math.max(1, Number(getSetting('webhook_rate_limit_per_min', 120)) || 120);
+  const now = Date.now();
+  let bucket = webhookRateBuckets.get(ip);
+  if (!bucket || now - bucket.start >= windowMs) {
+    bucket = { start: now, count: 0 };
+    webhookRateBuckets.set(ip, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count > max) {
+    res.set('Retry-After', String(Math.max(1, Math.ceil((bucket.start + windowMs - now) / 1000))));
+    return res.status(429).json({ status: 'rate_limited', error: 'Too Many Requests' });
+  }
+  if (webhookRateBuckets.size > 5000) {
+    for (const [key, value] of webhookRateBuckets) {
+      if (now - value.start >= windowMs) webhookRateBuckets.delete(key);
+    }
+  }
+  next();
+}
+
+function normalizeRupiahNumber(raw) {
+  let s = String(raw || '').replace(/\s+/g, '').replace(/[^\d.,]/g, '');
+  if (!s) return null;
+  const lastDot = s.lastIndexOf('.');
+  const lastComma = s.lastIndexOf(',');
+  if (lastDot >= 0 && lastComma >= 0) {
+    if (lastComma > lastDot) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (lastComma >= 0) {
+    s = /^\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  } else if (lastDot >= 0) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  }
+  const value = Number.parseFloat(s);
+  if (!Number.isFinite(value)) return null;
+  const rounded = Math.round(value);
+  if (rounded < 100 || rounded > 1000000000) return null;
+  return rounded;
+}
+
 function parseRupiahAmountFromNotification(content) {
   const text = String(content || '').replace(/\u00A0/g, ' ').trim();
   if (!text) return null;
@@ -443,52 +510,82 @@ function parseRupiahAmountFromNotification(content) {
     return null;
   }
 
+  const providers = [
+    { name: 'DANA', re: /\bdana\b/i },
+    { name: 'OVO', re: /\bovo\b/i },
+    { name: 'GoPay', re: /\b(gopay|go\s*pay)\b/i },
+    { name: 'ShopeePay', re: /\b(shopeepay|shopee\s*pay)\b/i },
+    { name: 'LinkAja', re: /\blinkaja\b/i },
+    { name: 'BCA', re: /\b(bca|blu)\b/i },
+    { name: 'BRI', re: /\b(bri|brimo)\b/i },
+    { name: 'BNI', re: /\bbni\b/i },
+    { name: 'Mandiri', re: /\b(mandiri|livin)\b/i },
+    { name: 'Permata', re: /\bpermata\b/i }
+  ];
+  const provider = providers.find((p) => p.re.test(text))?.name || '';
+
   const incomingHints = [
-    'pembayaran masuk', 'pembayaran diterima', 'uang masuk', 'transfer masuk',
-    'dana masuk', 'saldo masuk', 'saldo bertambah', 'berhasil top up',
+    'pembayaran masuk', 'pembayaran diterima', 'pembayaran qris diterima',
+    'uang masuk', 'transfer masuk', 'transfer diterima', 'dana masuk',
+    'dana diterima', 'saldo masuk', 'saldo bertambah', 'berhasil top up',
     'top up berhasil', 'topup berhasil', 'terima uang', 'telah diterima dari',
     'diterima dari', 'qris berhasil', 'qris sukses', 'qr berhasil', 'qr sukses',
-    'payment received', 'kamu menerima', 'berhasil menerima', 'menambahkan',
+    'qris diterima', 'payment received', 'kamu menerima', 'anda menerima',
+    'berhasil menerima', 'menerima pembayaran', 'menambahkan',
     'telah diterima sebesar', 'uang diterima'
+  ];
+  const strongIncomingHints = [
+    'kamu menerima', 'anda menerima', 'menerima pembayaran', 'pembayaran diterima',
+    'pembayaran masuk', 'transfer masuk', 'dana masuk', 'uang masuk', 'saldo masuk',
+    'qris berhasil', 'qris sukses', 'qr berhasil', 'qr sukses', 'payment received',
+    'telah diterima', 'berhasil menerima', 'transfer diterima', 'dana diterima'
   ];
   const outgoingHints = [
     'mengirim', 'terkirim', 'telah dikirim', 'berhasil kirim', 'transfer ke',
     'bayar ke', 'pembayaran berhasil', 'berhasil bayar', 'pembelian',
-    'belanja', 'purchase', 'kamu membayar', 'transaksi keluar', 'debit',
-    'dikenakan biaya', 'potongan'
+    'belanja', 'purchase', 'kamu membayar', 'anda membayar', 'transaksi keluar',
+    'debit', 'dikenakan biaya', 'potongan'
   ];
 
   const hasIncomingHint = incomingHints.some((hint) => lower.includes(hint));
+  const hasStrongIncoming = strongIncomingHints.some((hint) => lower.includes(hint));
   const hasOutgoingHint = outgoingHints.some((hint) => lower.includes(hint));
 
-  // WAJIB: Harus ada indikator uang masuk dan TIDAK BOLEH ada indikator uang keluar
-  if (!hasIncomingHint || hasOutgoingHint) {
-    return null;
-  }
+  if (!hasIncomingHint) return null;
+  if (hasOutgoingHint && !hasStrongIncoming) return null;
+  if (hasOutgoingHint && /pembayaran berhasil|berhasil bayar/.test(lower) && !/menerima|diterima/.test(lower)) return null;
+
+  const providerPatterns = {
+    DANA: [/(?:kamu|anda)\s+menerima\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    OVO: [/(?:kamu|anda)\s+menerima\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    GoPay: [/(?:kamu|anda)\s+menerima\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    ShopeePay: [/(?:kamu|anda)\s+menerima\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    LinkAja: [/(?:kamu|anda)\s+menerima\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    BCA: [/transfer\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i, /dana\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    BRI: [/transfer\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i, /dana\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    BNI: [/transfer\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    Mandiri: [/transfer\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i],
+    Permata: [/transfer\s+masuk\s+(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i]
+  };
 
   const candidates = [
-    /(?:\bRp\.?\s*|IDR\s*)([0-9][0-9\.\,\s]*)/i,
-    /(?:sebesar|senilai|nominal|masuk|transfer|top\s*up|topup|saldo\s+masuk)\s*(?:saldo\s*)?(?:\bRp\.?\s*)?([0-9][0-9\.\,\s]*)/i,
+    ...(providerPatterns[provider] || []),
+    /(?:rp\.?\s*|idr\s*)([\d][\d.,]*)/i,
+    /([\d][\d.,]*)\s*(?:idr|rupiah)\b/i,
+    /(?:sebesar|senilai|nominal|uang\s+masuk|dana\s+masuk|transfer\s+masuk|saldo\s+masuk|kamu\s+menerima|anda\s+menerima|menerima|diterima)\s*(?:sebesar\s*)?(?:rp\.?\s*|idr\s*)?([\d][\d.,]*)/i
   ];
 
-  let raw = null;
   for (const re of candidates) {
     const m = text.match(re);
-    if (m && m[1]) {
-      raw = String(m[1]);
-      break;
-    }
+    if (!m || !m[1]) continue;
+    const rawNum = String(m[1]);
+    const currencyMarked = /rp\.?|idr|rupiah/i.test(m[0]);
+    if (!currencyMarked && !/[.,]/.test(rawNum) && rawNum.length < 4) continue;
+    const amount = normalizeRupiahNumber(rawNum);
+    if (amount != null) return amount;
   }
-  if (!raw) return null;
 
-  let num = raw.replace(/\s+/g, '');
-  if (num.includes(',')) num = num.split(',')[0];
-  num = num.replace(/\./g, '');
-  num = num.replace(/[^\d]/g, '');
-  if (!num) return null;
-
-  const amount = Number.parseInt(num, 10);
-  return Number.isFinite(amount) ? amount : null;
+  return null;
 }
 
 function genRandomCode(len = 6) {
@@ -791,7 +888,7 @@ app.post(['/api/webhook/fonnte', '/api/fonnte-webhook'], express.json(), express
   }
 });
 
-app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
+app.post('/api/webhook/v1/payment-notif', webhookRateLimiter, multer().any(), async (req, res) => {
   let body = req.body || {};
   try {
     if (typeof body === 'string') {
@@ -878,7 +975,7 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
       if (typeof val === 'string' || typeof val === 'number') {
         const kLc = key.toLowerCase();
         if (['secret', 'token', 'key', 'password', 'pass'].some(k => kLc.includes(k))) continue;
-        if (['service', 'app', 'packagename'].includes(kLc)) continue;
+        if (['service', 'app', 'packagename', 'timestamp', 'time', 'date', 'msgid', 'messageid', 'notification_id', 'notif_id', 'posted_at'].includes(kLc)) continue;
         extractedTexts.push(String(val));
       }
     }
@@ -889,7 +986,7 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
       if (typeof val === 'string' || typeof val === 'number') {
         const kLc = key.toLowerCase();
         if (['secret', 'token', 'key', 'password', 'pass'].some(k => kLc.includes(k))) continue;
-        if (['service', 'app', 'packagename'].includes(kLc)) continue;
+        if (['service', 'app', 'packagename', 'timestamp', 'time', 'date', 'msgid', 'messageid', 'notification_id', 'notif_id', 'posted_at'].includes(kLc)) continue;
         extractedTexts.push(String(val));
       }
     }
@@ -921,9 +1018,30 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
   }
 
   try {
+    const isTest = String(req.get('x-webhook-test') || '') === '1'
+      || (typeof body === 'object' && body && body.test === true);
     const amount = parseRupiahAmountFromNotification(rawText);
     const ip = String((req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.ip || '');
     const ua = String(req.get('user-agent') || '');
+    const contentHash = crypto.createHash('sha256').update(`${String(service || '').trim()}|${rawText}`).digest('hex');
+
+    if (!isTest) {
+      const dup = selectRecentWebhookByHash.get(contentHash);
+      if (dup) {
+        logger.warn(`[WEBHOOK][payment-notif] Duplicate ignored (id=${dup.id}, amount=${dup.parsed_amount || '-'})`);
+        return res.status(200).json({
+          status: 'duplicate',
+          parsed: dup.parsed_amount != null,
+          amount: dup.parsed_amount != null ? Number(dup.parsed_amount) : null,
+          matched_invoice_id: dup.matched_invoice_id || null,
+          matched_voucher_order_id: dup.matched_voucher_order_id || null,
+          matched_donation_order_id: dup.matched_donation_order_id || null,
+          match_note: dup.match_note || null,
+          duplicate_of: dup.id
+        });
+      }
+    }
+
     let notifId = null;
     try {
       const r = insertWebhookPaymentNotif.run(
@@ -932,7 +1050,8 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
         amount != null ? amount : null,
         amount != null ? 1 : 0,
         ip,
-        ua
+        ua,
+        contentHash
       );
       notifId = Number(r?.lastInsertRowid || 0) || null;
     } catch (e) {
@@ -943,7 +1062,8 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
     let matchedVoucherOrderId = null;
     let matchedDonationOrderId = null;
     let matchedTopupRequestId = null;
-    if (amount != null) {
+    let ambiguous = false;
+    if (amount != null && !isTest) {
       try {
         const invCandidates = selectInvoiceByUniqueAmount.all(amount);
         const vCandidates = selectVoucherOrderByUniqueAmount.all(amount);
@@ -1090,6 +1210,12 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
           const vIds = Array.isArray(vCandidates) ? vCandidates.map(x => x.id).join(',') : '';
           const dIds = Array.isArray(dCandidates) ? dCandidates.map(x => x.id).join(',') : '';
           const tIds = Array.isArray(tCandidates) ? tCandidates.map(x => x.id).join(',') : '';
+          ambiguous = true;
+          if (notifId) {
+            try {
+              updateWebhookPaymentNotifNote.run(`AMBIGUOUS invoices=[${invIds}] vouchers=[${vIds}] donations=[${dIds}] topups=[${tIds}]`, notifId);
+            } catch {}
+          }
           logger.error(`[WEBHOOK][payment-notif] MATCH ambiguous: amount=${amount} invoices=[${invIds}] vouchers=[${vIds}] donations=[${dIds}] topups=[${tIds}]`);
         }
       } catch (e) {
@@ -1097,13 +1223,32 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
       }
     }
 
+    if (notifId) {
+      if (isTest) {
+        try { updateWebhookPaymentNotifNote.run('TEST', notifId); } catch {}
+      } else if (amount != null && !ambiguous && !matchedInvoiceId && !matchedVoucherOrderId && !matchedDonationOrderId && !matchedTopupRequestId) {
+        try { updateWebhookPaymentNotifNote.run('UNMATCHED', notifId); } catch {}
+      }
+    }
+
     if (amount != null) {
-      logger.info(`[WEBHOOK][payment-notif] PARSED service=${String(service || '-')} amount=${amount}`);
-      return res.status(200).json({ status: 'processed', parsed: true, amount, matched_invoice_id: matchedInvoiceId, matched_voucher_order_id: matchedVoucherOrderId, matched_donation_order_id: matchedDonationOrderId, matched_topup_request_id: matchedTopupRequestId });
+      logger.info(`[WEBHOOK][payment-notif] PARSED service=${String(service || '-')} amount=${amount}${isTest ? ' (TEST)' : ''}`);
+      return res.status(200).json({
+        status: 'processed',
+        test: isTest,
+        parsed: true,
+        amount,
+        matched_invoice_id: matchedInvoiceId,
+        matched_voucher_order_id: matchedVoucherOrderId,
+        matched_donation_order_id: matchedDonationOrderId,
+        matched_topup_request_id: matchedTopupRequestId,
+        match_note: isTest ? 'TEST' : (ambiguous ? 'AMBIGUOUS' : null),
+        notif_id: notifId
+      });
     }
 
     logger.error(`[WEBHOOK][payment-notif] FAILED parse: "${rawText.replace(/\r?\n/g, ' ').slice(0, 500)}"`);
-    return res.status(200).json({ status: 'processed', parsed: false, amount: null });
+    return res.status(200).json({ status: 'processed', test: isTest, parsed: false, amount: null, notif_id: notifId });
   } catch (err) {
     logger.error(`[WEBHOOK][payment-notif] ERROR ${err && err.stack ? err.stack : String(err)}`);
     return res.status(200).json({ status: 'processed', parsed: false, amount: null });

@@ -457,6 +457,8 @@ db.exec(`
     parsed_ok INTEGER NOT NULL DEFAULT 0,
     matched_invoice_id INTEGER,
     matched_voucher_order_id INTEGER,
+    match_note TEXT,
+    content_hash TEXT,
     ip TEXT DEFAULT '',
     user_agent TEXT DEFAULT '',
     created_at DATETIME DEFAULT (NOW_LOCAL())
@@ -734,6 +736,9 @@ try { db.exec("ALTER TABLE customer_topup_requests ADD COLUMN qris_amount_unique
 try { db.exec("ALTER TABLE customer_topup_requests ADD COLUMN qris_assigned_at DATETIME"); } catch (e) {}
 try { db.exec("ALTER TABLE customer_topup_requests ADD COLUMN qris_paid_notif_id INTEGER"); } catch (e) {}
 try { db.exec("ALTER TABLE webhook_payment_notifs ADD COLUMN matched_topup_request_id INTEGER"); } catch (e) {}
+try { db.exec("ALTER TABLE webhook_payment_notifs ADD COLUMN match_note TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE webhook_payment_notifs ADD COLUMN content_hash TEXT"); } catch (e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_webhook_payment_notifs_hash ON webhook_payment_notifs(content_hash)"); } catch (e) {}
 
 // Kolom untuk Login OLT (Web/API)
 try { db.exec("ALTER TABLE olts ADD COLUMN web_user TEXT DEFAULT 'admin'"); } catch (e) {}
