@@ -493,19 +493,45 @@
             <!-- Webhook Integration for MacroDroid -->
             <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
               <h6 style="font-size:11px; margin-bottom: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-phone"></i> Webhook Notifikasi SMS/E-Wallet (MacroDroid)</h6>
+              <%
+                const base = settings.public_base_url ? settings.public_base_url.replace(/\/+$/, '') : '';
+                const secret = String(settings.webhook_secret || process.env.MY_WEBHOOK_SECRET || 'billing-rtrw-secret-key').trim();
+                const macroWebhookUrl = base + '/api/webhook/v1/payment-notif?secret_key=' + encodeURIComponent(secret);
+              %>
               <div class="fg">
+                <label class="fl">Secret Key Webhook</label>
+                <div style="display:flex;gap:8px">
+                  <input class="fc" id="webhook_secret_input" name="webhook_secret" value="<%= secret %>" autocomplete="off" spellcheck="false">
+                  <button type="button" class="btn btn-g" onclick="regenWebhookSecret()" title="Buat secret baru"><i class="bi bi-arrow-repeat"></i></button>
+                </div>
+                <div style="font-size:10px; color:var(--muted); margin-top:4px">Klik <strong>Simpan Pengaturan</strong> setelah mengubah secret. MacroDroid harus memakai URL baru di bawah.</div>
+              </div>
+              <div class="fg" style="margin-top:10px">
                 <label class="fl">Link Webhook MacroDroid (URL POST)</label>
                 <div style="display:flex;gap:8px">
-                  <% 
-                    const base = settings.public_base_url ? settings.public_base_url.replace(/\/+$/, '') : '';
-                    const secret = process.env.MY_WEBHOOK_SECRET || '';
-                    const macroWebhookUrl = base ? (base + '/api/webhook/v1/payment-notif?secret_key=' + secret) : '/api/webhook/v1/payment-notif?secret_key=' + secret;
-                  %>
-                  <input class="fc" id="macro_webhook_url" readonly value="<%= macroWebhookUrl %>">
+                  <input class="fc" id="macro_webhook_url" readonly data-base="<%= base %>" value="<%= macroWebhookUrl %>">
                   <button type="button" class="btn btn-g" onclick="copyInput('macro_webhook_url', 'Link Webhook')"><i class="bi bi-copy"></i></button>
                 </div>
                 <div style="font-size:10px; color:var(--muted); margin-top:4px">Kirimkan request HTTP POST ke URL ini dari MacroDroid Anda (sudah termasuk kunci rahasia).</div>
               </div>
+              <script>
+                (function () {
+                  const secretEl = document.getElementById('webhook_secret_input');
+                  const urlEl = document.getElementById('macro_webhook_url');
+                  if (!secretEl || !urlEl) return;
+                  const sync = function () {
+                    const base = urlEl.dataset.base || '';
+                    urlEl.value = base + '/api/webhook/v1/payment-notif?secret_key=' + encodeURIComponent(String(secretEl.value || '').trim());
+                  };
+                  secretEl.addEventListener('input', sync);
+                  window.regenWebhookSecret = function () {
+                    const bytes = new Uint8Array(24);
+                    (window.crypto || window.msCrypto).getRandomValues(bytes);
+                    secretEl.value = Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+                    sync();
+                  };
+                })();
+              </script>
             </div>
           </div>
 
@@ -789,15 +815,18 @@ async function loadEwalletLogs() {
       body.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Belum ada data.</td></tr>';
       return;
     }
-    const newest = rows[0];
-    const newestId = Number(newest?.id || 0);
+    const newestId = Number(rows[0]?.id || 0);
     if (newestId && ewLastId === 0) {
       ewLastId = newestId;
       localStorage.setItem('ew_last_id', String(ewLastId));
     } else if (newestId && newestId > ewLastId) {
+      const fresh = rows
+        .filter((r) => Number(r.id || 0) > ewLastId)
+        .slice(0, 10)
+        .reverse();
       ewLastId = newestId;
       localStorage.setItem('ew_last_id', String(ewLastId));
-      showEwalletNotification(newest);
+      fresh.forEach(showEwalletNotification);
     }
 
     body.innerHTML = rows.map(r => {

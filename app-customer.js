@@ -834,7 +834,7 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
   const expectedTrim = typeof serverSecret === 'string' ? serverSecret.trim() : 'billing-rtrw-secret-key';
   const gotTrim = String(secret_key || '').trim();
 
-  const isSecretValid = (gotTrim === expectedTrim) || (gotTrim === 'billing-rtrw-secret-key');
+  const isSecretValid = gotTrim.length > 0 && gotTrim === expectedTrim;
 
   if (!isSecretValid) {
     logger.warn(`[WEBHOOK][payment-notif] Forbidden: secret_key mismatch. service=${String(service || '-')} (got: ${gotTrim ? '***' + gotTrim.slice(-3) : 'empty'}, expected: ***${expectedTrim.slice(-3)})`);

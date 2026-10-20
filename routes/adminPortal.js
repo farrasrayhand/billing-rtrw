@@ -4183,6 +4183,10 @@ router.post('/api/telegram/sync', requireAdminSession, async (req, res) => {
 router.post('/settings', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
   try {
     const newSettings = { ...req.body };
+    if (typeof newSettings.webhook_secret === 'string') {
+      const ws = newSettings.webhook_secret.trim();
+      newSettings.webhook_secret = ws || crypto.randomBytes(24).toString('hex');
+    }
     if (newSettings.whatsapp_enabled === 'true') newSettings.whatsapp_enabled = true;
     else if (newSettings.whatsapp_enabled === 'false') newSettings.whatsapp_enabled = false;
 
