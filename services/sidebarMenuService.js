@@ -19,6 +19,8 @@ const MENU_DEFINITIONS = [
   { key: 'onu_provision', section: 'main', href: '/admin/onu-provision', icon: 'bi bi-hdd-network-fill', labelKey: 'admin.nav.onu_provision', labelDefault: 'ONU Provision', roles: ['admin'], activePages: ['onu_provision'] },
   { key: 'olts', section: 'main', href: '/admin/olts', icon: 'bi bi-hdd-fill', labelKey: 'admin.nav.olt_management', labelDefault: 'Manajemen OLT', roles: ['admin'], activePages: ['olts'] },
   { key: 'whatsapp', section: 'main', href: '/admin/whatsapp', icon: 'bi bi-whatsapp', labelKey: 'admin.nav.whatsapp', labelDefault: 'WhatsApp', roles: ['admin', 'cashier'], activePages: ['whatsapp'] },
+  { key: 'telegram', section: 'main', href: '/admin/telegram', icon: 'bi bi-telegram', labelKey: 'admin.nav.telegram', labelDefault: 'Telegram', roles: ['admin'], activePages: ['telegram'] },
+  { key: 'ai', section: 'main', href: '/admin/ai', icon: 'bi bi-robot', labelKey: 'admin.nav.ai', labelDefault: 'Asisten AI', roles: ['admin'], activePages: ['ai'] },
 
   // ── BILLING ──
   { key: 'customers', section: 'billing', href: '/admin/customers', icon: 'bi bi-people', labelKey: 'admin.nav.customers', labelDefault: 'Pelanggan', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['customers'] },
@@ -66,6 +68,8 @@ const DEFAULT_MENU_STATES = {
   onu_provision: STATE_VISIBLE,
   olts: STATE_HIDDEN,
   whatsapp: STATE_VISIBLE,
+  telegram: STATE_VISIBLE,
+  ai: STATE_VISIBLE,
   customers: STATE_VISIBLE,
   packages: STATE_VISIBLE,
   billing: STATE_VISIBLE,

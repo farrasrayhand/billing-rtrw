@@ -146,8 +146,16 @@ function fillSpintaxPreset() {
   document.querySelector('[name="whatsapp_isolir_message"]').value = `{Halo|Selamat Pagi|Yth.} Pelanggan {{nama}},\n\nLayanan internet Anda (Paket {{paket}}) saat ini {ditangguhkan|terisolir sementara} karena belum melunasi tagihan sebesar *Rp {{tagihan}}*.\n\n{Mohon segera|Silakan} lakukan pembayaran melalui portal pelanggan: {{link}}\n\nTerima kasih.`;
 }
 
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 function showMetaConverter() {
   document.getElementById('metaConverterModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
   convertCurrentTemplate();
 }
 

@@ -1,4 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
+const https = require('https');
 const { getSetting, getNowLocal } = require('../config/settingsManager');
 const { logger } = require('../config/logger');
 const customerSvc = require('./customerService');
@@ -8,8 +9,10 @@ const agentSvc = require('./agentService');
 const customerDevice = require('./customerDeviceService');
 const whatsappService = require('./whatsappService');
 const db = require('../config/database');
+const telegramAi = require('./telegramAiService');
 
 let bot = null;
+let botMe = null;
 
 function initTelegram() {
   const enabled = getSetting('telegram_enabled', false);
@@ -41,7 +44,8 @@ function initTelegram() {
   // Clear webhook to ensure polling works (Sync)
   bot.deleteWebHook().then(() => {
     bot.getMe().then(me => {
-      logger.info(`Telegram Bot: Terhubung sebagai @${me.username}`);
+      botMe = me;
+      logger.info(`Telegram Bot: Terhubung sebagai @${me.username} (ID: ${me.id})`);
     }).catch(e => logger.error('Telegram Bot Error (getMe):', e.message));
   }).catch(e => logger.error('Telegram Bot Error (deleteWebHook):', e.message));
 
@@ -272,15 +276,133 @@ function initTelegram() {
   };
 
   bot.onText(/\/start|\/menu/i, (msg) => {
-    if (!isAdmin(msg)) return bot.sendMessage(msg.chat.id, `Maaf, Anda tidak memiliki akses admin.\nChat ID Anda: ${msg.from.id}`);
-    bot.sendMessage(msg.chat.id, '🏠 *PANEL ADMIN RTRW-NET*\nSilakan pilih menu di bawah ini:', { parse_mode: 'Markdown', ...mainMenu });
+    if (isAdmin(msg)) {
+      return bot.sendMessage(msg.chat.id, '🏠 *PANEL ADMIN RTRW-NET*\nSilakan pilih menu di bawah ini:', { parse_mode: 'Markdown', ...mainMenu });
+    }
+    
+    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+    if (isGroup) {
+      const helpText = `👋 Halo *${msg.from.first_name || 'Rekan'}*! Saya adalah Bot Asisten *RTRWNET Management & Billing System*.\n\n` +
+        `💡 *Perintah Tersedia di Grup:*\n` +
+        `• \`/tanya <pertanyaan>\` : Tanya jawab seputar fitur sistem\n` +
+        `• Mention saya (@${botMe?.username || 'bot'}) untuk bertanya langsung\n` +
+        `• \`/fitur\` : Ringkasan modul & fitur aplikasi\n` +
+        `• \`/dns <domain>\` : Cek record DNS publik\n` +
+        `• \`/ping <host>\` : Cek koneksi & latensi host\n` +
+        `• \`/bantuan\` : Petunjuk penggunaan bot`;
+      return bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
+    } else {
+      return bot.sendMessage(msg.chat.id,
+        `👋 Halo *${msg.from.first_name || ''}*!\n\n` +
+        `Saya adalah Bot Asisten *RTRWNET Management & Billing System*.\n` +
+        `Untuk akses menu admin penuh, pastikan ID Telegram Anda sudah terdaftar di Web Admin Settings.\n\n` +
+        `🆔 *Chat ID Anda:* \`${msg.from.id}\`\n\n` +
+        `💡 Anda juga bisa berkonsultasi seputar fitur aplikasi di sini: ketik \`/tanya <pertanyaan>\` atau ketik pertanyaan langsung!`,
+        { parse_mode: 'Markdown' }
+      );
+    }
   });
 
   bot.on('message', async (msg) => {
+    // 1. Sambutan Member Baru di Grup
+    if (msg.new_chat_members && msg.new_chat_members.length > 0) {
+      const isWelcomeOn = getSetting('telegram_welcome_enabled', true);
+      if (isWelcomeOn) {
+        const newcomers = msg.new_chat_members.filter(m => !botMe || m.id !== botMe.id);
+        if (newcomers.length > 0) {
+          const names = newcomers.map(u => u.first_name || 'Member').join(', ');
+          const customMsg = getSetting('telegram_welcome_msg', '');
+          const welcomeText = customMsg
+            ? customMsg.replace(/\{nama\}/gi, names).replace(/\{bot\}/gi, botMe ? `@${botMe.username}` : 'bot')
+            : `👋 Selamat datang *${names}* di grup diskusi *RTRWNET Management & Billing System*!\n\n` +
+              `💡 Butuh info seputar fitur, billing, MikroTik, GenieACS, atau OLT? Tag @${botMe?.username || 'bot'} atau ketik \`/tanya <pertanyaan>\`.\n` +
+              `Ketik \`/fitur\` untuk melihat rangkuman modul aplikasi.`;
+          bot.sendMessage(msg.chat.id, welcomeText, { parse_mode: 'Markdown' }).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    const text = msg.text || '';
+    if (!text || text === '/start' || text === '/menu') return;
+
+    // Konfirmasi penghapusan pelanggan oleh Admin di Telegram Private Chat
+    if (msg.chat.type === 'private' && isAdmin(msg) && /^ya\s+hapus\s+(\d+)[.!]?$/i.test(text.trim())) {
+      const match = text.trim().match(/^ya\s+hapus\s+(\d+)[.!]?$/i);
+      const custId = parseInt(match[1], 10);
+      const cust = customerSvc.getCustomerById(custId);
+      if (!cust) {
+        return bot.sendMessage(msg.chat.id, `❌ Pelanggan dengan ID #${custId} tidak ditemukan atau sudah dihapus.`, { reply_to_message_id: msg.message_id });
+      }
+      try {
+        await customerSvc.deleteCustomer(custId);
+        return bot.sendMessage(msg.chat.id, `🗑️ *PELANGGAN BERHASIL DIHAPUS*\n\nData pelanggan *${cust.name}* (ID: #${custId}, No HP: ${cust.phone || '-'}) telah dihapus dari sistem billing.`, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id });
+      } catch (err) {
+        logger.error(`[TelegramBot] Gagal menghapus pelanggan #${custId}: ${err.message}`);
+        return bot.sendMessage(msg.chat.id, `❌ Gagal menghapus pelanggan #${custId}: ${err.message}`, { reply_to_message_id: msg.message_id });
+      }
+    }
+
+    // 2. Deteksi Pertanyaan untuk AI Asisten (di Grup atau Private Chat)
+    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+    const botUsername = botMe ? botMe.username.toLowerCase() : '';
+    const lowerText = text.toLowerCase();
+
+    const isMentioned = botUsername && lowerText.includes(`@${botUsername}`);
+    const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && botMe && msg.reply_to_message.from.id === botMe.id;
+    const isAskCommand = /^\/(?:tanya|ask|ai)(?:@\w+)?(?:\s+|$)/i.test(text);
+    const isGroupTrigger = isGroup && (isMentioned || isReplyToBot || isAskCommand);
+    const isPrivateTrigger = !isGroup && (isAskCommand || !text.startsWith('/'));
+
+    if (isGroupTrigger || isPrivateTrigger) {
+      const isAiEnabled = getSetting('telegram_group_ai_enabled', true);
+      if (!isAiEnabled) {
+        if (isAskCommand || isMentioned) {
+          bot.sendMessage(msg.chat.id, 'ℹ️ Fitur Asisten AI grup sedang dinonaktifkan di pengaturan.', { reply_to_message_id: msg.message_id }).catch(() => {});
+        }
+        return;
+      }
+
+      let cleanQuestion = text
+        .replace(new RegExp(`@${botUsername}`, 'gi'), '')
+        .replace(/^\/(?:tanya|ask|ai)(?:@\w+)?\s*/i, '')
+        .trim();
+
+      if (!cleanQuestion) {
+        return bot.sendMessage(msg.chat.id, '💡 Silakan tulis pertanyaan setelah perintah. Contoh: `/tanya bagaimana cara isolir otomatis?`', {
+          parse_mode: 'Markdown',
+          reply_to_message_id: msg.message_id
+        });
+      }
+
+      bot.sendChatAction(msg.chat.id, 'typing').catch(() => {});
+
+      try {
+        const isPrivAdmin = msg.chat.type === 'private' && isAdmin(msg);
+        const answer = await telegramAi.askAi({
+          question: cleanQuestion,
+          senderName: msg.from.first_name || 'Rekan',
+          isAdmin: Boolean(isPrivAdmin)
+        });
+
+        await bot.sendMessage(msg.chat.id, answer, {
+          parse_mode: 'Markdown',
+          reply_to_message_id: msg.message_id
+        }).catch(async () => {
+          // Fallback tanpa formatting jika ada karakter yang tidak sengaja merusak Markdown parser
+          await bot.sendMessage(msg.chat.id, answer, {
+            reply_to_message_id: msg.message_id
+          }).catch(() => {});
+        });
+      } catch (err) {
+        logger.error(`[TelegramBot] Error AI response: ${err.message}`);
+        bot.sendMessage(msg.chat.id, '❌ Maaf, sedang terjadi kendala memproses jawaban. Silakan coba kembali.', { reply_to_message_id: msg.message_id }).catch(() => {});
+      }
+      return;
+    }
+
+    // 3. Khusus Pesan Manual Admin (Pertahankan logika asli)
     if (!isAdmin(msg)) return;
-    const text = msg.text;
-    if (text === '/start' || text === '/menu') return; // Handled by onText
-    
     // Logika handle text manual jika diperlukan (misal untuk perintah kick/edit)
   });
 
@@ -1021,10 +1143,166 @@ function initTelegram() {
     }
   });
 
+  // --- Perintah Asisten Grup & Utilitas Jaringan (Dapat diakses oleh Member Grup & Admin) ---
+  
+  bot.onText(/\/fitur(?:@\w+)?/i, async (msg) => {
+    try {
+      const summary = telegramAi.getOfflineAnswer('menu_overview');
+      bot.sendMessage(msg.chat.id, summary, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id }).catch(() => {});
+    } catch (e) {
+      logger.error('Telegram /fitur error:', e.message);
+    }
+  });
+
+  bot.onText(/\/dns(?:@\w+)?(?:\s+(\S+))?(?:\s+(\S+))?/i, async (msg, match) => {
+    const domain = match[1];
+    const type = match[2] || 'A';
+    if (!domain) {
+      return bot.sendMessage(msg.chat.id, '💡 Format cek DNS: `/dns <domain> [record]`\nContoh: `/dns google.com A` atau `/dns cloudflare.com MX`', {
+        parse_mode: 'Markdown',
+        reply_to_message_id: msg.message_id
+      });
+    }
+
+    bot.sendChatAction(msg.chat.id, 'typing').catch(() => {});
+    const res = await telegramAi.checkDns(domain, type);
+    bot.sendMessage(msg.chat.id, res, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id }).catch(() => {});
+  });
+
+  bot.onText(/\/ping(?:@\w+)?(?:\s+(\S+))?/i, async (msg, match) => {
+    const host = match[1];
+    if (!host) {
+      return bot.sendMessage(msg.chat.id, '💡 Format ping: `/ping <domain/IP>`\nContoh: `/ping google.com` atau `/ping 1.1.1.1`', {
+        parse_mode: 'Markdown',
+        reply_to_message_id: msg.message_id
+      });
+    }
+
+    bot.sendChatAction(msg.chat.id, 'typing').catch(() => {});
+    const res = await telegramAi.checkPing(host);
+    bot.sendMessage(msg.chat.id, res, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id }).catch(() => {});
+  });
+
+  bot.onText(/\/(?:bantuan|help)(?:@\w+)?/i, async (msg) => {
+    const helpText = `🤖 *PANDUAN ASISTEN GRUP RTRW-NET*\n\n` +
+      `*Konsultasi Fitur Aplikasi:*\n` +
+      `• Ketik \`/tanya <pertanyaan>\`\n` +
+      `• Mention @${botMe?.username || 'bot'} diikuti pertanyaan Anda\n` +
+      `• Atau reply salah satu pesan bot\n\n` +
+      `*Perintah Utilitas Jaringan:*\n` +
+      `• \`/dns <domain> [tipe]\` : Cek record DNS (A, MX, TXT, NS)\n` +
+      `• \`/ping <host>\` : Cek latensi dan status koneksi host\n` +
+      `• \`/fitur\` : Rangkuman modul sistem aplikasi\n\n` +
+      `_Catatan: Perintah manajemen router & ONU (reboot, isolir, ganti wifi) khusus untuk Admin resmi._`;
+    bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id }).catch(() => {});
+  });
+
   bot.on('polling_error', (error) => {
     logger.error('Telegram Polling Error:', error.message);
   });
 }
 
-// Export for manual re-init from settings
-module.exports = { initTelegram };
+/**
+ * Konversi angka ke kalimat terbilang bahasa Indonesia
+ */
+function terbilang(n) {
+  const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  n = Math.floor(Number(n) || 0);
+  if (n < 12) return bilangan[n];
+  if (n < 20) return terbilang(n - 10) + ' belas';
+  if (n < 100) return terbilang(Math.floor(n / 10)) + ' puluh' + (n % 10 !== 0 ? ' ' + terbilang(n % 10) : '');
+  if (n < 200) return 'seratus' + (n - 100 !== 0 ? ' ' + terbilang(n - 100) : '');
+  if (n < 1000) return terbilang(Math.floor(n / 100)) + ' ratus' + (n % 100 !== 0 ? ' ' + terbilang(n % 100) : '');
+  if (n < 2000) return 'seribu' + (n - 1000 !== 0 ? ' ' + terbilang(n - 1000) : '');
+  if (n < 1000000) return terbilang(Math.floor(n / 1000)) + ' ribu' + (n % 1000 !== 0 ? ' ' + terbilang(n % 1000) : '');
+  if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + ' juta' + (n % 1000000 !== 0 ? ' ' + terbilang(n % 1000000) : '');
+  return n.toLocaleString('id-ID');
+}
+
+/**
+ * Generate audio buffer MP3 dari Google TTS Bahasa Indonesia
+ */
+function generateTtsAudio(text) {
+  return new Promise((resolve, reject) => {
+    const cleanText = String(text || '').trim();
+    if (!cleanText) return resolve(Buffer.alloc(0));
+    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encodeURIComponent(cleanText) + '&tl=id&client=tw-ob';
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
+      if (res.statusCode !== 200) return reject(new Error('TTS status code ' + res.statusCode));
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+    }).on('error', reject);
+  });
+}
+
+/**
+ * Kirim Pesan Suara (Voice Note / Audio) ke Telegram Admin
+ */
+async function sendAdminVoiceNotification(text, caption = '') {
+  try {
+    const adminId = getSetting('telegram_admin_id', '');
+    if (!adminId) return false;
+
+    let activeBot = bot;
+    if (!activeBot) {
+      const token = getSetting('telegram_bot_token', '');
+      if (token) {
+        activeBot = new TelegramBot(token);
+      }
+    }
+    if (!activeBot) return false;
+
+    const audioBuf = await generateTtsAudio(text);
+    if (!audioBuf || audioBuf.length === 0) return false;
+
+    const formattedCaption = caption || `🔔 *NOTIFIKASI TRANSAKSI MASUK*\n\n💬 _${text}_`;
+
+    try {
+      await activeBot.sendVoice(adminId, audioBuf, {
+        caption: formattedCaption,
+        parse_mode: 'Markdown'
+      }, {
+        filename: 'notif_dana.ogg',
+        contentType: 'audio/ogg'
+      });
+      logger.info(`[Telegram TTS] Voice note berhasil dikirim ke Admin (${adminId}): "${text}"`);
+      return true;
+    } catch (voiceErr) {
+      logger.warn('[Telegram TTS] sendVoice fallback to sendAudio: ' + voiceErr.message);
+      await activeBot.sendAudio(adminId, audioBuf, {
+        caption: formattedCaption,
+        title: 'Notifikasi Transaksi Masuk',
+        performer: getSetting('company_header', 'Billing RTRW'),
+        parse_mode: 'Markdown'
+      }, {
+        filename: 'notif_transaksi.mp3',
+        contentType: 'audio/mpeg'
+      });
+      logger.info(`[Telegram TTS] Audio MP3 berhasil dikirim ke Admin (${adminId}): "${text}"`);
+      return true;
+    }
+  } catch (err) {
+    logger.error('[Telegram TTS] Gagal mengirim notifikasi suara: ' + err.message);
+    return false;
+  }
+}
+
+/**
+ * Kirim pesan tes ke Admin (atau chatId tertentu) — dipakai tombol "Tes Kirim Pesan".
+ */
+async function sendTestMessage(chatId, text) {
+  const target = String(chatId || getSetting('telegram_admin_id', '') || '').trim();
+  if (!target) throw new Error('Admin Telegram ID belum diisi');
+  if (!bot) throw new Error('Bot Telegram belum aktif. Cek token & status di menu Telegram.');
+  return bot.sendMessage(target, text || '✅ Tes koneksi bot Telegram berhasil.', { parse_mode: 'Markdown' });
+}
+
+// Export for manual re-init from settings & external triggers
+module.exports = {
+  initTelegram,
+  sendAdminVoiceNotification,
+  generateTtsAudio,
+  terbilang,
+  sendTestMessage
+};

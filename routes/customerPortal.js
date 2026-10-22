@@ -960,8 +960,12 @@ router.get('/voucher', async (req, res) => {
         logger.warn('[Voucher] Tripay channels fetch failed or timeout: ' + e.message);
         channels = [];
       }
-    } else {
-      // Gateway lain tidak perlu query API, langsung return hardcoded
+    } else if (gateway === 'qris_static') {
+      // QRIS Statis sudah dirender terpisah oleh view (hasStaticQris).
+      // Jangan tambahkan metode lain yang tidak aktif.
+      channels = [];
+    } else if (gateway === 'midtrans' || gateway === 'xendit' || gateway === 'duitku') {
+      // Gateway ini tidak punya endpoint daftar channel → pakai daftar bawaan.
       const base = [
         { code: 'QRIS', name: 'QRIS', group: 'QRIS', active: true },
         { code: 'BCAVA', name: 'BCA Virtual Account', group: 'Virtual Account', active: true },
@@ -973,7 +977,6 @@ router.get('/voucher', async (req, res) => {
       if (gateway === 'midtrans') channels = [{ code: 'SNAP', name: 'Semua Metode (Snap)', group: 'E-Wallet', active: true }, ...base];
       else if (gateway === 'xendit') channels = [{ code: 'XENDIT', name: 'Semua Metode', group: 'E-Wallet', active: true }, ...base];
       else if (gateway === 'duitku') channels = [{ code: 'DUITKU', name: 'Semua Metode', group: 'E-Wallet', active: true }, ...base];
-      else channels = base;
     }
     
     // Simpan ke cache (jika enabled)
@@ -1729,13 +1732,18 @@ router.get('/dashboard', async (req, res) => {
   const settings = getSettingsWithCache();
   let paymentChannels = [];
   const gateway = resolveConfiguredGateway(settings);
-  if (gateway === 'tripay') {
+  if (gateway === 'qris_static') {
+    // Hanya QRIS statis yang aktif — jangan tampilkan metode lain.
+    paymentChannels = [
+      { code: 'QRIS_STATIC', name: 'QRIS (Dinamis / Otomatis)', group: 'QRIS', active: true }
+    ];
+  } else if (gateway === 'tripay') {
     try {
       paymentChannels = await paymentSvc.getTripayChannels();
     } catch {
       paymentChannels = [];
     }
-  } else if (gateway) {
+  } else if (gateway === 'midtrans' || gateway === 'xendit' || gateway === 'duitku') {
     const base = [
       { code: 'QRIS', name: 'QRIS', group: 'QRIS', active: true },
       { code: 'BCAVA', name: 'BCA Virtual Account', group: 'Virtual Account', active: true },

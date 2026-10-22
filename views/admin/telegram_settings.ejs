@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Telegram | <%= company %></title>
+  <meta name="theme-color" content="#f7f8fa">
+  <link rel="manifest" href="/admin/manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'telegram', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-telegram"></i> Telegram</div>
+    <div class="tb-right">
+      <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i> <%= t('common.logout', 'Logout') %></a>
+    </div>
+  </div>
+  <div class="page">
+    <% if (msg) { %>
+    <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
+      <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <span><%= msg.text %></span>
+    </div>
+    <% } %>
+
+    <form method="POST" action="/admin/telegram/settings">
+      <div class="card mb16">
+        <div class="card-hd"><h6 style="margin:0"><i class="bi bi-telegram"></i> Bot Telegram</h6></div>
+        <div class="card-bd">
+          <div class="form-row">
+            <div class="fg">
+              <label class="fl">Status Bot Telegram</label>
+              <select class="fs" name="telegram_enabled">
+                <option value="true" <%= settings.telegram_enabled === true ? 'selected' : '' %>>Aktif</option>
+                <option value="false" <%= settings.telegram_enabled !== true ? 'selected' : '' %>>Nonaktif</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Admin Telegram ID</label>
+              <input class="fc" name="telegram_admin_id" value="<%= settings.telegram_admin_id || '' %>" placeholder="Contoh: 12345678">
+              <div class="hint">Dapatkan ID kamu dari bot @userinfobot.</div>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Telegram Bot Token</label>
+            <input class="fc" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" placeholder="Dapatkan dari @BotFather">
+            <div class="hint">Token dipakai untuk polling bot &amp; notifikasi admin.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb16">
+        <div class="card-hd"><h6 style="margin:0"><i class="bi bi-people"></i> Grup Telegram</h6></div>
+        <div class="card-bd">
+          <div class="form-row">
+            <div class="fg">
+              <label class="fl">Asisten AI di Grup</label>
+              <select class="fs" name="telegram_group_ai_enabled">
+                <option value="true" <%= settings.telegram_group_ai_enabled === true ? 'selected' : '' %>>Aktif</option>
+                <option value="false" <%= settings.telegram_group_ai_enabled !== true ? 'selected' : '' %>>Nonaktif</option>
+              </select>
+              <div class="hint">Menjawab saat bot di-tag atau via <code>/tanya</code> di grup.</div>
+            </div>
+            <div class="fg">
+              <label class="fl">Sambut Member Baru</label>
+              <select class="fs" name="telegram_welcome_enabled">
+                <option value="true" <%= settings.telegram_welcome_enabled !== false ? 'selected' : '' %>>Aktif</option>
+                <option value="false" <%= settings.telegram_welcome_enabled === false ? 'selected' : '' %>>Nonaktif</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Pesan Sambutan Kustom (Opsional)</label>
+            <input class="fc" name="telegram_welcome_msg" value="<%= settings.telegram_welcome_msg || '' %>" placeholder="Gunakan {nama} dan {bot}">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Simpan Pengaturan Telegram</button>
+      </div>
+    </form>
+
+    <div class="card mb16" style="margin-top:16px">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-plug"></i> Uji Koneksi</h6></div>
+      <div class="card-bd">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <form method="POST" action="/admin/telegram/sync" style="margin:0">
+            <button type="submit" class="btn btn-g btn-sm"><i class="bi bi-arrow-repeat"></i> Sinkronkan Bot</button>
+          </form>
+          <form method="POST" action="/admin/telegram/test" style="margin:0">
+            <button type="submit" class="btn btn-p btn-sm"><i class="bi bi-send"></i> Tes Kirim Pesan</button>
+          </form>
+        </div>
+        <div class="hint" style="margin-top:8px">Tes mengirim pesan ke <strong>Admin Telegram ID</strong> di atas. Simpan &amp; pastikan status Aktif + token benar terlebih dulu.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-info-circle"></i> Catatan</h6></div>
+      <div class="card-bd">
+        <ul style="margin:0;padding-left:18px;display:grid;gap:8px">
+          <li>Gemini API Key dan <strong>Asisten AI WhatsApp</strong> diatur di menu <a href="/admin/ai">Asisten AI</a>.</li>
+          <li>Untuk menerima notifikasi pembayaran (TTS) &amp; perintah admin, isi Admin Telegram ID.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -4217,7 +4217,6 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
     if (newSettings.digiflazz_markup !== undefined) newSettings.digiflazz_markup = parseInt(newSettings.digiflazz_markup) || 0;
     
     newSettings.login_otp_enabled = (newSettings.login_otp_enabled === 'true');
-    newSettings.telegram_enabled = (newSettings.telegram_enabled === 'true');
     newSettings.auto_backup_enabled = (newSettings.auto_backup_enabled === 'true');
     newSettings.use_builtin_acs = (newSettings.use_builtin_acs === 'true' || newSettings.use_builtin_acs === true);
 
@@ -4226,12 +4225,6 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
 
     const success = saveSettings(newSettings);
     if (success) {
-      // Re-init services if needed
-      if (newSettings.telegram_enabled) {
-        require('../services/telegramBot').initTelegram();
-      } else {
-        require('../services/telegramBot').initTelegram(); // This will stop it if it was running
-      }
       req.session._msg = { type: 'success', text: 'Pengaturan berhasil disimpan.' };
     } else {
       req.session._msg = { type: 'error', text: 'Gagal menyimpan pengaturan' };
@@ -4513,6 +4506,156 @@ router.get('/audit-logs', requireAdminSession, requireSidebarMenuAccess('audit_l
     stats,
     filters
   });
+});
+
+// ─── TELEGRAM ────────────────────────────────────────────────────────────────
+router.get('/telegram', requireAdminSession, requireSidebarMenuAccess('telegram'), restrictToAdmin, (req, res) => {
+  res.render('admin/telegram_settings', {
+    title: 'Telegram',
+    company: company(),
+    activePage: 'telegram',
+    msg: flashMsg(req),
+    settings: getSettings()
+  });
+});
+
+router.post('/telegram/settings', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
+  try {
+    const payload = {
+      telegram_enabled: req.body.telegram_enabled === 'true',
+      telegram_admin_id: String(req.body.telegram_admin_id || '').trim(),
+      telegram_bot_token: String(req.body.telegram_bot_token || '').trim(),
+      telegram_group_ai_enabled: req.body.telegram_group_ai_enabled === 'true',
+      telegram_welcome_enabled: req.body.telegram_welcome_enabled === 'true',
+      telegram_welcome_msg: String(req.body.telegram_welcome_msg || '')
+    };
+
+    const success = saveSettings(payload);
+    if (!success) throw new Error('Gagal menyimpan pengaturan');
+
+    try { require('../services/telegramBot').initTelegram(); } catch (e) { logger.warn('[Telegram] init gagal: ' + e.message); }
+
+    if (auditSvc && typeof auditSvc.logAuditTrail === 'function') {
+      auditSvc.logAuditTrail({
+        action: 'UPDATE',
+        entity_type: 'telegram_settings',
+        entity_id: 'global',
+        actor_type: req.session?.isAdmin ? 'admin' : 'cashier',
+        actor_id: String(req.session?.adminUser || ''),
+        actor_name: req.session?.adminUser || 'Admin',
+        details: {
+          telegram_enabled: payload.telegram_enabled,
+          admin_id_set: Boolean(payload.telegram_admin_id),
+          token_set: Boolean(payload.telegram_bot_token),
+          group_ai: payload.telegram_group_ai_enabled
+        },
+        ip_address: req.ip,
+        user_agent: req.get('user-agent')
+      });
+    }
+
+    req.session._msg = { type: 'success', text: 'Pengaturan Telegram berhasil disimpan.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal menyimpan pengaturan Telegram: ' + e.message };
+  }
+  res.redirect('/admin/telegram');
+});
+
+router.post('/telegram/sync', requireAdminSession, restrictToAdmin, (req, res) => {
+  try {
+    require('../services/telegramBot').initTelegram();
+    req.session._msg = { type: 'success', text: 'Bot Telegram disinkronkan.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal sinkronkan: ' + e.message };
+  }
+  res.redirect('/admin/telegram');
+});
+
+router.post('/telegram/test', requireAdminSession, restrictToAdmin, async (req, res) => {
+  try {
+    const { sendTestMessage } = require('../services/telegramBot');
+    await sendTestMessage(null, '✅ Tes koneksi bot Telegram dari panel admin berhasil.');
+    req.session._msg = { type: 'success', text: 'Pesan tes berhasil dikirim ke admin Telegram.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal kirim tes: ' + e.message };
+  }
+  res.redirect('/admin/telegram');
+});
+
+// ─── ASISTEN AI ──────────────────────────────────────────────────────────────
+router.get('/ai', requireAdminSession, requireSidebarMenuAccess('ai'), restrictToAdmin, (req, res) => {
+  let tools = [];
+  try { tools = require('../services/adminAiTools').adminToolDeclarations || []; } catch (e) { tools = []; }
+  const aiTest = req.session._aiTest || null;
+  delete req.session._aiTest;
+  res.render('admin/ai_settings', {
+    title: 'Asisten AI',
+    company: company(),
+    activePage: 'ai',
+    msg: flashMsg(req),
+    settings: getSettings(),
+    tools,
+    aiTest
+  });
+});
+
+router.post('/ai/settings', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
+  try {
+    const payload = {
+      whatsapp_ai_enabled: req.body.whatsapp_ai_enabled === 'true',
+      telegram_group_ai_enabled: req.body.telegram_group_ai_enabled === 'true',
+      telegram_welcome_enabled: req.body.telegram_welcome_enabled === 'true',
+      telegram_welcome_msg: String(req.body.telegram_welcome_msg || ''),
+      gemini_api_key: String(req.body.gemini_api_key || '').trim(),
+      gemini_model: String(req.body.gemini_model || '').trim() || 'gemini-3.5-flash-lite'
+    };
+
+    const success = saveSettings(payload);
+    if (!success) throw new Error('Gagal menyimpan pengaturan');
+
+    if (auditSvc && typeof auditSvc.logAuditTrail === 'function') {
+      auditSvc.logAuditTrail({
+        action: 'UPDATE',
+        entity_type: 'ai_settings',
+        entity_id: 'global',
+        actor_type: req.session?.isAdmin ? 'admin' : 'cashier',
+        actor_id: String(req.session?.adminUser || ''),
+        actor_name: req.session?.adminUser || 'Admin',
+        details: {
+          whatsapp_ai_enabled: payload.whatsapp_ai_enabled,
+          telegram_group_ai_enabled: payload.telegram_group_ai_enabled,
+          telegram_welcome_enabled: payload.telegram_welcome_enabled,
+          gemini_key_set: Boolean(payload.gemini_api_key)
+        },
+        ip_address: req.ip,
+        user_agent: req.get('user-agent')
+      });
+    }
+
+    req.session._msg = { type: 'success', text: 'Pengaturan AI berhasil disimpan.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal menyimpan pengaturan AI: ' + e.message };
+  }
+  res.redirect('/admin/ai');
+});
+
+router.post('/ai/test', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), async (req, res) => {
+  const question = String(req.body.question || '').trim();
+  if (!question) {
+    req.session._msg = { type: 'error', text: 'Pertanyaan tidak boleh kosong.' };
+    return res.redirect('/admin/ai');
+  }
+  try {
+    const telegramAi = require('../services/telegramAiService');
+    const answer = await Promise.race([
+      telegramAi.askAi({ question, senderName: 'Admin', isAdmin: true }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout: AI tidak merespons')), 25000))
+    ]);
+    req.session._aiTest = { question, answer: String(answer || '') };
+  } catch (e) {
+    req.session._aiTest = { question, answer: 'ERROR: ' + e.message };
+  }
+  res.redirect('/admin/ai');
 });
 
 // ─── MONITORING ──────────────────────────────────────────────────────────────

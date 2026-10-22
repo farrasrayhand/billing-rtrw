@@ -99,30 +99,8 @@
     <% if (!logsOnly) { %>
     <form method="POST" action="/admin/settings">
 
-        <div class="card mb16">
-          <div class="card-hd"><h6><i class="bi bi-telegram"></i> <%= t('admin.settings.telegram.title', 'Pengaturan Telegram Bot (Backup Admin)') %></h6></div>
-          <div class="card-bd">
-            <div class="form-row">
-              <div class="fg">
-                <label class="fl"><%= t('admin.settings.telegram.status', 'Status Bot Telegram') %></label>
-                <select class="fs" name="telegram_enabled">
-                  <option value="true" <%= settings.telegram_enabled ? 'selected' : '' %>><%= t('common.active', 'Aktif') %></option>
-                  <option value="false" <%= !settings.telegram_enabled ? 'selected' : '' %>><%= t('common.inactive', 'Nonaktif') %></option>
-                </select>
-              </div>
-              <div class="fg">
-                <label class="fl"><%= t('admin.settings.telegram.admin_id', 'Admin Telegram ID') %></label>
-                <input class="fc" name="telegram_admin_id" value="<%= settings.telegram_admin_id || '' %>" placeholder="Contoh: 12345678">
-              </div>
-            </div>
-            <div class="fg">
-              <label class="fl"><%= t('admin.settings.telegram.bot_token', 'Telegram Bot Token') %></label>
-              <div style="display:flex;gap:8px">
-                <input class="fc" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" placeholder="Dapatkan dari @BotFather">
-                <button type="button" class="btn btn-g" onclick="syncTelegram()" title="<%= t('admin.settings.telegram.sync_title', 'Sinkronkan / Hapus Webhook Lama') %>"><i class="bi bi-arrow-repeat"></i> <%= t('admin.settings.telegram.sync', 'Sinkronkan') %></button>
-              </div>
-            </div>
-          </div>
+        <div class="hint" style="margin-bottom:16px">
+          Pengaturan bot Telegram (token, Admin ID, AI grup, sambutan) dipindahkan ke menu <a href="/admin/telegram" style="font-weight:700;color:var(--primary)">Telegram</a>.
         </div>
 
         <div class="card mb16">
@@ -364,6 +342,9 @@
             <label class="fl">Jeda Antar Pesan Broadcast (Detik)</label>
             <input class="fc" type="number" name="whatsapp_broadcast_delay" value="<%= settings.whatsapp_broadcast_delay || 2 %>" min="1" max="60">
             <div style="font-size:10px; color:var(--muted); margin-top:4px">Rekomendasi: Minimal 2 detik agar tidak terdeteksi spam oleh WhatsApp.</div>
+          </div>
+          <div class="hint" style="margin-top:4px">
+            Asisten AI WhatsApp diatur di menu <a href="/admin/ai" style="font-weight:700;color:var(--primary)">Asisten AI</a>.
           </div>
         </div>
 
@@ -718,15 +699,6 @@ function copyWebhook() {
   document.execCommand('copy');
   alert('Link Webhook berhasil disalin!');
 }
-async function syncTelegram() {
-  try {
-    const res = await fetch('/admin/api/telegram/sync', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) alert(data.message);
-    else alert('Gagal: ' + data.error);
-  } catch (e) { alert('Error: ' + e.message); }
-}
-
 function escHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }

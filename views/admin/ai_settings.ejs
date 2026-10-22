@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Asisten AI | <%= company %></title>
+  <meta name="theme-color" content="#f7f8fa">
+  <link rel="manifest" href="/admin/manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'ai', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-robot"></i> Asisten AI</div>
+    <div class="tb-right">
+      <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i> <%= t('common.logout', 'Logout') %></a>
+    </div>
+  </div>
+  <div class="page">
+    <% if (msg) { %>
+    <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
+      <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <span><%= msg.text %></span>
+    </div>
+    <% } %>
+
+    <form method="POST" action="/admin/ai/settings">
+      <div class="card mb16">
+        <div class="card-hd"><h6 style="margin:0"><i class="bi bi-toggles"></i> Aktivasi</h6></div>
+        <div class="card-bd">
+          <div class="fg">
+            <label class="fl">Asisten AI WhatsApp (CS Otomatis)</label>
+            <select class="fs" name="whatsapp_ai_enabled">
+              <option value="true" <%= settings.whatsapp_ai_enabled === true ? 'selected' : '' %>>Aktif</option>
+              <option value="false" <%= settings.whatsapp_ai_enabled !== true ? 'selected' : '' %>>Nonaktif</option>
+            </select>
+            <div class="hint">Menjawab otomatis pertanyaan pelanggan di WhatsApp.</div>
+          </div>
+          <div class="fg" style="margin-top:12px">
+            <label class="fl">Asisten AI di Grup Telegram</label>
+            <div class="hint">Diatur di menu <a href="/admin/telegram" style="font-weight:700;color:var(--primary)">Telegram</a> (bersama token bot, admin ID &amp; sambutan grup).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb16">
+        <div class="card-hd"><h6 style="margin:0"><i class="bi bi-stars"></i> Google Gemini (Opsional)</h6></div>
+        <div class="card-bd">
+          <div class="form-row">
+            <div class="fg">
+              <label class="fl">Gemini API Key</label>
+              <input class="fc" name="gemini_api_key" value="<%= settings.gemini_api_key || '' %>" placeholder="AIzaSy...">
+              <div class="hint">Kosongkan untuk memakai knowledge base lokal (tanpa AI generatif).</div>
+            </div>
+            <div class="fg">
+              <label class="fl">Model Gemini</label>
+              <input class="fc" name="gemini_model" value="<%= settings.gemini_model || 'gemini-3.5-flash-lite' %>">
+              <div class="hint">Default: <code>gemini-3.5-flash-lite</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Simpan Pengaturan AI</button>
+      </div>
+    </form>
+
+    <div class="card mb16" style="margin-top:16px">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-chat-dots"></i> Tes AI</h6></div>
+      <div class="card-bd">
+        <form method="POST" action="/admin/ai/test">
+          <div class="fg">
+            <label class="fl">Pertanyaan</label>
+            <textarea class="fc" name="question" rows="3" placeholder="Contoh: bagaimana cara isolir pelanggan? atau berapa tagihan bulan ini?"><%= (aiTest && aiTest.question) ? aiTest.question : '' %></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button type="submit" class="btn btn-p btn-sm"><i class="bi bi-send"></i> Tes Jawab</button>
+          </div>
+        </form>
+
+        <% if (aiTest) { %>
+          <div style="margin-top:14px">
+            <div class="hint" style="margin-bottom:6px">Jawaban AI:</div>
+            <div style="white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;color:#111827;font-size:13px"><%= aiTest.answer %></div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-list-check"></i> Kemampuan AI untuk Admin (<%= (tools || []).length %> perintah)</h6></div>
+      <div class="card-bd">
+        <div class="hint" style="margin-bottom:10px">Saat admin (nomor/ID terdaftar) mengobrol dengan bot, AI bisa menjalankan perintah ini dari bahasa natural.</div>
+        <div class="tbl-wrap">
+          <table class="dtbl">
+            <thead>
+              <tr><th style="width:220px">Perintah</th><th>Fungsi</th></tr>
+            </thead>
+            <tbody>
+              <% (tools || []).forEach(function (tool) { %>
+                <tr>
+                  <td><code><%= tool.name %></code></td>
+                  <td><%= tool.description %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-info-circle"></i> Catatan</h6></div>
+      <div class="card-bd">
+        <ul style="margin:0;padding-left:18px;display:grid;gap:8px">
+          <li>Token bot Telegram, Admin ID &amp; AI grup diatur di menu <a href="/admin/telegram">Telegram</a>.</li>
+          <li>Koneksi WhatsApp diatur &amp; scan QR di menu <a href="/admin/whatsapp">WhatsApp</a>.</li>
+          <li>Tanpa API key Gemini, AI tetap menjawab dari knowledge base lokal.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

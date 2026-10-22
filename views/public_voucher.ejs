@@ -260,14 +260,14 @@
               <% } else if (String(order.status) === 'pending' && (String(order.payment_gateway || '') === 'qris_static' || order.qris_amount_unique)) { %>
                 <% if (orderToken) { %>
                   <a class="btn btn-primary btnx mt-3 w-100" href="/customer/voucher/qris/<%= order.id %>?t=<%= encodeURIComponent(orderToken) %>">
-                    <i class="bi bi-qr-code-scan me-1"></i> Buka QRIS Statis
+                    <i class="bi bi-qr-code-scan me-1"></i> Bayar
                   </a>
                 <% } else { %>
                   <div class="alert alert-warning mt-3 mb-0" style="background:#fef3c7;border:1px solid #fde68a;color:#92400e">Link QRIS tidak tersedia.</div>
                 <% } %>
               <% } else if (String(order.status) === 'pending' && order.payment_link) { %>
                 <a class="btn btn-primary btnx mt-3 w-100" href="<%= order.payment_link %>">
-                  <i class="bi bi-credit-card me-1"></i> Lanjutkan Pembayaran
+                  <i class="bi bi-credit-card me-1"></i> Bayar
                 </a>
               <% } %>
             </div>
