@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const customerDevice = require('../services/customerDeviceService');
-const { getSettingsWithCache, getNowLocal, getCurrentTimeInfo, getNowLocalISO, formatDateLocal } = require('../config/settingsManager');
+const { getSettingsWithCache, getNowLocal, getCurrentTimeInfo, getNowLocalISO, formatDateLocal, formatTimeLocal } = require('../config/settingsManager');
 const billingSvc = require('../services/billingService');
 const pdfSvc = require('../services/pdfInvoiceService');
 const paymentSvc = require('../services/paymentService');
@@ -3221,6 +3221,8 @@ router.post('/payment/callback', express.json({
           while (attempt < 10) {
             attempt++;
             const coreLen = Math.max(4, codeLength - prefix.length);
+            const code = prefix + genCustomCode(coreLen, charset);
+            const pass = code;
             const now = new Date();
             const dd = String(now.getDate()).padStart(2, '0');
             const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -3312,7 +3314,7 @@ router.post('/payment/callback', express.json({
           if (!customer.phone) {
             throw new Error('Nomor WhatsApp pelanggan kosong');
           }
-          const appUrl = (getSettingsWithCache().public_base_url || appUrlFromReq(req) || '').replace(/\/$/, '');
+          const appUrl = (getSettingsWithCache().public_base_url || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}` || '').replace(/\/$/, '');
           const portalUrl = `${appUrl}/customer`;
           const template = db.getAppSetting('whatsapp_payment_success_message', '');
 

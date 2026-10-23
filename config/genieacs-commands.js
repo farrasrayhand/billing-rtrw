@@ -199,7 +199,7 @@ async function handleWifiInfo(remoteJid, senderNumber) {
         const ssid5G = getSSIDValue(device, '5') || 'N/A';
         
         // Send WiFi information
-        const wifiInfo = `📱 *INFORMASI WI-FI*\n\n`;
+        let wifiInfo = `📱 *INFORMASI WI-FI*\n\n`;
         wifiInfo += `• SSID 2.4G: ${ssid}\n`;
         wifiInfo += `• SSID 5G: ${ssid5G}\n`;
         
@@ -342,7 +342,7 @@ async function handleDeviceStatus(remoteJid, senderNumber) {
         const connectedUsers = getParameterWithPaths(device, parameterPaths.userConnected) || '0';
         
         // Format device status
-        const statusMessage = `📱 *STATUS PERANGKAT*\n\n`;
+        let statusMessage = `📱 *STATUS PERANGKAT*\n\n`;
         statusMessage += `• Status Online: ${isOnline ? '🟢 Online' : '🔴 Offline'}\n`;
         statusMessage += `• Serial Number: ${serialNumber}\n`;
         statusMessage += `• Firmware: ${firmware}\n`;

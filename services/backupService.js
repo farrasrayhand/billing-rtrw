@@ -328,7 +328,7 @@ function checkBackupCapacity(maxSizeMB = 500) {
     }
 
     const totalSize = result.backups.reduce((sum, backup) => sum + backup.size, 0);
-    const totalSizeMB = totalSize / (1024 * 1024);
+    let totalSizeMB = totalSize / (1024 * 1024);
 
     if (totalSizeMB > maxSizeMB) {
       logger.warn(`[Backup] Backup size (${totalSizeMB.toFixed(2)} MB) exceeds limit (${maxSizeMB} MB)`);

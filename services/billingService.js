@@ -2,6 +2,7 @@
  * Service: Logika Billing & Tagihan
  */
 const db = require('../config/database');
+const { logger } = require('../config/logger');
 const auditTrail = require('./auditTrailService');
 const { getCurrentDateInTimezone } = require('../config/settingsManager');
 
