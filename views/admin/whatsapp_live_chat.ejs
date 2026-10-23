@@ -50,8 +50,9 @@
       <i class="bi bi-chat-dots-fill"></i> Live Chat WhatsApp
     </div>
     <div class="tb-right">
+      <% const gwLabels = { meta: 'Meta Cloud API (Resmi)', fonnte: 'Fonnte API Gateway', baileys: 'Baileys Web (Gratis)' }; %>
       <span class="badge <%= gatewayType === 'meta' ? 'bs' : 'bp' %>">
-        <i class="bi bi-<%= gatewayType === 'meta' ? 'meta' : 'whatsapp' %>"></i> <%= gatewayType === 'meta' ? 'Meta Cloud API (Resmi)' : 'Baileys Web (Gratis)' %>
+        <i class="bi bi-<%= gatewayType === 'meta' ? 'meta' : 'whatsapp' %>"></i> <%= gwLabels[gatewayType] || 'Baileys Web (Gratis)' %>
       </span>
       <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
     </div>
