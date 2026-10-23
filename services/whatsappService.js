@@ -114,6 +114,20 @@ function getRecentConversations(limit = 30) {
     LIMIT ?
   `).all(Number(limit) || 30);
 
+  // Nama pelanggan disimpan saat pesan dikirim/diterima. Cocokkan ulang ke data pelanggan saat ini
+  // supaya pelanggan yang didaftarkan setelah chat berlangsung ikut tampil dengan namanya.
+  const findCustomer = db.prepare('SELECT id, name FROM customers WHERE phone LIKE ? OR phone LIKE ? LIMIT 1');
+  for (const r of rows) {
+    const generic = !r.customer_id || !r.customer_name || String(r.customer_name).trim().toLowerCase() === 'pelanggan';
+    if (!generic || !r.phone) continue;
+    const digits = String(r.phone).replace(/\D/g, '');
+    if (digits.length < 8) continue;
+    try {
+      const c = findCustomer.get(`%${digits.slice(-8)}%`, `%${digits}%`);
+      if (c) { r.customer_id = c.id; r.customer_name = c.name; }
+    } catch (e) { /* abaikan, pakai nama tersimpan */ }
+  }
+
   return rows || [];
 }
 
