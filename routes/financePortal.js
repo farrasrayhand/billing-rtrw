@@ -11,6 +11,12 @@ function flashMsg(req) {
   return m || null;
 }
 
+function restrictToAdmin(req, res, next) {
+  if (req.session?.isAdmin) return next();
+  req.session._msg = { type: 'error', text: 'Hanya Admin yang dapat melakukan aksi ini.' };
+  return res.redirect('/admin/finance/cash-in');
+}
+
 function company() { return getSetting('company_header', 'ISP Admin'); }
 
 // Pastikan hanya admin & kasir yang bisa akses
@@ -54,7 +60,7 @@ router.post('/expense-categories', express.urlencoded({ extended: true }), (req,
   res.redirect('/admin/finance/expense-categories');
 });
 
-router.post('/expense-categories/:id/delete', (req, res) => {
+router.post('/expense-categories/:id/delete', restrictToAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM expense_categories WHERE id = ?').run(req.params.id);
     req.session._msg = { type: 'success', text: 'Kategori berhasil dihapus' };
@@ -101,7 +107,7 @@ router.post('/expenses', express.urlencoded({ extended: true }), (req, res) => {
   res.redirect('/admin/finance/expenses');
 });
 
-router.post('/expenses/:id/delete', (req, res) => {
+router.post('/expenses/:id/delete', restrictToAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
     req.session._msg = { type: 'success', text: 'Data berhasil dihapus' };
@@ -139,7 +145,7 @@ router.post('/cash-in', express.urlencoded({ extended: true }), (req, res) => {
   res.redirect('/admin/finance/cash-in');
 });
 
-router.post('/cash-in/:id/delete', (req, res) => {
+router.post('/cash-in/:id/delete', restrictToAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM cash_in WHERE id = ?').run(req.params.id);
     req.session._msg = { type: 'success', text: 'Data berhasil dihapus' };

@@ -86,6 +86,13 @@ app.use(express.text({
     req.rawBody = buf?.toString('utf8') || '';
   }
 }));
+{
+  const weakSecrets = { session_secret: ['rahasia-portal-pelanggan-default-ganti-ini', 'change-this-to-random-secret-key'], webhook_secret: ['billing-rtrw-secret-key'] };
+  for (const [key, defaults] of Object.entries(weakSecrets)) {
+    const v = getSetting(key, '');
+    if (!v || defaults.includes(v)) logger.warn(`[SECURITY] Setting "${key}" masih memakai nilai default/kosong. Ganti dengan nilai acak di settings.json.`);
+  }
+}
 app.use(session({
   secret: getSetting('session_secret', 'rahasia-portal-pelanggan-default-ganti-ini'),
   resave: false,
@@ -113,6 +120,19 @@ app.use((req, res, next) => {
     const isAcs = req.path.startsWith('/acs');
     if (isWebhook || isAcs) {
       return next();
+    }
+
+    // Fetch Metadata: browser modern menandai request lintas-situs; tolak langsung.
+    if (req.headers['sec-fetch-site'] === 'cross-site') {
+      logger.warn(`[CSRF] Blocked cross-site request (Sec-Fetch-Site) to ${req.path}`);
+      return res.status(403).json({ error: 'Forbidden - Cross-site request (CSRF Protection)' });
+    }
+
+    // POST tanpa Origin & Referer yang membawa cookie sesi tidak bisa diverifikasi asalnya.
+    // Klien API (token, tanpa cookie) tetap dilewatkan.
+    if (!origin && !referer && /customer\.sid=/.test(req.headers.cookie || '') && !req.path.startsWith('/api/')) {
+      logger.warn(`[CSRF] Blocked cookie-session request without Origin/Referer to ${req.path}`);
+      return res.status(403).json({ error: 'Forbidden - Missing Origin/Referer (CSRF Protection)' });
     }
 
     try {

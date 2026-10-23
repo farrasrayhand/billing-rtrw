@@ -693,6 +693,10 @@ const requireAdminSession = (req, res, next) => {
     if (req.session && req.session.isAdmin) {
         return next();
     }
+    if (req.session && req.session.isCashier) {
+        req.session._msg = { type: 'error', text: 'Hanya Admin yang dapat mengakses halaman ini.' };
+        return res.redirect('/admin');
+    }
     res.redirect('/admin/login');
 };
 

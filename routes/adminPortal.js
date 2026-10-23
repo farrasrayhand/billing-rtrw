@@ -230,6 +230,7 @@ function routerContextMiddleware(req, res, next) {
 router.use(routerContextMiddleware);
 
 router.get('/set-active-router', requireAdminSession, (req, res) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).send('Forbidden');
   const routerId = req.query.router_id;
   if (routerId === 'all' || routerId === '0' || !routerId) {
     req.session.selected_router_id = null;
@@ -577,10 +578,14 @@ router.post('/login', loginRateLimiter, express.urlencoded({ extended: true }), 
   res.render('admin/login', { title: 'Admin Login', company: company(), error: 'Username atau password salah' });
 });
 
-router.get('/logout', (req, res) => { req.session.destroy(); res.redirect('/admin/login'); });
+router.get('/logout', (req, res) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).send('Forbidden');
+  req.session.destroy();
+  res.redirect('/admin/login');
+});
 
 // ─── OLT MANAGEMENT ────────────────────────────────────────────────────────
-router.get('/olts', requireAdminSession, async (req, res) => {
+router.get('/olts', requireAdminSession, restrictToAdmin, requireSidebarMenuAccess('olts'), async (req, res) => {
   const olts = oltSvc.getAllOlts();
   
   res.render('admin/olts', { 
@@ -1053,7 +1058,7 @@ router.post('/areas/:id/update', requireAdminSession, express.urlencoded({ exten
   res.redirect('/admin/areas');
 });
 
-router.post('/areas/:id/delete', requireAdminSession, (req, res) => {
+router.post('/areas/:id/delete', requireAdminSession, restrictToAdmin, (req, res) => {
   try {
     areaSvc.deleteArea(req.params.id);
     req.session._msg = { type: 'success', text: 'Area berhasil dihapus.' };
@@ -2235,7 +2240,7 @@ router.post('/customers/:id/update', requireAdminSession, express.urlencoded({ e
   res.redirect('/admin/customers');
 });
 
-router.post('/customers/delete-bulk', requireAdminSession, express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/customers/delete-bulk', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const { customer_ids } = req.body;
     const ids = Array.isArray(customer_ids) ? customer_ids : [customer_ids];
@@ -2252,7 +2257,7 @@ router.post('/customers/delete-bulk', requireAdminSession, express.urlencoded({ 
   res.redirect('/admin/customers');
 });
 
-router.post('/customers/:id/delete', requireAdminSession, async (req, res) => {
+router.post('/customers/:id/delete', requireAdminSession, restrictToAdmin, async (req, res) => {
   try {
     await customerSvc.deleteCustomer(req.params.id);
     req.session._msg = { type: 'success', text: 'Pelanggan berhasil dihapus.' };
@@ -2362,7 +2367,7 @@ router.get('/customers/export', requireAdminSession, (req, res) => {
   }
 });
 
-router.post('/customers/import', requireAdminSession, upload.single('file'), async (req, res) => {
+router.post('/customers/import', requireAdminSession, restrictToAdmin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) throw new Error('File tidak ditemukan');
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
@@ -3732,7 +3737,7 @@ router.get('/settings', requireAdminSession, requireSidebarMenuAccess('settings'
   });
 });
 
-router.get('/ewallet-logs', requireAdminSession, requireSidebarMenuAccess('settings'), (req, res) => {
+router.get('/ewallet-logs', requireAdminSession, requireSidebarMenuAccess('ewallet_logs'), (req, res) => {
   const settings = getSettings();
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
   const host = req.get('host');
@@ -5105,7 +5110,7 @@ router.post('/mikrotik/settings', requireAdminSession, restrictToAdmin, express.
   res.redirect('/admin/mikrotik/settings');
 });
 
-router.get('/vouchers', requireAdminSession, (req, res) => {
+router.get('/vouchers', requireAdminSession, requireSidebarMenuAccess('mikrotik'), (req, res) => {
   const routers = mikrotikService.getAllRouters();
   const selectedRouterId = req.selectedRouterId || (req.query.router_id ? Number(req.query.router_id) : null);
   res.render('admin/vouchers', {
@@ -6591,7 +6596,7 @@ router.post('/whatsapp/repair-keys', requireAdminSession, async (req, res) => {
 });
 
 // ─── ROUTERS (MULTI-ROUTER) ──────────────────────────────────────────────────
-router.get('/routers', requireAdminSession, requireSidebarMenuAccess('mikrotik'), (req, res) => {
+router.get('/routers', requireAdminSession, restrictToAdmin, requireSidebarMenuAccess('mikrotik'), (req, res) => {
   res.render('admin/routers', {
     title: 'Manajemen Router', company: company(), activePage: 'mikrotik',
     routers: mikrotikService.getAllRouters(), msg: flashMsg(req)
@@ -6599,7 +6604,7 @@ router.get('/routers', requireAdminSession, requireSidebarMenuAccess('mikrotik')
 });
 
 // ─── PROMO SLIDES ─────────────────────────────────────────────────────────────
-router.get('/promo-slides', requireAdminSession, requireSidebarMenuAccess('settings'), (req, res) => {
+router.get('/promo-slides', requireAdminSession, requireSidebarMenuAccess('promo_slides'), (req, res) => {
   try {
     const slides = db.prepare(`
       SELECT * FROM promo_slides 
@@ -6629,7 +6634,7 @@ router.get('/api/promo-slides/:id', requireAdminSession, (req, res) => {
   }
 });
 
-router.post('/promo-slides', requireAdminSession, requireSidebarMenuAccess('settings'), promoUpload.single('image'), (req, res) => {
+router.post('/promo-slides', requireAdminSession, requireSidebarMenuAccess('promo_slides'), promoUpload.single('image'), (req, res) => {
   try {
     const { title, description, url, open_in_new_tab, sort_order, start_date, end_date, is_active } = req.body;
     
@@ -6659,7 +6664,7 @@ router.post('/promo-slides', requireAdminSession, requireSidebarMenuAccess('sett
   res.redirect('/admin/promo-slides');
 });
 
-router.post('/promo-slides/:id/update', requireAdminSession, requireSidebarMenuAccess('settings'), promoUpload.single('image'), (req, res) => {
+router.post('/promo-slides/:id/update', requireAdminSession, requireSidebarMenuAccess('promo_slides'), promoUpload.single('image'), (req, res) => {
   try {
     const { title, description, url, open_in_new_tab, sort_order, start_date, end_date, is_active } = req.body;
     const slideId = Number(req.params.id);
@@ -6715,7 +6720,7 @@ router.post('/promo-slides/:id/update', requireAdminSession, requireSidebarMenuA
   res.redirect('/admin/promo-slides');
 });
 
-router.post('/promo-slides/:id/delete', requireAdminSession, requireSidebarMenuAccess('settings'), (req, res) => {
+router.post('/promo-slides/:id/delete', requireAdminSession, requireSidebarMenuAccess('promo_slides'), (req, res) => {
   try {
     const slideId = Number(req.params.id);
     
@@ -6746,7 +6751,7 @@ router.post('/promo-slides/:id/delete', requireAdminSession, requireSidebarMenuA
   res.redirect('/admin/promo-slides');
 });
 
-router.post('/routers', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
+router.post('/routers', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
     mikrotikService.createRouter(req.body);
     req.session._msg = { type: 'success', text: `Router "${req.body.name}" berhasil ditambahkan.` };
@@ -6756,7 +6761,7 @@ router.post('/routers', requireAdminSession, express.urlencoded({ extended: true
   res.redirect('/admin/routers');
 });
 
-router.post('/routers/:id/update', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
+router.post('/routers/:id/update', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
     mikrotikService.updateRouter(req.params.id, req.body);
     req.session._msg = { type: 'success', text: 'Router berhasil diperbarui.' };
@@ -6783,7 +6788,7 @@ router.get('/api/routers/:id/usage', requireAdmin, (req, res) => {
   res.json(getRouterUsage(req.params.id));
 });
 
-router.post('/routers/:id/delete', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
+router.post('/routers/:id/delete', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
     const id = Number(req.params.id);
     const router = db.prepare('SELECT id, name FROM routers WHERE id = ?').get(id);
