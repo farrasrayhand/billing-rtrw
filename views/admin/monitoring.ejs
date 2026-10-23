@@ -111,6 +111,8 @@
     .chd-d { background: var(--ddim); color: var(--danger); border-bottom: 1px solid var(--danger); }
     .chd-w { background: var(--wdim); color: var(--warning); border-bottom: 1px solid var(--warning); }
     .stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .stat-grid-3 > * { min-width: 0; }
+    @media (max-width: 640px) { .stat-grid-3 { grid-template-columns: 1fr; } }
     .mb0 { margin-bottom: 0; }
     .wb-all { word-break: break-all; }
     .fs11 { font-size: 11px; }
@@ -745,7 +747,8 @@
   }, 30000);
 
   // GenieACS Settings Form Handler
-  document.getElementById('genieacsSettingsForm').addEventListener('submit', async function(e) {
+  const genieacsSettingsForm = document.getElementById('genieacsSettingsForm');
+  if (genieacsSettingsForm) genieacsSettingsForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const formData = {

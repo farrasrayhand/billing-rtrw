@@ -268,3 +268,20 @@
 }
 .hub-tab:hover { background: rgba(0, 0, 0, .05); color: var(--text); }
 .hub-tab.active { background: var(--primary); color: white; }
+
+/* Perbaikan layout HP (≤ 640px): topbar membungkus, tombol tidak terpotong, grid statistik 2 kolom */
+@media (max-width: 640px) {
+  .topbar {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 8px 14px;
+  }
+  .tb-title { flex: 1 1 auto; min-width: 0; }
+  .tb-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 100%; }
+  .tb-right > * { max-width: 100%; }
+  .stat-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
+  .page .btn { max-width: 100%; white-space: normal; }
+  .page { padding: 16px 14px; }
+}

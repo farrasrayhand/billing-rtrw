@@ -12,6 +12,42 @@ const backupDir = path.join(projectRoot, 'backups');
 const dbPath = path.join(projectRoot, 'database', 'billing.db');
 const settingsPath = path.join(projectRoot, 'settings.json');
 
+const PENDING_RESTORE_FILE = path.join(projectRoot, 'database', 'pending_restore.db');
+const REQUIRED_TABLES = ['customers', 'invoices', 'packages'];
+
+/**
+ * Nama file backup harus polos (tanpa path, tanpa traversal) dan berekstensi .db / .json.
+ * Mengembalikan path absolut di dalam folder backup, atau null bila tidak valid.
+ */
+function resolveBackupPath(fileName) {
+  const name = String(fileName || '');
+  if (!name || name !== path.basename(name) || !/^[\w.\-]+\.(db|json)$/i.test(name) || name.includes('..')) return null;
+  const full = path.join(backupDir, name);
+  return path.dirname(full) === backupDir ? full : null;
+}
+
+// Pastikan file benar-benar database SQLite yang sehat dan berisi tabel inti billing.
+function validateSqliteBackup(filePath) {
+  const Database = require('better-sqlite3');
+  const fd = fs.openSync(filePath, 'r');
+  const header = Buffer.alloc(16);
+  try { fs.readSync(fd, header, 0, 16, 0); } finally { fs.closeSync(fd); }
+  if (header.toString('utf8', 0, 15) !== 'SQLite format 3') {
+    throw new Error('File bukan database SQLite yang valid.');
+  }
+  let probe;
+  try {
+    probe = new Database(filePath, { readonly: true, fileMustExist: true });
+    const check = probe.pragma('integrity_check', { simple: true });
+    if (check !== 'ok') throw new Error(`Database backup rusak (integrity_check: ${check}).`);
+    const tables = new Set(probe.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => r.name));
+    const missing = REQUIRED_TABLES.filter((t) => !tables.has(t));
+    if (missing.length) throw new Error(`Database backup tidak lengkap, tabel tidak ada: ${missing.join(', ')}.`);
+  } finally {
+    if (probe) probe.close();
+  }
+}
+
 // Pastikan direktori backup ada
 if (!fs.existsSync(backupDir)) {
   fs.mkdirSync(backupDir, { recursive: true });
@@ -41,8 +77,9 @@ function backupDatabase() {
     const backupFileName = `billing_db_${timestamp}.db`;
     const backupFilePath = path.join(backupDir, backupFileName);
 
-    // Copy database file
-    fs.copyFileSync(dbPath, backupFilePath);
+    // Snapshot konsisten lewat SQLite (aman untuk mode WAL dan database yang sedang dipakai)
+    const liveDb = require('../config/database');
+    liveDb.exec(`VACUUM INTO '${backupFilePath.replace(/'/g, "''")}'`);
 
     // Compress backup (optional - bisa ditambahkan nanti)
     const stats = fs.statSync(backupFilePath);
@@ -116,15 +153,16 @@ function backupAll() {
  */
 function restoreDatabase(backupFileName) {
   try {
-    const backupFilePath = path.join(backupDir, backupFileName);
-
-    // Cek apakah file backup ada
-    if (!fs.existsSync(backupFilePath)) {
+    const backupFilePath = resolveBackupPath(backupFileName);
+    if (!backupFilePath || !fs.existsSync(backupFilePath) || !/\.db$/i.test(backupFilePath)) {
       return {
         success: false,
         error: `Backup file not found: ${backupFileName}`
       };
     }
+
+    // Validasi isi file SEBELUM menyentuh apa pun
+    validateSqliteBackup(backupFilePath);
 
     // Backup database saat ini sebelum restore
     const preRestoreBackup = backupDatabase();
@@ -132,18 +170,19 @@ function restoreDatabase(backupFileName) {
       logger.warn('[Backup] Failed to create pre-restore backup');
     }
 
-    // Restore database
-    fs.copyFileSync(backupFilePath, dbPath);
+    // Database yang sedang berjalan tidak aman ditimpa (mode WAL + koneksi terbuka).
+    // Restore dijadwalkan dan diterapkan secara atomik saat aplikasi dijalankan ulang.
+    const tmp = `${PENDING_RESTORE_FILE}.tmp`;
+    fs.copyFileSync(backupFilePath, tmp);
+    fs.renameSync(tmp, PENDING_RESTORE_FILE);
 
-    const stats = fs.statSync(dbPath);
-    const sizeKB = Math.round(stats.size / 1024);
+    logger.info(`[Backup] Restore database dijadwalkan dari: ${backupFileName}. Diterapkan saat aplikasi restart.`);
 
-    logger.info(`[Backup] Database restored from: ${backupFileName} (${sizeKB} KB)`);
-    
     return {
       success: true,
+      pending: true,
       fileName: backupFileName,
-      size: stats.size,
+      size: fs.statSync(PENDING_RESTORE_FILE).size,
       timestamp: getNowLocalISO(),
       preRestoreBackup: preRestoreBackup.fileName
     };
@@ -161,14 +200,23 @@ function restoreDatabase(backupFileName) {
  */
 function restoreSettings(backupFileName) {
   try {
-    const backupFilePath = path.join(backupDir, backupFileName);
-
-    // Cek apakah file backup ada
-    if (!fs.existsSync(backupFilePath)) {
+    const backupFilePath = resolveBackupPath(backupFileName);
+    if (!backupFilePath || !fs.existsSync(backupFilePath) || !/\.json$/i.test(backupFilePath)) {
       return {
         success: false,
         error: `Backup file not found: ${backupFileName}`
       };
+    }
+
+    // Harus JSON objek yang valid
+    let parsed;
+    try {
+      parsed = JSON.parse(fs.readFileSync(backupFilePath, 'utf8'));
+    } catch (jsonErr) {
+      return { success: false, error: `File settings bukan JSON yang valid: ${jsonErr.message}` };
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { success: false, error: 'File settings harus berupa objek JSON.' };
     }
 
     // Backup settings saat ini sebelum restore
@@ -177,8 +225,10 @@ function restoreSettings(backupFileName) {
       logger.warn('[Backup] Failed to create pre-restore backup');
     }
 
-    // Restore settings
-    fs.copyFileSync(backupFilePath, settingsPath);
+    // Tulis atomik: file sementara lalu rename
+    const tmp = `${settingsPath}.restore.tmp`;
+    fs.copyFileSync(backupFilePath, tmp);
+    fs.renameSync(tmp, settingsPath);
 
     const stats = fs.statSync(settingsPath);
     const sizeKB = Math.round(stats.size / 1024);
@@ -401,6 +451,7 @@ function scheduleAutoBackup() {
 }
 
 module.exports = {
+  resolveBackupPath,
   backupDatabase,
   backupSettings,
   backupAll,

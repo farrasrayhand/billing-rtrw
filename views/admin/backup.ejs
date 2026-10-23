@@ -36,7 +36,7 @@
 
     <!-- Alert Message -->
     <% if (msg) { %>
-    <div class="alert alert-<%= msg.type === 'danger' ? 'd' : msg.type === 'success' ? 's' : msg.type === 'warning' ? 'w' : 'i' %> mb16">
+    <div class="alert alert-<%= (msg.type === 'danger' || msg.type === 'error') ? 'd' : msg.type === 'success' ? 's' : msg.type === 'warning' ? 'w' : 'i' %> mb16">
       <i class="bi bi-<%= msg.type === 'success' ? 'check-circle' : 'exclamation-triangle' %>"></i>
       <%= msg.text %>
     </div>

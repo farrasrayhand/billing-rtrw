@@ -4366,7 +4366,12 @@ router.post('/backup/restore', requireAdminSession, express.urlencoded({ extende
     }
 
     if (result.success) {
-      req.session._msg = { type: 'success', text: `Restore berhasil: ${fileName}` };
+      req.session._msg = {
+        type: 'success',
+        text: result.pending
+          ? `Restore database dari ${fileName} sudah divalidasi dan dijadwalkan. Restart aplikasi untuk menerapkannya (database saat ini sudah di-backup: ${result.preRestoreBackup || '-'}).`
+          : `Restore berhasil: ${fileName}`
+      };
     } else {
       req.session._msg = { type: 'error', text: `Gagal restore: ${result.error}` };
     }
@@ -4383,7 +4388,7 @@ router.post('/backup/upload-restore', requireAdminSession, upload.single('backup
       throw new Error('File backup tidak ditemukan.');
     }
 
-    const originalName = path.basename(file.originalname);
+    const originalName = path.basename(file.originalname).replace(/[^\w.\-]+/g, '_');
     const ext = path.extname(originalName).toLowerCase();
     const timestamp = Date.now();
     const backupDir = path.join(__dirname, '../backups');
@@ -4400,6 +4405,8 @@ router.post('/backup/upload-restore', requireAdminSession, upload.single('backup
       const savePath = path.join(backupDir, savedFileName);
       fs.writeFileSync(savePath, file.buffer);
       result = backupSvc.restoreDatabase(savedFileName);
+      // File yang gagal validasi tidak boleh menumpuk di folder backup
+      if (!result || !result.success) { try { fs.unlinkSync(savePath); } catch (e) { /* abaikan */ } }
     } else if (ext === '.json' || originalName.includes('settings')) {
       savedFileName = `uploaded_settings_${timestamp}_${originalName}`;
       const savePath = path.join(backupDir, savedFileName);
@@ -4421,7 +4428,9 @@ router.post('/backup/upload-restore', requireAdminSession, upload.single('backup
     if (result && result.success) {
       req.session._msg = { 
         type: 'success', 
-        text: `File backup "${originalName}" berhasil di-upload dan di-restore! Backup otomatis sebelum restore telah dibuat (${result.preRestoreBackup || '-'}).` 
+        text: result.pending
+          ? `File "${originalName}" valid dan restore database dijadwalkan. Restart aplikasi untuk menerapkannya. Backup sebelum restore: ${result.preRestoreBackup || '-'}.`
+          : `File backup "${originalName}" berhasil di-upload dan di-restore! Backup otomatis sebelum restore telah dibuat (${result.preRestoreBackup || '-'}).` 
       };
     } else {
       req.session._msg = { type: 'error', text: `Gagal restore: ${result ? result.error : 'Error tidak diketahui'}` };
@@ -4437,11 +4446,9 @@ router.post('/backup/delete', requireAdminSession, express.urlencoded({ extended
   try {
     const { fileName } = req.body;
     const fs = require('fs');
-    const path = require('path');
-    const backupDir = path.join(__dirname, '../backups');
-    const backupFilePath = path.join(backupDir, fileName);
+    const backupFilePath = backupSvc.resolveBackupPath(fileName);
 
-    if (!fs.existsSync(backupFilePath)) {
+    if (!backupFilePath || !fs.existsSync(backupFilePath)) {
       req.session._msg = { type: 'error', text: 'File backup tidak ditemukan' };
       return res.redirect('/admin/backup');
     }

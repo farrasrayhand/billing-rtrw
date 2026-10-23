@@ -10,6 +10,23 @@ if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 const dbPath = path.join(dbDir, 'billing.db');
 
+// Terapkan restore database yang dijadwalkan dari menu Backup (harus sebelum koneksi dibuka).
+// File lama disimpan sebagai billing.db.before-restore-<waktu> agar bisa dikembalikan manual.
+const pendingRestorePath = path.join(dbDir, 'pending_restore.db');
+if (fs.existsSync(pendingRestorePath)) {
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (fs.existsSync(dbPath)) fs.renameSync(dbPath, `${dbPath}.before-restore-${stamp}`);
+    for (const ext of ['-wal', '-shm']) {
+      if (fs.existsSync(dbPath + ext)) fs.unlinkSync(dbPath + ext);
+    }
+    fs.renameSync(pendingRestorePath, dbPath);
+    console.log('[DB] Restore database tertunda diterapkan dari pending_restore.db');
+  } catch (e) {
+    console.error('[DB] Gagal menerapkan restore tertunda:', e.message);
+  }
+}
+
 let db;
 try {
   db = new Database(dbPath);

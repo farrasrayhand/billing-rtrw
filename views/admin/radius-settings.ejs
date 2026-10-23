@@ -359,7 +359,7 @@
           <div class="card mb16">
             <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <h6 style="margin:0;"><i class="bi bi-terminal-fill"></i> Script Setup Otomatis MikroTik (RADIUS & Isolir)</h6>
-              <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;">
                 <label style="font-size:12px;margin:0;color:var(--muted);white-space:nowrap;">IP Server Billing:</label>
                 <input type="text" id="billing-ip-input" class="fc" value="<%= typeof serverIp !== 'undefined' ? serverIp : '192.168.8.88' %>" oninput="updateScriptIp(this.value)" style="width:140px;height:30px;font-size:12px;padding:3px 8px;" title="Ubah IP server jika router mengakses lewat IP lain/VPS">
                 <button type="button" class="btn btn-s btn-sm" onclick="copyMikrotikScript()"><i class="bi bi-clipboard-check"></i> Salin Script MikroTik</button>
