@@ -1,15 +1,36 @@
 const db = require('../config/database');
+const { hashPassword, verifyPassword, isHashed } = require('../utils/passwordHash');
+
+// Password tidak pernah dikirim ke view; kosong saat update berarti tidak diubah.
+function withoutPassword(rows) {
+  return rows.map(({ password, ...rest }) => rest);
+}
+
+function nextPassword(table, id, plain) {
+  if (plain !== undefined && plain !== null && String(plain) !== '') return hashPassword(plain);
+  const row = db.prepare(`SELECT password FROM ${table} WHERE id = ?`).get(id);
+  return row ? row.password : hashPassword(plain || '');
+}
+
+function authenticateFrom(table, username, password) {
+  const row = db.prepare(`SELECT * FROM ${table} WHERE username = ? AND is_active = 1`).get(username);
+  if (!row || !verifyPassword(password, row.password)) return undefined;
+  if (!isHashed(row.password)) {
+    db.prepare(`UPDATE ${table} SET password = ? WHERE id = ?`).run(hashPassword(password), row.id);
+  }
+  return row;
+}
 
 /**
  * TECHNICIANS
  */
 function getAllTechnicians() {
-  return db.prepare('SELECT * FROM technicians ORDER BY created_at DESC').all();
+  return withoutPassword(db.prepare('SELECT * FROM technicians ORDER BY created_at DESC').all());
 }
 
 function createTechnician(data) {
   const stmt = db.prepare('INSERT INTO technicians (username, password, name, phone, area) VALUES (?, ?, ?, ?, ?)');
-  return stmt.run(data.username, data.password, data.name, data.phone || '', data.area || '');
+  return stmt.run(data.username, hashPassword(data.password), data.name, data.phone || '', data.area || '');
 }
 
 function parseBoolInt(val, defaultVal = 0) {
@@ -21,7 +42,7 @@ function parseBoolInt(val, defaultVal = 0) {
 
 function updateTechnician(id, data) {
   const stmt = db.prepare('UPDATE technicians SET username = ?, password = ?, name = ?, phone = ?, area = ?, is_active = ? WHERE id = ?');
-  return stmt.run(data.username, data.password, data.name, data.phone || '', data.area || '', parseBoolInt(data.is_active, 1), id);
+  return stmt.run(data.username, nextPassword('technicians', id, data.password), data.name, data.phone || '', data.area || '', parseBoolInt(data.is_active, 1), id);
 }
 
 function deleteTechnician(id) {
@@ -32,17 +53,17 @@ function deleteTechnician(id) {
  * CASHIERS
  */
 function getAllCashiers() {
-  return db.prepare('SELECT * FROM cashiers ORDER BY created_at DESC').all();
+  return withoutPassword(db.prepare('SELECT * FROM cashiers ORDER BY created_at DESC').all());
 }
 
 function createCashier(data) {
   const stmt = db.prepare('INSERT INTO cashiers (username, password, name, phone) VALUES (?, ?, ?, ?)');
-  return stmt.run(data.username, data.password, data.name, data.phone || '');
+  return stmt.run(data.username, hashPassword(data.password), data.name, data.phone || '');
 }
 
 function updateCashier(id, data) {
   const stmt = db.prepare('UPDATE cashiers SET username = ?, password = ?, name = ?, phone = ?, is_active = ? WHERE id = ?');
-  return stmt.run(data.username, data.password, data.name, data.phone || '', parseBoolInt(data.is_active, 1), id);
+  return stmt.run(data.username, nextPassword('cashiers', id, data.password), data.name, data.phone || '', parseBoolInt(data.is_active, 1), id);
 }
 
 function deleteCashier(id) {
@@ -50,11 +71,11 @@ function deleteCashier(id) {
 }
 
 function authenticateCashier(username, password) {
-  return db.prepare('SELECT * FROM cashiers WHERE username = ? AND password = ? AND is_active = 1').get(username, password);
+  return authenticateFrom('cashiers', username, password);
 }
 
 function getAllCollectors() {
-  return db.prepare('SELECT * FROM collectors ORDER BY created_at DESC').all();
+  return withoutPassword(db.prepare('SELECT * FROM collectors ORDER BY created_at DESC').all());
 }
 
 function createCollector(data) {
@@ -64,7 +85,7 @@ function createCollector(data) {
     )
     .run(
       String(data.username || '').trim(),
-      String(data.password || ''),
+      hashPassword(data.password || ''),
       String(data.name || '').trim(),
       String(data.phone || '').trim(),
       String(data.area || '').trim(),
@@ -76,7 +97,7 @@ function updateCollector(id, data) {
   const stmt = db.prepare('UPDATE collectors SET username = ?, password = ?, name = ?, phone = ?, area = ?, is_active = ?, auto_approve = ? WHERE id = ?');
   return stmt.run(
     String(data.username || '').trim(),
-    String(data.password || ''),
+    nextPassword('collectors', id, data.password),
     String(data.name || '').trim(),
     String(data.phone || '').trim(),
     String(data.area || '').trim(),
@@ -91,10 +112,11 @@ function deleteCollector(id) {
 }
 
 function authenticateCollector(username, password) {
-  return db.prepare('SELECT * FROM collectors WHERE username = ? AND password = ? AND is_active = 1').get(username, password);
+  return authenticateFrom('collectors', username, password);
 }
 
 module.exports = {
+  authenticateFrom,
   getAllTechnicians,
   createTechnician,
   updateTechnician,

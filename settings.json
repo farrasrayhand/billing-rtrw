@@ -63,7 +63,7 @@
   "attendance_radius": "100",
   "digiflazz_webhook_id": "",
   "qris_static_qr_url": "/uploads/qris/qris-1779502257359-cfb68c83b9ce.jpg",
-  "auto_backup_enabled": false,
+  "auto_backup_enabled": true,
   "public_base_url": "https://spacenetworkmediatama.com/",
   "collector_auto_approve": "false",
   "multi_router_mode": "disabled",

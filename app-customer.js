@@ -55,9 +55,24 @@ try { uniqueCodeService.cleanupExpiredPendingOrders(); } catch (_) {}
 const app = express();
 
 const isProduction = process.env.NODE_ENV === 'production';
+// Hash password lama & ganti secret default sebelum session dibuat.
+require('./services/startupSecurity').run();
+
 const cookieSecure = getSetting('cookie_secure', isProduction);
 const trustProxySetting = getSetting('trust_proxy', true);
-app.set('trust proxy', trustProxySetting ? 1 : true);
+// 1 = percaya satu reverse proxy (Nginx/Traefik); false = tidak ada proxy. Jangan `true` (IP bisa dipalsukan).
+app.set('trust proxy', trustProxySetting ? 1 : false);
+
+// Header keamanan dasar (tanpa CSP karena banyak halaman memakai script/style inline).
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=()');
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  next();
+});
 
 // Middleware dasar
 app.use(express.json({
@@ -87,13 +102,15 @@ app.use(express.text({
   }
 }));
 {
-  const weakSecrets = { session_secret: ['rahasia-portal-pelanggan-default-ganti-ini', 'change-this-to-random-secret-key'], webhook_secret: ['billing-rtrw-secret-key'] };
+  const weakSecrets = { webhook_secret: ['billing-rtrw-secret-key'] };
+  if (String(getSetting('radius_enabled', '0')) === '1') weakSecrets.radius_secret = ['secret123'];
   for (const [key, defaults] of Object.entries(weakSecrets)) {
     const v = getSetting(key, '');
     if (!v || defaults.includes(v)) logger.warn(`[SECURITY] Setting "${key}" masih memakai nilai default/kosong. Ganti dengan nilai acak di settings.json.`);
   }
 }
 app.use(session({
+  store: new (require('./services/sessionStore'))(db),
   secret: getSetting('session_secret', 'rahasia-portal-pelanggan-default-ganti-ini'),
   resave: false,
   saveUninitialized: false,

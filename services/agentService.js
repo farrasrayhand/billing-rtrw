@@ -5,6 +5,7 @@ const mikrotikSvc = require('./mikrotikService');
 const axios = require('axios');
 const crypto = require('crypto');
 const { getSetting } = require('../config/settingsManager');
+const { hashPassword } = require('../utils/passwordHash');
 const { parseMikhmonOnLogin } = require('../utils/mikhmonParser');
 
 const DIGIFLAZZ_URL = 'https://api.digiflazz.com/v1';
@@ -174,9 +175,7 @@ function listDigiflazzBrands(category = '') {
 }
 
 function authenticate(username, password) {
-  return db
-    .prepare('SELECT * FROM agents WHERE username = ? AND password = ? AND is_active = 1')
-    .get(username, password);
+  return require('./adminService').authenticateFrom('agents', username, password);
 }
 
 function getAllAgents() {
@@ -185,7 +184,7 @@ function getAllAgents() {
     FROM agents a
     LEFT JOIN routers r ON r.id = a.router_id
     ORDER BY a.created_at DESC
-  `).all();
+  `).all().map(({ password, ...rest }) => rest);
 }
 
 function getAgentById(id) {
@@ -228,7 +227,7 @@ function createAgent(data) {
     )
     .run(
       String(data.username || '').trim(),
-      String(data.password || ''),
+      hashPassword(data.password || ''),
       String(data.name || '').trim(),
       String(data.phone || '').trim(),
       Math.max(0, Number(data.balance || 0) || 0),
@@ -247,7 +246,7 @@ function updateAgent(id, data) {
 
   const next = {
     username: String(data.username ?? existing.username).trim(),
-    password: String(data.password ?? existing.password),
+    password: (data.password !== undefined && data.password !== null && String(data.password) !== '') ? hashPassword(data.password) : existing.password,
     name: String(data.name ?? existing.name).trim(),
     phone: String(data.phone ?? existing.phone).trim(),
     billing_fee: Math.max(0, Number(data.billing_fee ?? existing.billing_fee) || 0),

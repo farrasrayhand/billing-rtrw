@@ -41,7 +41,6 @@
             <tr>
               <th><%= t('admin.technicians.table.name', 'Nama') %></th>
               <th><%= t('admin.technicians.table.username', 'Username') %></th>
-              <th><%= t('admin.technicians.table.password', 'Password') %></th>
               <th><%= t('admin.technicians.table.whatsapp', 'WhatsApp') %></th>
               <th><%= t('admin.technicians.table.area', 'Area Tugas') %></th>
               <th><%= t('admin.technicians.table.status', 'Status') %></th>
@@ -56,7 +55,6 @@
                 <tr>
                   <td><strong><%= tech.name %></strong></td>
                   <td><code><%= tech.username %></code></td>
-                  <td><span class="text-muted"><%= tech.password %></span></td>
                   <td><%= tech.phone || '-' %></td>
                   <td>
                     <% if (tech.area) { %>
@@ -96,7 +94,7 @@
       <div class="mbody">
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.full_name', 'Nama Lengkap') %></label><input type="text" name="name" class="fc" required></div>
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.login_username', 'Username Login') %></label><input type="text" name="username" class="fc" required></div>
-        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="text" name="password" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="password" name="password" class="fc" autocomplete="new-password" required></div>
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.whatsapp', 'No. WhatsApp') %></label><input type="text" name="phone" class="fc" placeholder="<%= t('admin.technicians.form.whatsapp_placeholder', 'Contoh: 08123456789') %>"></div>
         <div class="fg">
           <label class="fl"><%= t('admin.technicians.form.area', 'Area Tugas') %></label>
@@ -129,7 +127,7 @@
       <div class="mbody">
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.full_name', 'Nama Lengkap') %></label><input type="text" name="name" id="e-name" class="fc" required></div>
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.login_username', 'Username Login') %></label><input type="text" name="username" id="e-username" class="fc" required></div>
-        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="text" name="password" id="e-password" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="password" name="password" id="e-password" class="fc" autocomplete="new-password" placeholder="<%= t('admin.password_keep', 'Kosongkan jika tidak diubah') %>"></div>
         <div class="fg"><label class="fl"><%= t('admin.technicians.form.whatsapp', 'No. WhatsApp') %></label><input type="text" name="phone" id="e-phone" class="fc"></div>
         <div class="fg">
           <label class="fl"><%= t('admin.technicians.form.area', 'Area Tugas') %></label>
@@ -172,7 +170,7 @@ function editTech(t) {
   document.getElementById('editForm').action = '/admin/technicians/' + t.id + '/update';
   document.getElementById('e-name').value = t.name;
   document.getElementById('e-username').value = t.username;
-  document.getElementById('e-password').value = t.password;
+  document.getElementById('e-password').value = '';
   document.getElementById('e-phone').value = t.phone || '';
   const areaSelect = document.getElementById('e-area');
   const targetArea = t.area || '';

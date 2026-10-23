@@ -11,6 +11,7 @@ const customerSvc = require('../services/customerService');
 const billingSvc = require('../services/billingService');
 const pdfSvc = require('../services/pdfInvoiceService');
 const mikrotikService = require('../services/mikrotikService');
+const { verifyPassword, hashPassword, isHashed } = require('../utils/passwordHash');
 const adminSvc = require('../services/adminService');
 const agentSvc = require('../services/agentService');
 const oltSvc = require('../services/oltService');
@@ -228,6 +229,33 @@ function routerContextMiddleware(req, res, next) {
 }
 
 router.use(routerContextMiddleware);
+
+// Defense-in-depth: kasir tidak boleh menyentuh area khusus admin, apa pun metodenya,
+// meskipun route-nya hanya dijaga requireAdminSession.
+const CASHIER_DENIED_PATHS = [
+  /^\/(settings|backup|update|telegram|ai|digiflazz|payroll|technicians|collectors|olts|onu-provision|monitoring|audit-logs|ewallet-logs|sidebar-settings|routers|acs|promo-slides)(\/|$)/,
+  /^\/cashiers(?!\/(attendance|reports)(\/|$))(\/|$)/,
+  /^\/agents\/reports(\/|$)/,
+  /^\/mikrotik\/settings(\/|$)/,
+  /^\/whatsapp\/(gateway-settings|reset|repair-keys|test-fonnte)(\/|$)/,
+  /^\/api\/(system|telegram|routers|genieacs|promo-slides|webhook|isolir-portal-script|settings)(\/|$)/,
+  /^\/api\/mikrotik\/backup(\/|$)/
+];
+// Kasir boleh melihat RADIUS, tetapi tidak boleh mengubahnya.
+const CASHIER_DENIED_WRITE_PATHS = [/^\/(radius-settings|radius)(\/|$)/];
+
+router.use((req, res, next) => {
+  const sess = req.session;
+  if (!sess || sess.isAdmin || !sess.isCashier) return next();
+  const denied = CASHIER_DENIED_PATHS.some((re) => re.test(req.path))
+    || (req.method !== 'GET' && req.method !== 'HEAD' && CASHIER_DENIED_WRITE_PATHS.some((re) => re.test(req.path)));
+  if (!denied) return next();
+  if (req.path.startsWith('/api/') || req.xhr || /json/.test(req.get('accept') || '')) {
+    return res.status(403).json({ success: false, error: 'Hanya Admin yang dapat mengakses fitur ini.' });
+  }
+  sess._msg = { type: 'error', text: 'Hanya Admin yang dapat mengakses halaman ini.' };
+  return res.redirect('/admin');
+});
 
 router.get('/set-active-router', requireAdminSession, (req, res) => {
   if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).send('Forbidden');
@@ -559,7 +587,7 @@ router.get('/login', (req, res) => {
 
 router.post('/login', loginRateLimiter, express.urlencoded({ extended: true }), (req, res) => {
   const { username, password } = req.body;
-  if (username === getSetting('admin_username', 'admin') && password === getSetting('admin_password', 'admin123')) {
+  if (username === getSetting('admin_username', 'admin') && verifyPassword(password, getSetting('admin_password', 'admin123'))) {
     req.session.isAdmin = true;
     req.session.adminUser = username;
     return res.redirect('/admin');
@@ -4188,6 +4216,15 @@ router.post('/api/telegram/sync', requireAdminSession, async (req, res) => {
 router.post('/settings', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
   try {
     const newSettings = { ...req.body };
+    if (!req.session.isAdmin) {
+      req.session._msg = { type: 'error', text: 'Hanya Admin yang dapat mengubah pengaturan.' };
+      return res.redirect('/admin');
+    }
+    if (typeof newSettings.admin_password === 'string') {
+      const ap = newSettings.admin_password;
+      if (ap === '') delete newSettings.admin_password;
+      else if (!isHashed(ap)) newSettings.admin_password = hashPassword(ap);
+    }
     if (typeof newSettings.webhook_secret === 'string') {
       const ws = newSettings.webhook_secret.trim();
       newSettings.webhook_secret = ws || crypto.randomBytes(24).toString('hex');
