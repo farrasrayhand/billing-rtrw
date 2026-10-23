@@ -131,7 +131,8 @@ function findCustomerProfileByLoginId(loginId) {
 
 function buildCustomerDeviceTokens(loginId, profile) {
   const tokenCandidates = [];
-  for (const value of [loginId, profile?.phone, profile?.pppoe_username, profile?.genieacs_tag]) {
+  // Prioritaskan PPPoE username dan GenieACS tag di awal karena merupakan ID perangkat utama di GenieACS
+  for (const value of [profile?.pppoe_username, profile?.genieacs_tag, profile?.mac_address, loginId, profile?.phone]) {
     const token = String(value ?? '').replace(/[\r\n\t]+/g, '').trim();
     if (token && !tokenCandidates.includes(token)) tokenCandidates.push(token);
   }
@@ -1500,18 +1501,18 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     customerPhone = customer.phone || phone;
     pppoeUsername = customer.pppoe_username || null;
     
-    // Prioritas: PPPoE username > genieacs_tag > phone
+    // Prioritas: PPPoE username > genieacs_tag > mac_address > phone
     const searchTokens = [
       customer.pppoe_username,
       customer.genieacs_tag,
+      customer.mac_address,
       customer.phone
     ].filter(Boolean);
 
-    // Cari secara paralel dengan timeout 2.0s agar tidak menggantung jika GenieACS offline/lambat
+    // Cari secara paralel dengan timeout 4.0s agar tidak menggantung jika GenieACS offline/lambat
     const acsSearchPromise = (async () => {
       const results = await Promise.allSettled(searchTokens.map(async (token) => {
-        let d = await customerDevice.findDeviceByPppoe(token); // Prioritas PPPoE
-        if (!d) d = await customerDevice.findDeviceByTag(token);
+        let d = await customerDevice.resolveDeviceToken(token);
         if (!d) {
           const variants = await customerDevice.findDeviceWithTagVariants(token);
           if (variants) d = variants.device;
@@ -1523,7 +1524,7 @@ router.post('/login', loginRateLimiter, async (req, res) => {
 
     device = await Promise.race([
       acsSearchPromise,
-      new Promise(resolve => setTimeout(() => resolve(null), 2000))
+      new Promise(resolve => setTimeout(() => resolve(null), 4000))
     ]);
 
     if (device) {
@@ -1693,6 +1694,9 @@ router.get('/dashboard', async (req, res) => {
     (req.session.pppoe_username ? findCustomerProfileByLoginId(req.session.pppoe_username) : null);
 
   const uniqueCandidates = Array.from(new Set([
+    profile?.pppoe_username,
+    profile?.genieacs_tag,
+    profile?.mac_address,
     req.session.pppoe_username,
     ...(buildCustomerDeviceTokens(loginId, profile))
   ].map(v => String(v || '').trim()).filter(Boolean)));
@@ -1702,7 +1706,7 @@ router.get('/dashboard', async (req, res) => {
     try {
       deviceData = await Promise.race([
         getCustomerDeviceData(token),
-        new Promise(resolve => setTimeout(() => resolve(null), 2500))
+        new Promise(resolve => setTimeout(() => resolve(null), 5000))
       ]);
     } catch (e) {
       deviceData = null;
@@ -1978,16 +1982,29 @@ router.post('/change-ssid', async (req, res) => {
   if (!loginId) return res.redirect('/customer/login');
   const { ssid } = req.body;
   const profile = findCustomerProfileByLoginId(loginId);
-  const tokenCandidates = buildCustomerDeviceTokens(loginId, profile);
+  const tokenCandidates = Array.from(new Set([
+    profile?.pppoe_username,
+    profile?.genieacs_tag,
+    profile?.mac_address,
+    req.session?.pppoe_username,
+    ...buildCustomerDeviceTokens(loginId, profile)
+  ].map(v => String(v || '').trim()).filter(Boolean)));
+
   let ok = false;
   for (const token of tokenCandidates) {
     ok = await updateSSID(token, ssid);
     if (ok) break;
   }
   
+  if (ok && profile) {
+    try {
+      db.prepare('UPDATE customers SET wifi_ssid = ? WHERE id = ?').run(String(ssid).trim(), profile.id);
+    } catch (e) {}
+  }
+
   req.session._msg = ok 
     ? { type: 'success', text: 'Nama WiFi (SSID) berhasil diubah.' }
-    : { type: 'danger', text: 'Gagal mengubah SSID.' };
+    : { type: 'danger', text: 'Gagal mengubah SSID. Pastikan perangkat modem aktif.' };
 
   // Kirim notifikasi WhatsApp ke pelanggan
   if (ok) {
@@ -2026,7 +2043,14 @@ router.post('/change-password', async (req, res) => {
   }
 
   const profile = findCustomerProfileByLoginId(loginId);
-  const tokenCandidates = buildCustomerDeviceTokens(loginId, profile);
+  const tokenCandidates = Array.from(new Set([
+    profile?.pppoe_username,
+    profile?.genieacs_tag,
+    profile?.mac_address,
+    req.session?.pppoe_username,
+    ...buildCustomerDeviceTokens(loginId, profile)
+  ].map(v => String(v || '').trim()).filter(Boolean)));
+
   let ok = false;
   for (const token of tokenCandidates) {
     ok = await updatePassword(token, password);
