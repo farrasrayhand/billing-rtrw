@@ -30,11 +30,6 @@ data/wa-lid-map.json
 .gradle/
 .kotlin/
 build/
-android-app/.gradle/
-android-app/.kotlin/
-android-app/app/build/
-android-app/build/
-android-app/local.properties
 
 # Logs
 logs/

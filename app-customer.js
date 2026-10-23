@@ -2025,28 +2025,6 @@ app.get(['/terms-of-service', '/terms', '/tos', '/syarat-ketentuan', '/terms.htm
   });
 });
 
-// Route download APK Android Pelanggan & Admin
-app.get(['/download/app', '/download/apk', '/downloads/billing-rtrw.apk', '/download/billing-rtrw.apk', '/downloads/AlijayaCustomer.apk', '/download/AlijayaCustomer.apk'], (req, res) => {
-  const candidates = [
-    path.join(__dirname, 'public', 'downloads', 'billing-rtrw.apk'),
-    path.join(__dirname, 'billing-rtrw.apk'),
-    path.join(__dirname, 'public', 'downloads', 'AlijayaCustomer.apk'),
-    path.join(__dirname, 'AlijayaCustomer.apk')
-  ];
-
-  const targetPath = candidates.find(p => fs.existsSync(p));
-
-  if (targetPath) {
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    return res.download(targetPath, 'billing-rtrw.apk');
-  }
-
-  return res.status(404).json({
-    success: false,
-    message: 'File APK belum di-upload ke server VPS. Silakan upload file billing-rtrw.apk ke folder public/downloads/ di server.'
-  });
-});
-
 app.get('/uploads/qris/:filename', async (req, res) => {
   const wantsHtml = () => String(req.get('accept') || '').toLowerCase().includes('text/html');
   const sendPretty = (status, title, detail) => {

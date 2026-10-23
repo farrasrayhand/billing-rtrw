@@ -16,9 +16,6 @@ data
 public/uploads
 
 # Android & artefak build lokal
-android-app
-*.apk
-*.aab
 *.png
 
 # Dokumentasi & konfigurasi editor

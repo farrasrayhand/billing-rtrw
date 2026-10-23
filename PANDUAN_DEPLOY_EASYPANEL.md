@@ -23,7 +23,7 @@ Yang perlu kamu miliki: server dengan Easypanel terpasang, domain (untuk HTTPS),
 
 - **`Dockerfile`** — multi-stage build (Node 20, toolchain untuk `better-sqlite3`).
 - **`docker-entrypoint.sh`** — memetakan semua data persisten ke satu volume `/app/storage`.
-- **`.dockerignore`** — mengecualikan `node_modules`, DB lokal, uploads, android-app, dsb.
+- **`.dockerignore`** — mengecualikan `node_modules`, DB lokal, uploads, dsb.
 
 > Kenapa perlu entrypoint? Aplikasi menyimpan data di **path tetap** (`/app/database`, `/app/settings.json`, dst). Supaya cukup **satu volume** dan tidak ada data hilang saat redeploy, entrypoint membuat symlink dari path-path itu ke `/app/storage`.
 
