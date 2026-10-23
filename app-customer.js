@@ -1450,7 +1450,7 @@ app.post('/webhook/digiflazz', async (req, res) => {
       }
     }
 
-    // 2. Cek matching public_ppob_orders (Pelanggan Web & APK)
+    // 2. Cek matching public_ppob_orders (Pelanggan Web)
     const custOrder = selectPublicPpobOrderByRefId.get(refId);
     matchedPpobOrderId = custOrder?.id || null;
 
@@ -2276,10 +2276,6 @@ app.get('/app/connect', (req, res) => {
 // Mount customer portal
 const customerPortal = require('./routes/customerPortal');
 app.use('/customer', customerPortal);
-
-// Mount customer REST API for Android Mobile App
-const customerAPI = require('./routes/customerAPI');
-app.use('/api/customer', customerAPI);
 
 // Mount admin portal
 const adminPortal = require('./routes/adminPortal');
