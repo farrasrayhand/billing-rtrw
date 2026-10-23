@@ -4663,8 +4663,12 @@ router.post('/ai/settings', requireAdminSession, restrictToAdmin, express.urlenc
       telegram_welcome_enabled: req.body.telegram_welcome_enabled === 'true',
       telegram_welcome_msg: String(req.body.telegram_welcome_msg || ''),
       gemini_api_key: String(req.body.gemini_api_key || '').trim(),
-      gemini_model: String(req.body.gemini_model || '').trim() || 'gemini-3.5-flash-lite'
+      gemini_model: String(req.body.gemini_model || '').trim() || 'gemini-3.5-flash-lite',
+      ai_provider: String(req.body.ai_provider || 'gemini').trim().toLowerCase()
     };
+    ['openai_api_key', 'openai_model', 'deepseek_api_key', 'deepseek_model', 'groq_api_key', 'groq_model', 'openrouter_api_key', 'openrouter_model', 'custom_ai_api_key', 'custom_ai_base_url', 'custom_ai_model'].forEach(k => {
+      if (req.body[k] !== undefined) payload[k] = String(req.body[k]).trim();
+    });
 
     const success = saveSettings(payload);
     if (!success) throw new Error('Gagal menyimpan pengaturan');
@@ -4681,6 +4685,7 @@ router.post('/ai/settings', requireAdminSession, restrictToAdmin, express.urlenc
           whatsapp_ai_enabled: payload.whatsapp_ai_enabled,
           telegram_group_ai_enabled: payload.telegram_group_ai_enabled,
           telegram_welcome_enabled: payload.telegram_welcome_enabled,
+          ai_provider: payload.ai_provider,
           gemini_key_set: Boolean(payload.gemini_api_key)
         },
         ip_address: req.ip,
