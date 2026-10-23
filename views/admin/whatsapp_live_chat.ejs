@@ -29,6 +29,7 @@
     .msg-bubble.inbound { align-self: flex-start; background: var(--bg3); color: var(--text); border-bottom-left-radius: 2px; }
     .msg-bubble.outbound { align-self: flex-end; background: var(--primary); color: #ffffff; border-bottom-right-radius: 2px; }
     .msg-meta { font-size: 10px; opacity: 0.75; text-align: right; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+    .chat-user-phone { font-size: 11px; color: var(--muted); margin-top: 1px; }
     .msg-gateway { font-size: 9px; padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.2); }
 
     .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: var(--bg); }
@@ -161,13 +162,24 @@ async function loadConversations() {
       // Auto open first conversation if available and not selected yet
       if (!activePhone && conversationsData.length > 0) {
         const first = conversationsData[0];
-        const name = first.customer_name || first.phone;
+        const name = displayName(first);
         openChat(first.phone, name);
       }
     }
   } catch (e) {
     console.error('Error loading conversations:', e);
   }
+}
+
+// "Pelanggan" adalah nama bawaan bila nomor tidak cocok dengan data pelanggan: tampilkan nomornya.
+function displayName(c) {
+  const n = String(c.customer_name || '').trim();
+  return (n && n.toLowerCase() !== 'pelanggan') ? n : c.phone;
+}
+
+function formatPhone(p) {
+  const d = String(p || '').replace(/\D/g, '');
+  return d.startsWith('62') ? '+62 ' + d.slice(2).replace(/^(\d{3})(\d{4})(\d+)$/, '$1-$2-$3') : (p || '');
 }
 
 function renderUserList(list) {
@@ -178,7 +190,7 @@ function renderUserList(list) {
   }
 
   container.innerHTML = list.map(c => {
-    const name = c.customer_name || c.phone;
+    const name = displayName(c);
     const initial = name.charAt(0).toUpperCase();
     const isActive = c.phone === activePhone ? 'active' : '';
     const dateStr = c.created_at ? new Date(c.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -188,6 +200,7 @@ function renderUserList(list) {
         <div class="chat-user-avatar">${initial}</div>
         <div class="chat-user-info">
           <div class="chat-user-name">${escapeHtml(name)}</div>
+          <div class="chat-user-phone">${name === c.phone ? '' : '📱 '}${escapeHtml(formatPhone(c.phone))}</div>
           <div class="chat-user-last">${escapeHtml(c.message_text || '')}</div>
         </div>
         <div class="chat-user-time">${dateStr}</div>
@@ -266,7 +279,7 @@ async function loadChatMessages(phone, showSpinner = false) {
       container.innerHTML = messages.map(m => {
         const isOutbound = m.direction === 'outbound';
         const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
-        const gatewayBadge = m.gateway === 'meta' ? 'Meta API' : 'Baileys';
+        const gatewayBadge = m.gateway === 'meta' ? 'Meta API' : (m.gateway === 'fonnte' ? 'Fonnte' : 'Baileys');
         const statusIcon = m.status === 'read' ? '✓✓' : m.status === 'delivered' ? '✓✓' : '✓';
         
         return `
