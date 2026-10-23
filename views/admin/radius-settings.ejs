@@ -179,10 +179,11 @@
       <button type="button" class="mtab <%= radiusStatus.enabled ? '' : 'active' %>" id="tab-btn-settings" onclick="switchTab('settings')">
         <i class="bi bi-sliders"></i> Pengaturan RADIUS
       </button>
-      <% if (radiusStatus.enabled) { %>
+      <%# Daftar NAS selalu tampil agar router bisa didaftarkan sebelum RADIUS diaktifkan %>
       <button type="button" class="mtab" id="tab-btn-nas" onclick="switchTab('nas')">
         <i class="bi bi-router"></i> Daftar NAS Router (<%= nasList.length %>)
       </button>
+      <% if (radiusStatus.enabled) { %>
       <button type="button" class="mtab" id="tab-btn-accounting" onclick="switchTab('accounting')">
         <i class="bi bi-journal-text"></i> Log Accounting
       </button>

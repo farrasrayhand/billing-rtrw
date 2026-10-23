@@ -760,6 +760,8 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_webhook_payment_notifs_hash ON web
 // Kolom untuk Login OLT (Web/API)
 try { db.exec("ALTER TABLE olts ADD COLUMN web_user TEXT DEFAULT 'admin'"); } catch (e) {}
 try { db.exec("ALTER TABLE olts ADD COLUMN web_password TEXT DEFAULT 'admin'"); } catch (e) {}
+// radius_nas dibuat tanpa updated_at, tetapi edit/toggle NAS menulisnya (kolom tanpa default agar ALTER diizinkan SQLite)
+try { db.exec("ALTER TABLE radius_nas ADD COLUMN updated_at DATETIME"); } catch (e) {}
 try { db.exec("ALTER TABLE olts ADD COLUMN api_base_url TEXT"); } catch (e) {}
 try { db.exec("ALTER TABLE olts ADD COLUMN telnet_port INTEGER DEFAULT 23"); } catch (e) {}
 try { db.exec("ALTER TABLE olts ADD COLUMN enable_password TEXT"); } catch (e) {}
