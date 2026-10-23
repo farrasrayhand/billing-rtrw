@@ -1,0 +1,6 @@
+<!-- views/admin/partials/tabs_staff.ejs — tab bersama area Staf & Tim (butuh variabel staffTab) -->
+<div class="hub-tabs">
+  <a href="/admin/technicians" class="hub-tab <%= staffTab === 'technicians' ? 'active' : '' %>"><i class="bi bi-person-gear"></i> <%= t('admin.nav.technicians', 'Teknisi') %></a>
+  <a href="/admin/cashiers" class="hub-tab <%= staffTab === 'cashiers' ? 'active' : '' %>"><i class="bi bi-person-vcard"></i> <%= t('admin.nav.cashiers', 'Kasir') %></a>
+  <a href="/admin/collectors" class="hub-tab <%= staffTab === 'collectors' ? 'active' : '' %>"><i class="bi bi-person-badge"></i> <%= t('admin.nav.collectors', 'Kolektor') %></a>
+</div>

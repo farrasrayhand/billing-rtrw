@@ -1,14 +1,8 @@
 <!-- views/admin/partials/tabs_finance.ejs — tab bersama area Keuangan (butuh variabel finTab) -->
-<style>
-  .fin-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
-  .fin-tab { padding: 8px 14px; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all .2s; font-weight: 700; text-decoration: none; flex-shrink: 0; }
-  .fin-tab:hover { background: rgba(0,0,0,.05); color: var(--text); }
-  .fin-tab.active { background: var(--primary); color: white; }
-</style>
-<div class="fin-tabs">
-  <a href="/admin/reports" class="fin-tab <%= finTab === 'reports' ? 'active' : '' %>"><i class="bi bi-bar-chart-line"></i> Laporan Keuangan</a>
-  <a href="/admin/finance/cash-in" class="fin-tab <%= finTab === 'cash_in' ? 'active' : '' %>"><i class="bi bi-cash-stack"></i> Kas Masuk</a>
-  <a href="/admin/finance/expenses" class="fin-tab <%= finTab === 'expenses' ? 'active' : '' %>"><i class="bi bi-wallet2"></i> Pengeluaran</a>
-  <a href="/admin/finance/expense-categories" class="fin-tab <%= finTab === 'expense_categories' ? 'active' : '' %>"><i class="bi bi-tags"></i> Kategori</a>
-  <a href="/admin/cashiers/reports" class="fin-tab <%= finTab === 'cashier_reports' ? 'active' : '' %>"><i class="bi bi-journal-text"></i> Laporan Kasir</a>
+<div class="hub-tabs">
+  <a href="/admin/reports" class="hub-tab <%= finTab === 'reports' ? 'active' : '' %>"><i class="bi bi-bar-chart-line"></i> Laporan Keuangan</a>
+  <a href="/admin/finance/cash-in" class="hub-tab <%= finTab === 'cash_in' ? 'active' : '' %>"><i class="bi bi-cash-stack"></i> Kas Masuk</a>
+  <a href="/admin/finance/expenses" class="hub-tab <%= finTab === 'expenses' ? 'active' : '' %>"><i class="bi bi-wallet2"></i> Pengeluaran</a>
+  <a href="/admin/finance/expense-categories" class="hub-tab <%= finTab === 'expense_categories' ? 'active' : '' %>"><i class="bi bi-tags"></i> Kategori</a>
+  <a href="/admin/cashiers/reports" class="hub-tab <%= finTab === 'cashier_reports' ? 'active' : '' %>"><i class="bi bi-journal-text"></i> Laporan Kasir</a>
 </div>

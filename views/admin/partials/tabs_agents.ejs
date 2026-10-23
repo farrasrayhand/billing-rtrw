@@ -1,0 +1,7 @@
+<!-- views/admin/partials/tabs_agents.ejs — tab bersama area Agent (butuh variabel agentTab) -->
+<div class="hub-tabs">
+  <a href="/admin/agents" class="hub-tab <%= agentTab === 'agents' ? 'active' : '' %>"><i class="bi bi-shop"></i> <%= t('admin.nav.agents', 'Agent') %></a>
+  <% if (typeof session !== 'undefined' && session && session.isAdmin) { %>
+  <a href="/admin/agents/reports" class="hub-tab <%= agentTab === 'reports' ? 'active' : '' %>"><i class="bi bi-journal-text"></i> <%= t('admin.nav.agent_reports', 'Laporan Agent') %></a>
+  <% } %>
+</div>

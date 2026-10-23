@@ -15,9 +15,9 @@
   <nav class="sb-nav" aria-label="Menu Utama">
     <% if (typeof multiRouterMode !== 'undefined' && multiRouterMode && allActiveRouters && allActiveRouters.length > 0) { %>
       <div class="sb-router">
-        <div class="sb-router-label"><i class="bi bi-router"></i> Router Aktif</div>
+        <div class="sb-router-label"><i class="bi bi-router"></i> <%= t('admin.nav.active_router', 'Router Aktif') %></div>
         <select class="fs" style="padding:6px 10px;font-size:12px" aria-label="Filter Router" onchange="window.location.href='/admin/set-active-router?router_id=' + this.value">
-          <option value="all" <%= (!selectedRouterId) ? 'selected' : '' %>>Semua Router (<%= allActiveRouters.length %>)</option>
+          <option value="all" <%= (!selectedRouterId) ? 'selected' : '' %>><%= t('admin.nav.all_routers', 'Semua Router') %> (<%= allActiveRouters.length %>)</option>
           <% allActiveRouters.forEach(r => { %>
             <option value="<%= r.id %>" <%= (selectedRouterId === r.id) ? 'selected' : '' %>>
               <%= r.name %> (<%= r.host %>)
@@ -44,12 +44,14 @@
         <% }) %>
       <% }) %>
 
-      <li class="menu-title">Kontrol</li>
+      <li class="menu-title"><%= t('admin.section.control', 'Kontrol') %></li>
+      <% if (typeof session !== 'undefined' && session && session.isAdmin) { %>
       <li>
         <a href="/admin/sidebar-settings" <%- activePage === 'sidebar_settings' ? 'aria-current="page" class="active"' : '' %>>
-          <i class="bi bi-layout-sidebar-inset"></i><span>Pengaturan Sidebar</span>
+          <i class="bi bi-layout-sidebar-inset"></i><span><%= t('admin.nav.sidebar_settings', 'Pengaturan Sidebar') %></span>
         </a>
       </li>
+      <% } %>
       <li>
         <a href="/admin/logout" class="text-error">
           <i class="bi bi-box-arrow-left"></i><span><%= t('common.logout', 'Logout') %></span>

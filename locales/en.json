@@ -970,7 +970,10 @@
       "billing": "BILLING",
       "service": "SERVICE",
       "user_management": "USER MANAGEMENT",
-      "system": "SYSTEM"
+      "system": "SYSTEM",
+      "network": "NETWORK",
+      "comm": "COMMUNICATION",
+      "control": "CONTROL"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -990,7 +993,11 @@
       "agents": "Agents",
       "agent_reports": "Agent Reports",
       "update": "GitHub Update",
-      "settings": "Settings"
+      "settings": "Settings",
+      "staff": "Staff & Team",
+      "sidebar_settings": "Sidebar Settings",
+      "active_router": "Active Router",
+      "all_routers": "All Routers"
     },
     "update": {
       "title": "GitHub Update",

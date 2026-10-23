@@ -26,6 +26,7 @@
   </div>
 
   <div class="page">
+    <%- include('partials/tabs_staff', { staffTab: 'cashiers' }) %>
     <% if (msg) { %>
       <div class="alert alert-<%= msg.type==='error'?'d':'s' %>"><%= msg.text %></div>
     <% } %>

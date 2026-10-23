@@ -970,7 +970,10 @@
       "billing": "BILLING",
       "service": "LAYANAN",
       "user_management": "MANAJEMEN USER",
-      "system": "SISTEM"
+      "system": "SISTEM",
+      "network": "JARINGAN",
+      "comm": "KOMUNIKASI",
+      "control": "KONTROL"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -990,7 +993,11 @@
       "agents": "Agent",
       "agent_reports": "Laporan Agent",
       "update": "Update GitHub",
-      "settings": "Pengaturan"
+      "settings": "Pengaturan",
+      "staff": "Staf & Tim",
+      "sidebar_settings": "Pengaturan Sidebar",
+      "active_router": "Router Aktif",
+      "all_routers": "Semua Router"
     },
     "update": {
       "title": "Update GitHub",

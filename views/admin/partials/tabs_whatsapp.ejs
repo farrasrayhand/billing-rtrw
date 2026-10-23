@@ -1,13 +1,7 @@
 <!-- views/admin/partials/tabs_whatsapp.ejs — tab bersama area WhatsApp (butuh variabel waTab) -->
-<style>
-  .wa-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
-  .wa-tab { padding: 8px 14px; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all .2s; font-weight: 700; text-decoration: none; flex-shrink: 0; }
-  .wa-tab:hover { background: rgba(0,0,0,.05); color: var(--text); }
-  .wa-tab.active { background: var(--primary); color: white; }
-</style>
-<div class="wa-tabs">
-  <a href="/admin/whatsapp" class="wa-tab <%= waTab === 'status' ? 'active' : '' %>"><i class="bi bi-phone"></i> Status Bot</a>
-  <a href="/admin/whatsapp/broadcast" class="wa-tab <%= waTab === 'broadcast' ? 'active' : '' %>"><i class="bi bi-megaphone"></i> Broadcast &amp; Pengingat</a>
-  <a href="/admin/whatsapp/templates" class="wa-tab <%= waTab === 'templates' ? 'active' : '' %>"><i class="bi bi-chat-left-quote"></i> Template Pesan</a>
-  <a href="/admin/whatsapp/live-chat" class="wa-tab <%= waTab === 'live_chat' ? 'active' : '' %>"><i class="bi bi-chat-dots-fill"></i> Live Chat</a>
+<div class="hub-tabs">
+  <a href="/admin/whatsapp" class="hub-tab <%= waTab === 'status' ? 'active' : '' %>"><i class="bi bi-phone"></i> Status Bot</a>
+  <a href="/admin/whatsapp/broadcast" class="hub-tab <%= waTab === 'broadcast' ? 'active' : '' %>"><i class="bi bi-megaphone"></i> Broadcast &amp; Pengingat</a>
+  <a href="/admin/whatsapp/templates" class="hub-tab <%= waTab === 'templates' ? 'active' : '' %>"><i class="bi bi-chat-left-quote"></i> Template Pesan</a>
+  <a href="/admin/whatsapp/live-chat" class="hub-tab <%= waTab === 'live_chat' ? 'active' : '' %>"><i class="bi bi-chat-dots-fill"></i> Live Chat</a>
 </div>

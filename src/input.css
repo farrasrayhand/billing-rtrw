@@ -244,3 +244,27 @@
 .sb-credit a:hover {
   color: #2563eb;
 }
+
+/* Tab hub bersama (Keuangan, MikroTik, WhatsApp, Staf, Agent) */
+.hub-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+.hub-tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all .2s;
+  font-weight: 700;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.hub-tab:hover { background: rgba(0, 0, 0, .05); color: var(--text); }
+.hub-tab.active { background: var(--primary); color: white; }
