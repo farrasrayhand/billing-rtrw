@@ -29,6 +29,9 @@
     .msg-bubble.inbound { align-self: flex-start; background: var(--bg3); color: var(--text); border-bottom-left-radius: 2px; }
     .msg-bubble.outbound { align-self: flex-end; background: var(--primary); color: #ffffff; border-bottom-right-radius: 2px; }
     .msg-meta { font-size: 10px; opacity: 0.75; text-align: right; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+    .chat-user-item.unread .chat-user-name { font-weight: 800; }
+    .chat-user-item.unread .chat-user-last { color: var(--text); font-weight: 600; }
+    .chat-unread-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #16a34a; margin-left: 6px; vertical-align: middle; }
     .chat-user-phone { font-size: 11px; color: var(--muted); margin-top: 1px; }
     .msg-gateway { font-size: 9px; padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.2); }
 
@@ -150,6 +153,11 @@
 <script>
 let conversationsData = [];
 let activePhone = '';
+let lastMessagesSignature = '';
+const lastSeenId = {};          // phone -> id pesan terakhir yang sudah dilihat
+let firstConversationsLoad = true;
+const BASE_TITLE = document.title;
+const POLL_MS = 4000;
 
 async function loadConversations() {
   try {
@@ -157,18 +165,49 @@ async function loadConversations() {
     const data = await res.json();
     if (data.ok) {
       conversationsData = data.conversations || [];
-      renderUserList(conversationsData);
+
+      // Pertama kali dibuka: anggap semua pesan lama sudah dilihat agar tidak banjir penanda.
+      if (firstConversationsLoad) {
+        conversationsData.forEach(c => { lastSeenId[c.phone] = c.id; });
+        firstConversationsLoad = false;
+      }
+      // Percakapan yang sedang dibuka selalu dianggap terbaca.
+      if (activePhone) {
+        const cur = conversationsData.find(c => c.phone === activePhone);
+        if (cur) lastSeenId[activePhone] = cur.id;
+      }
+
+      applySearchFilter();
+      updateUnreadTitle();
 
       // Auto open first conversation if available and not selected yet
       if (!activePhone && conversationsData.length > 0) {
         const first = conversationsData[0];
-        const name = displayName(first);
-        openChat(first.phone, name);
+        openChat(first.phone, displayName(first));
       }
     }
   } catch (e) {
     console.error('Error loading conversations:', e);
   }
+}
+
+function isUnread(c) {
+  return c.direction === 'inbound' && c.id > (lastSeenId[c.phone] || 0);
+}
+
+function updateUnreadTitle() {
+  const n = conversationsData.filter(isUnread).length;
+  document.title = n > 0 ? `(${n}) ${BASE_TITLE}` : BASE_TITLE;
+}
+
+function applySearchFilter() {
+  const input = document.getElementById('chatSearch');
+  const q = input ? input.value.toLowerCase() : '';
+  const list = q
+    ? conversationsData.filter(c =>
+        (c.customer_name && c.customer_name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)))
+    : conversationsData;
+  renderUserList(list);
 }
 
 // "Pelanggan" adalah nama bawaan bila nomor tidak cocok dengan data pelanggan: tampilkan nomornya.
@@ -195,27 +234,23 @@ function renderUserList(list) {
     const isActive = c.phone === activePhone ? 'active' : '';
     const dateStr = c.created_at ? new Date(c.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
     
+    const unread = isUnread(c) ? 'unread' : '';
     return `
-      <div class="chat-user-item ${isActive}" onclick="openChat('${c.phone}', '${escapeHtml(name)}')">
+      <div class="chat-user-item ${isActive} ${unread}" onclick="openChat('${c.phone}', '${escapeHtml(name)}')">
         <div class="chat-user-avatar">${initial}</div>
         <div class="chat-user-info">
           <div class="chat-user-name">${escapeHtml(name)}</div>
           <div class="chat-user-phone">${name === c.phone ? '' : '📱 '}${escapeHtml(formatPhone(c.phone))}</div>
           <div class="chat-user-last">${escapeHtml(c.message_text || '')}</div>
         </div>
-        <div class="chat-user-time">${dateStr}</div>
+        <div class="chat-user-time">${dateStr}${unread ? '<span class="chat-unread-dot"></span>' : ''}</div>
       </div>
     `;
   }).join('');
 }
 
 function filterUserList() {
-  const q = document.getElementById('chatSearch').value.toLowerCase();
-  const filtered = conversationsData.filter(c => 
-    (c.customer_name && c.customer_name.toLowerCase().includes(q)) || 
-    (c.phone && c.phone.includes(q))
-  );
-  renderUserList(filtered);
+  applySearchFilter();
 }
 
 function openNewChatModal() {
@@ -244,6 +279,10 @@ function startNewChatFromModal() {
 
 async function openChat(phone, name) {
   activePhone = phone;
+  lastMessagesSignature = '';
+  const convo = conversationsData.find(c => c.phone === phone);
+  if (convo) lastSeenId[phone] = convo.id;
+  updateUnreadTitle();
   document.getElementById('activePhone').value = phone;
   document.getElementById('chatHeaderTitle').innerHTML = `<i class="bi bi-person-fill"></i> ${escapeHtml(name)}`;
   document.getElementById('chatHeaderSub').innerText = `📱 ${phone}`;
@@ -254,7 +293,7 @@ async function openChat(phone, name) {
   sendBtn.disabled = false;
   
   // Highlight active user in inbox
-  renderUserList(conversationsData);
+  applySearchFilter();
 
   // Load chat messages
   loadChatMessages(phone, true);
@@ -269,8 +308,14 @@ async function loadChatMessages(phone, showSpinner = false) {
   try {
     const res = await fetch(`/admin/api/whatsapp/messages?phone=${encodeURIComponent(phone)}`);
     const data = await res.json();
+    if (phone !== activePhone) return; // pengguna sudah pindah percakapan
     if (data.ok) {
       const messages = data.messages || [];
+      const last = messages[messages.length - 1];
+      const signature = messages.length + ':' + (last ? last.id + ':' + last.status : '');
+      if (!showSpinner && signature === lastMessagesSignature) return; // tidak ada perubahan
+      lastMessagesSignature = signature;
+      const nearBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 100;
       if (messages.length === 0) {
         container.innerHTML = `<div class="text-center text-muted" style="margin:auto;">Belum ada pesan dengan pelanggan ini. Ketik pesan di bawah dan tekan Enter untuk memulai.</div>`;
         return;
@@ -294,7 +339,7 @@ async function loadChatMessages(phone, showSpinner = false) {
         `;
       }).join('');
       
-      container.scrollTop = container.scrollHeight;
+      if (showSpinner || nearBottom) container.scrollTop = container.scrollHeight;
     }
   } catch (e) {
     if (showSpinner) {
@@ -334,7 +379,8 @@ async function sendChatMessage(e) {
     const data = await res.json();
     if (data.success) {
       inputEl.value = '';
-      await loadChatMessages(phone, false);
+      lastMessagesSignature = '';
+      await loadChatMessages(phone, true);
       await loadConversations();
       inputEl.focus();
     } else {
@@ -352,12 +398,16 @@ function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function pollOnce() {
+  if (document.hidden) return;
+  loadConversations();
+  if (activePhone) loadChatMessages(activePhone, false);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadConversations();
-  setInterval(() => {
-    loadConversations();
-    if (activePhone) loadChatMessages(activePhone, false);
-  }, 8000);
+  setInterval(pollOnce, POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pollOnce(); });
 });
 </script>
 </body>

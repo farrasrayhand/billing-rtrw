@@ -6152,7 +6152,17 @@ router.get('/whatsapp', requireAdminSession, requireSidebarMenuAccess('whatsapp'
     waGatewayType,
     metaSettings,
     fonnteSettings,
-    host: req.get('host') || 'localhost:3001'
+    host: req.get('host') || 'localhost:3001',
+    ...(() => {
+      // URL webhook harus bisa dijangkau Fonnte/Meta dari internet: utamakan URL publik dari Pengaturan.
+      const configured = String(getSetting('app_url', '') || getSetting('public_base_url', '') || '').trim().replace(/\/+$/, '');
+      const base = configured
+        ? (/^https?:\/\//i.test(configured) ? configured : `https://${configured}`)
+        : `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host') || 'localhost:3001'}`;
+      const hostOnly = base.replace(/^https?:\/\//i, '').split(/[/:]/)[0].toLowerCase();
+      const webhookIsLocal = hostOnly === 'localhost' || /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostOnly) || hostOnly.endsWith('.local');
+      return { webhookBase: base, webhookIsLocal };
+    })()
   });
 });
 

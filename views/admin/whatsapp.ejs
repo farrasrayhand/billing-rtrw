@@ -89,13 +89,22 @@
           </div>
 
           <!-- BOX COPY-PASTE WEBHOOK URL -->
+          <% if (webhookIsLocal) { %>
+          <div class="alert alert-w" style="margin-top: 12px; font-size: 12px;">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Webhook belum bisa dijangkau Fonnte.</strong> Alamat server saat ini (<code><%= webhookBase %></code>) adalah alamat lokal, sehingga
+            <strong>pesan masuk dari pelanggan tidak akan muncul di Live Chat</strong> (pesan keluar tetap terkirim).
+            Isi <em>URL Portal Isolir (app_url)</em> di menu Pengaturan dengan domain publik (https), atau pakai tunnel seperti Cloudflare Tunnel/ngrok saat uji coba,
+            lalu salin URL di bawah ke dashboard Fonnte (menu Device &rarr; Webhook).
+          </div>
+          <% } %>
           <div style="font-size: 11.5px; margin-top: 12px; background: var(--bg2); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <strong style="color: #2563eb;"><i class="bi bi-link-45deg"></i> Webhook Callback URL (Untuk disalin ke Dashboard Fonnte):</strong>
               <button type="button" class="btn btn-g btn-sm" onclick="copyWebhookUrl('fonnte_webhook_url')" style="padding: 2px 8px; font-size: 11px;"><i class="bi bi-clipboard"></i> Salin URL</button>
             </div>
             <div style="display: flex; gap: 6px;">
-              <input type="text" id="fonnte_webhook_url" class="fc" readonly value="http://<%= host %>/api/webhook/fonnte" style="font-family: monospace; font-size: 12px; background: var(--bg3); cursor: pointer;" onclick="this.select();">
+              <input type="text" id="fonnte_webhook_url" class="fc" readonly value="<%= webhookBase %>/api/webhook/fonnte" style="font-family: monospace; font-size: 12px; background: var(--bg3); cursor: pointer;" onclick="this.select();">
             </div>
           </div>
 
@@ -141,7 +150,7 @@
               <strong style="color: var(--primary);"><i class="bi bi-link-45deg"></i> Callback Webhook URL Meta Developer Portal:</strong>
               <button type="button" class="btn btn-g btn-sm" onclick="copyWebhookUrl('meta_webhook_url')" style="padding: 2px 8px; font-size: 11px;"><i class="bi bi-clipboard"></i> Salin URL</button>
             </div>
-            <input type="text" id="meta_webhook_url" class="fc" readonly value="http://<%= host %>/api/meta-webhook" style="font-family: monospace; font-size: 12px; background: var(--bg3); cursor: pointer;" onclick="this.select();">
+            <input type="text" id="meta_webhook_url" class="fc" readonly value="<%= webhookBase %>/api/meta-webhook" style="font-family: monospace; font-size: 12px; background: var(--bg3); cursor: pointer;" onclick="this.select();">
           </div>
         </div>
 
