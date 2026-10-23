@@ -5,6 +5,7 @@
   <title><%= t('admin.nav.mikrotik_monitoring', 'Monitoring MikroTik') %> | <%= company %></title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/admin.css">
+  <% if (!(typeof hotspotEnabled === 'undefined' || hotspotEnabled)) { %><style>.tab[onclick*="'hotspot'"],.tab[onclick*="hotspot-profiles-tab"],#hotspot,#hotspot-profiles-tab,.sc[onclick*="Hotspot"]{display:none!important}</style><% } %>
   <style>
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all 0.3s; font-weight: 500; }

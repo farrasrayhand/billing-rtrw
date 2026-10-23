@@ -1320,20 +1320,6 @@ async function upsertHotspotUser(data, routerId = null) {
   }
 }
 
-async function getBackup(routerId = null) {
-  let conn = null;
-  try {
-    conn = await getConnection(routerId);
-    const result = await conn.client.menu('/').exec('export');
-    return result;
-  } catch (e) {
-    logger.error('Error exporting MikroTik config:', e);
-    throw e;
-  } finally {
-    if (conn && conn.api) conn.api.close();
-  }
-}
-
 async function getSystemScripts(routerId = null) {
   let conn = null;
   try {

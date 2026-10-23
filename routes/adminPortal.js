@@ -12,6 +12,7 @@ const billingSvc = require('../services/billingService');
 const pdfSvc = require('../services/pdfInvoiceService');
 const mikrotikService = require('../services/mikrotikService');
 const { verifyPassword, hashPassword, isHashed } = require('../utils/passwordHash');
+const { requireHotspotEnabled, isHotspotEnabled } = require('../config/features');
 const adminSvc = require('../services/adminService');
 const agentSvc = require('../services/agentService');
 const oltSvc = require('../services/oltService');
@@ -241,6 +242,9 @@ const CASHIER_DENIED_PATHS = [
   /^\/api\/(system|telegram|routers|genieacs|promo-slides|webhook|isolir-portal-script|settings)(\/|$)/,
   /^\/api\/mikrotik\/backup(\/|$)/
 ];
+// Fitur voucher/hotspot dapat dimatikan lewat Pengaturan (hotspot_enabled).
+router.use(['/vouchers', '/api/vouchers', '/api/mikrotik/hotspot-users', '/api/mikrotik/hotspot-profiles', '/api/mikrotik/hotspot-user-profiles', '/api/mikrotik/active-hotspot'], requireHotspotEnabled);
+
 // Kasir boleh melihat RADIUS, tetapi tidak boleh mengubahnya.
 const CASHIER_DENIED_WRITE_PATHS = [/^\/(radius-settings|radius)(\/|$)/];
 
@@ -1836,6 +1840,7 @@ router.post('/customers', requireAdminSession, express.urlencoded({ extended: tr
   try {
     const connectionType = String(req.body.connection_type || 'pppoe').trim().toLowerCase() || 'pppoe';
     req.body.connection_type = connectionType;
+    if (connectionType === 'hotspot' && !isHotspotEnabled()) throw new Error('Fitur voucher/hotspot dinonaktifkan di Pengaturan.');
 
     if (connectionType !== 'pppoe') req.body.pppoe_username = '';
     if (connectionType !== 'static') req.body.static_ip = '';
@@ -4229,6 +4234,8 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
       const ws = newSettings.webhook_secret.trim();
       newSettings.webhook_secret = ws || crypto.randomBytes(24).toString('hex');
     }
+    if (newSettings.hotspot_enabled === 'true') newSettings.hotspot_enabled = true;
+    else if (newSettings.hotspot_enabled === 'false') newSettings.hotspot_enabled = false;
     if (newSettings.whatsapp_enabled === 'true') newSettings.whatsapp_enabled = true;
     else if (newSettings.whatsapp_enabled === 'false') newSettings.whatsapp_enabled = false;
 

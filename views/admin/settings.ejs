@@ -120,6 +120,14 @@
             <div style="font-size:10px; color:var(--muted); margin-top:4px">Digunakan untuk menyusun tautan login pelanggan yang dikirim via WhatsApp. Contoh: <span class="mono">https://billing.alijayanet.net</span></div>
           </div>
           <div class="fg">
+            <label class="fl">Fitur Voucher / Hotspot</label>
+            <select class="fs" name="hotspot_enabled">
+              <option value="true" <%= (settings.hotspot_enabled === false || settings.hotspot_enabled === 'false') ? '' : 'selected' %>>Aktif</option>
+              <option value="false" <%= (settings.hotspot_enabled === false || settings.hotspot_enabled === 'false') ? 'selected' : '' %>>Nonaktif</option>
+            </select>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px">Matikan bila RT/RW tidak memakai hotspot. Menyembunyikan menu voucher, tab hotspot di MikroTik, penjualan voucher agent, dan pembelian voucher pelanggan, serta menutup rute terkait. Pelanggan hotspot lama tetap tersimpan.</div>
+          </div>
+          <div class="fg">
             <label class="fl">URL Portal Isolir (app_url)</label>
             <input class="fc" name="app_url" value="<%= settings.app_url || '' %>" placeholder="https://billing.domain-anda.com">
             <div style="font-size:10px; color:var(--muted); margin-top:4px">Alamat server billing yang bisa dijangkau pelanggan terisolir. Dipakai untuk NAT/firewall isolir di MikroTik dan mengarahkan pelanggan isolir ke halaman <code>/isolated</code>. Kosongkan untuk menonaktifkan pengalihan otomatis.</div>

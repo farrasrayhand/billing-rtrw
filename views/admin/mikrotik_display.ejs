@@ -1387,5 +1387,14 @@
         .replace(/'/g, '&#39;');
     }
   </script>
+<% if (!(typeof hotspotEnabled === 'undefined' || hotspotEnabled)) { %>
+<script>
+  ['hotspot-active-val', 'hotspot-total-val'].forEach(function (id) {
+    var el = document.getElementById(id);
+    var box = el && el.closest('.stat-widget');
+    if (box) box.style.display = 'none';
+  });
+</script>
+<% } %>
 </body>
 </html>

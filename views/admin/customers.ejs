@@ -401,7 +401,7 @@
               <select class="fs" name="connection_type" id="add_connection_type" onchange="toggleConnectionFields('add')">
                 <option value="pppoe" selected><%= isRadiusActive ? 'PPPoE (RADIUS / MikroTik)' : 'PPPoE (MikroTik API)' %></option>
                 <option value="static">Static IP (MikroTik)</option>
-                <option value="hotspot">Hotspot (MikroTik)</option>
+                <option value="hotspot" <%= (typeof hotspotEnabled === 'undefined' || hotspotEnabled) ? '' : 'hidden disabled' %>>Hotspot (MikroTik)</option>
               </select>
             </div>
             <div class="fg">
@@ -701,7 +701,7 @@
               <select class="fs" name="connection_type" id="e_connection_type" onchange="toggleConnectionFields('edit')">
                 <option value="pppoe"><%= isRadiusActive ? 'PPPoE (RADIUS / MikroTik)' : 'PPPoE (MikroTik API)' %></option>
                 <option value="static">Static IP (MikroTik)</option>
-                <option value="hotspot">Hotspot (MikroTik)</option>
+                <option value="hotspot" <%= (typeof hotspotEnabled === 'undefined' || hotspotEnabled) ? '' : 'hidden' %>>Hotspot (MikroTik)</option>
               </select>
             </div>
             <div class="fg">

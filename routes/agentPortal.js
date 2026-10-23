@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { requireHotspotEnabled } = require('../config/features');
 const QRCode = require('qrcode');
 const { getSetting, getSettings, formatDateLocal, getNowLocal } = require('../config/settingsManager');
 const agentSvc = require('../services/agentService');
@@ -494,7 +495,7 @@ router.post('/pay-invoice', requireAgentSession, express.urlencoded({ extended: 
   res.redirect('/agent');
 });
 
-router.post('/sell-voucher', requireAgentSession, express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/sell-voucher', requireAgentSession, requireHotspotEnabled, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const priceId = Number(req.body.price_id || 0);
     if (!priceId) throw new Error('Harga voucher tidak valid');

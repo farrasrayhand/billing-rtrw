@@ -189,6 +189,7 @@ app.use((req, res, next) => {
   res.locals.availableLangs = Array.from(SUPPORTED_LANGS);
   res.locals.t = (key, fallback = '') => t(lang, key, fallback);
   res.locals.tz = tz;
+  res.locals.hotspotEnabled = require('./config/features').isHotspotEnabled();
   res.locals.formatDateLocal = formatDateLocal;
   res.locals.formatTimeLocal = formatTimeLocal;
   res.locals.parseDateInTimezone = parseDateInTimezone;

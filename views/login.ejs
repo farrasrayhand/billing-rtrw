@@ -813,10 +813,12 @@
                   <i class="bi bi-receipt" style="color: #2563eb; font-size: 1rem;"></i>
                   <span>Cek Tagihan</span>
                 </a>
+                <% if (typeof hotspotEnabled === 'undefined' || hotspotEnabled) { %>
                 <a href="/customer/voucher" class="btn-quick-tool">
                   <i class="bi bi-ticket-perforated" style="color: #15803d; font-size: 1rem;"></i>
                   <span>Beli Voucher</span>
                 </a>
+                <% } %>
               </div>
 
               <div class="text-center mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
@@ -991,6 +993,7 @@
           </a>
         </div>
 
+        <% if (typeof hotspotEnabled === 'undefined' || hotspotEnabled) { %>
         <div class="col-md-6 col-lg-3">
           <a href="/customer/voucher" class="text-decoration-none info-card-link">
             <div class="glass-card info-card">
@@ -1004,6 +1007,7 @@
             </div>
           </a>
         </div>
+        <% } %>
 
         <div class="col-md-6 col-lg-3">
           <a href="/customer/register" class="text-decoration-none info-card-link">
@@ -1127,7 +1131,9 @@
             <li><a href="#hero"><i class="bi bi-chevron-right me-1 small"></i> Beranda</a></li>
             <li><a href="#packages"><i class="bi bi-chevron-right me-1 small"></i> Paket Internet</a></li>
             <li><a href="/customer/check-billing"><i class="bi bi-chevron-right me-1 small"></i> Cek & Bayar Tagihan</a></li>
+            <% if (typeof hotspotEnabled === 'undefined' || hotspotEnabled) { %>
             <li><a href="/customer/voucher"><i class="bi bi-chevron-right me-1 small"></i> Beli Voucher Wi-Fi</a></li>
+            <% } %>
             <li><a href="/customer/register"><i class="bi bi-chevron-right me-1 small"></i> Pasang Baru</a></li>
           </ul>
         </div>

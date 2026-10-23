@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { requireHotspotEnabled } = require('../config/features');
+// Pembelian voucher publik hanya tersedia bila fitur hotspot aktif (callback pembayaran tidak terpengaruh).
+router.use(['/voucher', '/public/voucher'], requireHotspotEnabled);
 const customerDevice = require('../services/customerDeviceService');
 const { getSettingsWithCache, getNowLocal, getCurrentTimeInfo, getNowLocalISO, formatDateLocal, formatTimeLocal } = require('../config/settingsManager');
 const billingSvc = require('../services/billingService');
