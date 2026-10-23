@@ -523,6 +523,27 @@ function findCustomerByAny(val) {
   return null;
 }
 
+// Mode RADIUS penuh: profil/IP ditentukan RADIUS saat login, jadi tidak ada secret di MikroTik
+// yang bisa diubah. Yang perlu dilakukan hanya memutus sesi agar login ulang memakai status baru.
+function _isRadiusCustomer(customer) {
+  if (!customer || !customer.pppoe_username) return false;
+  const { getSetting } = require('../config/settingsManager');
+  return Number(customer.is_radius) === 1 && String(getSetting('radius_enabled', '0')) === '1';
+}
+
+async function _kickRadiusSession(customer, routerId) {
+  try {
+    let nasIp = null;
+    if (routerId) {
+      const r = db.prepare('SELECT host FROM routers WHERE id = ?').get(routerId);
+      nasIp = r ? r.host : null;
+    }
+    await require('./radiusServerService').disconnectSession(customer.pppoe_username, null, nasIp);
+  } catch (e) {
+    logger.warn(`[RADIUS] Gagal memutus sesi ${customer.pppoe_username}: ${e.message}`);
+  }
+}
+
 async function suspendCustomer(id) {
   const customer = getCustomerById(id);
   if (!customer) throw new Error('Pelanggan tidak ditemukan');
@@ -540,6 +561,7 @@ async function suspendCustomer(id) {
   if (hasMikrotikConnection && !effectiveRouterId) {
     logger.warn(`[suspendCustomer] Pelanggan "${customer.name}" (ID: ${id}) memiliki koneksi ${customer.connection_type} tapi router_id NULL dan tidak ada default router. Isolir lokal hanya, MikroTik tidak diupdate.`);
     updateCustomer(id, { ...customer, status: 'suspended' });
+    if (_isRadiusCustomer(customer)) await _kickRadiusSession(customer, effectiveRouterId);
     return;
   }
 
@@ -561,7 +583,7 @@ async function suspendCustomer(id) {
         limit: limit,
         isolate: true
       }, effectiveRouterId);
-    } else if (customer.pppoe_username) {
+    } else if (customer.pppoe_username && !_isRadiusCustomer(customer)) {
       const isolirProfile = customer.isolir_profile || 'isolir';
       await mikrotikSvc.setPppoeProfile(customer.pppoe_username, isolirProfile, effectiveRouterId);
       if (effectiveRouterId) {
@@ -581,6 +603,9 @@ async function suspendCustomer(id) {
 
   // Update database status SETELAH MikroTik berhasil (atau gagal tapi continue)
   updateCustomer(id, { ...customer, status: 'suspended' });
+
+  // RADIUS: putus sesi SETELAH status berubah agar login ulang mendapat IP/profil isolir
+  if (_isRadiusCustomer(customer)) await _kickRadiusSession(customer, effectiveRouterId);
 
   // WhatsApp Notification
   if (customer.phone) {
@@ -679,6 +704,7 @@ async function activateCustomer(id, targetStatus = 'active') {
     logger.warn(`[activateCustomer] Pelanggan "${customer.name}" (ID: ${id}) memiliki koneksi ${customer.connection_type} tapi router_id NULL dan tidak ada default router. Aktivasi lokal hanya, MikroTik tidak diupdate.`);
     updateCustomer(id, { ...customer, status: targetStatus });
     _handleUnsuspendInvoice(id, customer, wasSuspended, targetStatus);
+    if (_isRadiusCustomer(customer)) await _kickRadiusSession(customer, effectiveRouterId);
     return;
   }
 
@@ -702,7 +728,7 @@ async function activateCustomer(id, targetStatus = 'active') {
         limit: limit,
         isolate: false
       }, effectiveRouterId);
-    } else if (customer.pppoe_username) {
+    } else if (customer.pppoe_username && !_isRadiusCustomer(customer)) {
       const pkg = getPackageById(customer.package_id);
       const targetProfile = pkg ? pkg.name : 'default';
       
@@ -731,7 +757,76 @@ async function activateCustomer(id, targetStatus = 'active') {
   // Update database status SETELAH MikroTik berhasil (atau gagal tapi continue)
   updateCustomer(id, { ...customer, status: targetStatus });
   _handleUnsuspendInvoice(id, customer, wasSuspended, targetStatus);
+
+  // RADIUS: putus sesi agar pelanggan login ulang tanpa IP/limit isolir
+  if (wasSuspended && _isRadiusCustomer(customer)) await _kickRadiusSession(customer, effectiveRouterId);
   return true;
+}
+
+/**
+ * Rekonsiliasi status isolir dengan profil PPPoE di MikroTik. Perubahan ke router bisa gagal
+ * (router mati, timeout) sementara status di database sudah berubah; fungsi ini memperbaikinya.
+ * - status suspended tetapi secret belum berprofil isolir  -> pindahkan ke profil isolir
+ * - status active tetapi secret masih berprofil isolir     -> kembalikan ke profil paket
+ * Mode RADIUS penuh dilewati (ditangani saat login RADIUS).
+ */
+let _reconcileRunning = false;
+async function reconcileIsolationState() {
+  if (_reconcileRunning) return { fixed: 0, skipped: true };
+  _reconcileRunning = true;
+  let fixed = 0;
+  try {
+    const mikrotikSvc = require('./mikrotikService');
+    const rows = db.prepare(`
+      SELECT * FROM customers
+      WHERE pppoe_username IS NOT NULL AND TRIM(pppoe_username) != ''
+        AND COALESCE(connection_type, 'pppoe') = 'pppoe'
+        AND status IN ('suspended', 'isolated', 'active')
+    `).all().filter((c) => !_isRadiusCustomer(c));
+
+    const byRouter = new Map();
+    for (const c of rows) {
+      const rid = getEffectiveRouterId(c.router_id);
+      if (!rid) continue;
+      if (!byRouter.has(rid)) byRouter.set(rid, []);
+      byRouter.get(rid).push(c);
+    }
+
+    for (const [rid, customers] of byRouter) {
+      const secrets = await mikrotikSvc.getPppoeSecrets(rid);
+      // Daftar kosong = router tidak terjangkau / tidak ada data: jangan menebak.
+      if (!Array.isArray(secrets) || secrets.length === 0) continue;
+      const profileByUser = new Map(secrets.map((r) => [String(r.name || ''), String(r.profile || '')]));
+
+      for (const c of customers) {
+        const current = profileByUser.get(String(c.pppoe_username).trim());
+        if (current === undefined) continue;
+        const isolirProfile = c.isolir_profile || 'isolir';
+        const isSuspended = c.status === 'suspended' || c.status === 'isolated';
+        try {
+          if (isSuspended && current !== isolirProfile) {
+            await mikrotikSvc.setPppoeProfile(c.pppoe_username, isolirProfile, rid);
+            try { await mikrotikSvc.ensurePppProfileIsolirAddressListHook(isolirProfile, rid); } catch (e) { /* hook opsional */ }
+            logger.info(`[RECONCILE] ${c.pppoe_username}: ${current} -> ${isolirProfile} (status ${c.status})`);
+            fixed++;
+          } else if (c.status === 'active' && current === isolirProfile) {
+            const pkg = getPackageById(c.package_id);
+            if (!pkg || !pkg.name) continue;
+            await mikrotikSvc.setPppoeProfile(c.pppoe_username, pkg.name, rid);
+            logger.info(`[RECONCILE] ${c.pppoe_username}: ${current} -> ${pkg.name} (status active)`);
+            fixed++;
+          }
+        } catch (e) {
+          logger.warn(`[RECONCILE] Gagal untuk ${c.pppoe_username}: ${e.message}`);
+        }
+      }
+    }
+  } catch (e) {
+    logger.error(`[RECONCILE] Error: ${e.message}`);
+  } finally {
+    _reconcileRunning = false;
+  }
+  return { fixed };
 }
 
 /**
@@ -898,7 +993,7 @@ module.exports = {
   getAllCustomers, getAllCustomerAreas, getCustomerById, createCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers, getCustomerStats,
   getAllPackages, getPackageById, createPackage, updatePackage, deletePackage,
   suspendCustomer, activateCustomer, findCustomerByAny, updateCustomerCablePath,
-  resetPromoCyclesUsed, getEffectiveRouterId, topupCustomerBalance,
+  resetPromoCyclesUsed, getEffectiveRouterId, topupCustomerBalance, reconcileIsolationState,
   getCollectorCustomerWhere, canCollectorAccessCustomer
 };
 

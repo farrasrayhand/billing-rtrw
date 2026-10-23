@@ -120,6 +120,16 @@
             <div style="font-size:10px; color:var(--muted); margin-top:4px">Digunakan untuk menyusun tautan login pelanggan yang dikirim via WhatsApp. Contoh: <span class="mono">https://billing.alijayanet.net</span></div>
           </div>
           <div class="fg">
+            <label class="fl">URL Portal Isolir (app_url)</label>
+            <input class="fc" name="app_url" value="<%= settings.app_url || '' %>" placeholder="https://billing.domain-anda.com">
+            <div style="font-size:10px; color:var(--muted); margin-top:4px">Alamat server billing yang bisa dijangkau pelanggan terisolir. Dipakai untuk NAT/firewall isolir di MikroTik dan mengarahkan pelanggan isolir ke halaman <code>/isolated</code>. Kosongkan untuk menonaktifkan pengalihan otomatis.</div>
+          </div>
+          <div class="fg">
+            <label class="fl">Domain Tambahan Portal</label>
+            <input class="fc" name="portal_extra_hosts" value="<%= settings.portal_extra_hosts || '' %>" placeholder="billing2.domain-anda.com, domain-lain.com">
+            <div style="font-size:10px; color:var(--muted); margin-top:4px">Domain lain yang mengarah ke server ini dan tidak boleh dialihkan ke halaman isolir (pisahkan dengan koma). <code>www.</code> otomatis dianggap sama.</div>
+          </div>
+          <div class="fg">
             <label class="fl"><%= t('admin.settings.footer_info', 'Info Footer') %></label>
             <input class="fc" name="footer_info" value="<%= settings.footer_info || '' %>">
           </div>

@@ -85,6 +85,16 @@ function startCronJobs() {
     }
   });
 
+  // 1b. Rekonsiliasi status isolir <-> profil PPPoE di MikroTik setiap 15 menit
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      const res = await customerSvc.reconcileIsolationState();
+      if (res && res.fixed) logger.info(`[CRON] Rekonsiliasi isolir: ${res.fixed} pelanggan diperbaiki.`);
+    } catch (error) {
+      logger.error(`[CRON] Rekonsiliasi isolir gagal: ${error.message}`);
+    }
+  });
+
   // 2. Isolir Otomatis setiap hari jam 02:00
   cron.schedule('0 2 * * *', async () => {
     const now = new Date();

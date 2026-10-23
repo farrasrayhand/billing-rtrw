@@ -41,6 +41,8 @@ process.on('uncaughtException', (err) => {
 // Settings Management
 const session = require('express-session');
 const { getSetting, getSettingsWithCache, ensureDefaultSettings, getNowLocal, formatDateLocal, formatTimeLocal, parseDateInTimezone } = require('./config/settingsManager');
+const isolatedLookup = require('./services/isolatedLookup');
+const { lookupRateLimiter } = require('./middleware/rateLimiter');
 const { SUPPORTED_LANGS, FALLBACK_LANG, normalizeLang, t } = require('./config/i18n');
 
 // Pastikan semua default settings ada (untuk migrasi/update dari GitHub)
@@ -1566,6 +1568,39 @@ global.appSettings = {
   footerInfo: getSetting('footer_info', ''),
 };
 
+// Pengarah portal isolir: trafik pelanggan terisolir dibelokkan (dst-nat) oleh MikroTik ke server ini
+// dengan Host domain lain (google.com, connectivitycheck.gstatic.com, dst.). Request seperti itu
+// diarahkan ke halaman /isolated. Aktif hanya jika app_url diisi; Host milik portal, localhost,
+// alamat IP, dan `portal_extra_hosts` (pisahkan koma) tidak disentuh.
+const PORTAL_REDIRECT_EXEMPT = /^\/(acs|api\/|webhook|customer\/payment\/callback|health)/;
+const portalRedirectLogged = new Set();
+function getPortalOrigin() {
+  const raw = String(getSettingsWithCache().app_url || '').trim();
+  if (!raw) return null;
+  try {
+    return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch (e) {
+    return null;
+  }
+}
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (PORTAL_REDIRECT_EXEMPT.test(req.path)) return next();
+  const portal = getPortalOrigin();
+  if (!portal) return next();
+  const host = String(req.hostname || '').toLowerCase();
+  if (!host || host === 'localhost' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(':')) return next();
+  const extra = String(getSettingsWithCache().portal_extra_hosts || '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const portalHost = portal.hostname.toLowerCase();
+  const strip = (h) => h.replace(/^www\./, '');
+  if (strip(host) === strip(portalHost) || extra.includes(host)) return next();
+  if (!portalRedirectLogged.has(host) && portalRedirectLogged.size < 200) {
+    portalRedirectLogged.add(host);
+    logger.warn(`[ISOLIR] Host "${host}" bukan domain portal; dialihkan ke /isolated. Jika ini domain milik Anda, tambahkan ke setting portal_extra_hosts.`);
+  }
+  return res.redirect(302, `${portal.origin}/isolated`);
+});
+
 // Route untuk health check
 app.get('/health', (req, res) => {
     res.json({
@@ -1585,12 +1620,13 @@ app.get('/login', (req, res) => {
 });
 
 // Halaman Isolir (Akses langsung dari redirect MikroTik) - dengan integrasi pembayaran otomatis
-app.get('/isolated', async (req, res) => {
+app.get('/isolated', lookupRateLimiter, async (req, res) => {
   try {
     const settings = getSettingsWithCache();
     
-    // 1. Identifikasi pelanggan: Session, Query param (?q= / ?cid=), atau IP
+    // 1. Identifikasi pelanggan: Session, IP (tepercaya), lalu kolom pencarian (?q= / ?cid=)
     let customer = null;
+    let viaLookupOnly = false;
     const searchQuery = String(req.query.q || req.query.lookup || req.query.cid || req.query.phone || '').trim();
     
     // Priority 1: Session login
@@ -1598,42 +1634,16 @@ app.get('/isolated', async (req, res) => {
       customer = customerSvc.findCustomerByAny(req.session.phone);
     }
     
-    // Priority 2: Query search param
-    if (!customer && searchQuery) {
-      customer = customerSvc.findCustomerByAny(searchQuery);
+    // Priority 2: IP klien (req.ip sudah mempertimbangkan trust proxy; header XFF mentah tidak dipercaya)
+    const clientIp = isolatedLookup.normalizeIp(req.ip || req.connection?.remoteAddress || '');
+    if (!customer && clientIp) {
+      customer = await isolatedLookup.findCustomerByClientIp(clientIp, customerSvc);
     }
     
-    // Priority 3: IP-based detection
-    let clientIp = '';
-    if (!customer) {
-      const rawIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() 
-                  || req.ip 
-                  || req.connection?.remoteAddress 
-                  || '';
-      clientIp = rawIp.replace(/^::ffff:/, '').trim();
-      
-      if (clientIp) {
-        const allCustomers = customerSvc.getAllCustomers();
-        customer = allCustomers.find(c => 
-          (c.static_ip && c.static_ip === clientIp) || 
-          (c.pppoe_remote_address && c.pppoe_remote_address === clientIp)
-        );
-        
-        // MikroTik active PPP session lookup if still not found
-        if (!customer && mikrotikService && typeof mikrotikService.getPppoeActive === 'function') {
-          try {
-            const activeUsers = await mikrotikService.getPppoeActive();
-            if (Array.isArray(activeUsers)) {
-              const match = activeUsers.find(u => u.address === clientIp);
-              if (match && match.name) {
-                customer = customerSvc.findCustomerByAny(match.name);
-              }
-            }
-          } catch (e) {
-            // Ignore Mikrotik query error
-          }
-        }
-      }
+    // Priority 3: Kolom pencarian (publik) - data yang tampil disamarkan
+    if (!customer && searchQuery) {
+      customer = customerSvc.findCustomerByAny(searchQuery);
+      viaLookupOnly = !!customer;
     }
     
     // Check unpaid invoices
@@ -1668,7 +1678,7 @@ app.get('/isolated', async (req, res) => {
       company: settings.company_header || 'My ISP',
       adminPhone: settings.company_phone || settings.company_whatsapp || '',
       address: settings.company_address || '',
-      customer: customer || null,
+      customer: viaLookupOnly ? isolatedLookup.maskCustomerForPublic(customer) : (customer || null),
       invoices: invoicesWithTokens,
       searchQuery,
       clientIp,
@@ -1695,7 +1705,7 @@ app.get('/isolated', async (req, res) => {
 });
 
 // GET /isolated/status - untuk polling status pelanggan real-time
-app.get('/isolated/status', (req, res) => {
+app.get('/isolated/status', lookupRateLimiter, async (req, res) => {
   try {
     let customer = null;
     const queryLookup = String(req.query.q || req.query.cid || req.query.phone || '').trim();
@@ -1706,18 +1716,7 @@ app.get('/isolated/status', (req, res) => {
     } else if (req.session && req.session.phone) {
       customer = customerSvc.findCustomerByAny(req.session.phone);
     } else {
-      const rawIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() 
-                  || req.ip 
-                  || '';
-      const cleanIp = rawIp.replace(/^::ffff:/, '').trim();
-      
-      if (cleanIp) {
-        const allCustomers = customerSvc.getAllCustomers();
-        customer = allCustomers.find(c => 
-          (c.static_ip && c.static_ip === cleanIp) || 
-          (c.pppoe_remote_address && c.pppoe_remote_address === cleanIp)
-        );
-      }
+      customer = await isolatedLookup.findCustomerByClientIp(req.ip, customerSvc);
     }
     
     if (!customer) {
@@ -1735,7 +1734,7 @@ app.get('/isolated/status', (req, res) => {
       status: isClean ? 'active' : customer.status,
       unpaid_count: unpaidInvoices.length,
       customer_id: customer.id,
-      customer_name: customer.name,
+      customer_name: isolatedLookup.maskCustomerForPublic(customer).name,
       message: isClean 
         ? 'Layanan aktif, pembayaran telah selesai'
         : `Tersisa ${unpaidInvoices.length} tagihan belum dibayar`

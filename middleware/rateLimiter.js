@@ -47,6 +47,30 @@ try {
   loginRateLimiter = (req, res, next) => next();
 }
 
+// Batasi pencarian pelanggan publik di /isolated (?q=) agar nomor/ID tidak bisa ditebak massal.
+let lookupLimiter = null;
+try {
+  const rateLimit = require('express-rate-limit');
+  lookupLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false },
+    handler: (req, res) => res.status(429).json({ success: false, status: 'error', message: 'Terlalu banyak pencarian. Coba lagi beberapa menit lagi.' })
+  });
+} catch (e) {
+  lookupLimiter = null;
+}
+
+// Hanya request yang membawa kata kunci pencarian yang dihitung.
+function lookupRateLimiter(req, res, next) {
+  const hasQuery = !!String(req.query.q || req.query.lookup || req.query.cid || req.query.phone || '').trim();
+  if (!hasQuery || !lookupLimiter) return next();
+  return lookupLimiter(req, res, next);
+}
+
 module.exports = {
-  loginRateLimiter
+  loginRateLimiter,
+  lookupRateLimiter
 };

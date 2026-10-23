@@ -1511,7 +1511,7 @@ async function generateIsolirPortalScript() {
     '',
     '# --- PPPoE: contoh memasukkan IP ke LIST_ISOLIR saat login (nama profil = isolir) ---',
     '# Jalankan sekali, atau salin ke on-up profil isolir di Winbox:',
-    '# /ppp profile set [find name=isolir] on-up="/ip firewall address-list add list=LIST_ISOLIR address=$remote-address comment=$user timeout=23h"',
+    '# /ppp profile set [find name=isolir] on-up="/ip firewall address-list add list=LIST_ISOLIR address=$remote-address comment=$user" on-down="/ip firewall address-list remove [find list=LIST_ISOLIR address=$remote-address]"',
     '',
   ];
 
@@ -1580,11 +1580,16 @@ async function ensurePppProfileIsolirAddressListHook(profileName, routerId = nul
 
     const hookUp =
       `/ip firewall address-list remove [find list=${ISOLIR_ADDR_LIST} address=$remote-address]; ` +
-      `/ip firewall address-list add list=${ISOLIR_ADDR_LIST} address=$remote-address comment=$user timeout=23h`;
+      `/ip firewall address-list add list=${ISOLIR_ADDR_LIST} address=$remote-address comment=$user`;
     const hookDown = `/ip firewall address-list remove [find list=${ISOLIR_ADDR_LIST} address=$remote-address]`;
 
     const addSnip = `address-list add list=${ISOLIR_ADDR_LIST}`;
     const remSnip = `remove [find list=${ISOLIR_ADDR_LIST}`;
+    const origUp = onUp;
+    const origDown = onDown;
+    // Hook lama memakai timeout=23h: entri hangus saat sesi PPPoE masih berjalan sehingga
+    // pelanggan isolir lolos dari blokir. Entri cukup dihapus oleh on-down.
+    onUp = onUp.replace(new RegExp(`(${addSnip}[^;]*?)\\s+timeout=[^\\s;"]+`, 'g'), '$1');
     if (!onUp.includes(addSnip)) {
       onUp = onUp ? `${onUp}; ${hookUp}` : hookUp;
     }
@@ -1592,7 +1597,9 @@ async function ensurePppProfileIsolirAddressListHook(profileName, routerId = nul
       onDown = onDown ? `${onDown}; ${hookDown}` : hookDown;
     }
 
-    await menu.set({ 'on-up': onUp, 'on-down': onDown }, id);
+    if (onUp !== origUp || onDown !== origDown) {
+      await menu.set({ 'on-up': onUp, 'on-down': onDown }, id);
+    }
     logger.info(`[MikroTik] Profil PPPoE "${name}": on-up/on-down diset untuk ${ISOLIR_ADDR_LIST} (isolir portal).`);
     return { ok: true, profile: name, message: `Profil "${name}" memasukkan IP ke ${ISOLIR_ADDR_LIST} saat PPP login.` };
   } catch (e) {
@@ -1664,6 +1671,53 @@ async function setupIsolirFirewall(routerId = null) {
     await ensureNat('BILLING_API_ISOLIR_HTTP', 80, httpNatPort);
     await ensureNat('BILLING_API_ISOLIR_HTTPS', 443, httpsNatPort);
 
+    // Walled garden payment gateway: domain gateway harus dikecualikan dari dst-nat portal,
+    // kalau tidak HTTPS ke gateway ikut dibelokkan ke server billing.
+    const GATEWAY_DOMAINS = {
+      'tripay.co.id': 'Tripay Gateway',
+      'tripay.id': 'Tripay Gateway',
+      'app.midtrans.com': 'Midtrans Gateway',
+      'api.midtrans.com': 'Midtrans Gateway',
+      'api.xendit.co': 'Xendit Gateway',
+      'checkout.xendit.co': 'Xendit Gateway',
+      'passport.duitku.com': 'Duitku Gateway',
+      'sandbox.duitku.com': 'Duitku Gateway'
+    };
+    const addrListMenu = conn.client.menu('/ip/firewall/address-list');
+    const existingGw = await addrListMenu.where('list', 'LIST_ISOLIR_GATEWAY').get();
+    const haveGw = new Set((existingGw || []).map((r) => String(r.address || '')));
+    for (const [domain, label] of Object.entries(GATEWAY_DOMAINS)) {
+      if (!haveGw.has(domain)) {
+        try { await addrListMenu.add({ list: 'LIST_ISOLIR_GATEWAY', address: domain, comment: label }); }
+        catch (e) { logger.warn(`[setupIsolirFirewall] Gagal menambah ${domain} ke LIST_ISOLIR_GATEWAY: ${e.message}`); }
+      }
+    }
+    const natGwRows = await natMenu.where('comment', 'BILLING_API_ISOLIR_NAT_GATEWAY').get();
+    if (!natGwRows || natGwRows.length === 0) {
+      const httpNat = await natMenu.where('comment', 'BILLING_API_ISOLIR_HTTP').get();
+      const firstNatId = httpNat && httpNat[0] ? (httpNat[0]['.id'] || httpNat[0].id) : null;
+      await natMenu.add({
+        chain: 'dstnat',
+        'src-address-list': 'LIST_ISOLIR',
+        'dst-address-list': 'LIST_ISOLIR_GATEWAY',
+        action: 'accept',
+        comment: 'BILLING_API_ISOLIR_NAT_GATEWAY',
+        ...(firstNatId ? { 'place-before': firstNatId } : {})
+      });
+    }
+
+    // Mode RADIUS: IP isolir dialokasikan dari rentang khusus; masukkan ke LIST_ISOLIR secara statis.
+    if (String(settings.radius_enabled || '0') === '1' && String(settings.radius_isolir_ip_pool_enabled || '1') === '1'
+        && settings.radius_isolir_ip_pool_start && settings.radius_isolir_ip_pool_end) {
+      const rangeAddr = `${settings.radius_isolir_ip_pool_start}-${settings.radius_isolir_ip_pool_end}`;
+      const rad = await addrListMenu.where('comment', 'BILLING_RADIUS_ISOLIR_POOL').get();
+      if (rad && rad.length > 0) {
+        if (String(rad[0].address || '') !== rangeAddr) await addrListMenu.set({ address: rangeAddr }, rad[0]['.id'] || rad[0].id);
+      } else {
+        await addrListMenu.add({ list: ISOLIR_ADDR_LIST, address: rangeAddr, comment: 'BILLING_RADIUS_ISOLIR_POOL' });
+      }
+    }
+
     const filterMenu = conn.client.menu('/ip/firewall/filter');
     let blockRows = await filterMenu.where('comment', 'BLOCK_ISOLIR').get();
     let blockId = blockRows[0] ? (blockRows[0]['.id'] || blockRows[0].id) : null;
@@ -1698,6 +1752,12 @@ async function setupIsolirFirewall(routerId = null) {
       'src-address-list': 'LIST_ISOLIR',
       protocol: 'tcp',
       'dst-port': '53',
+      action: 'accept',
+    });
+    await insertBeforeBlock('BILLING_API_ISOLIR_ALLOW_GATEWAY', {
+      chain: 'forward',
+      'src-address-list': 'LIST_ISOLIR',
+      'dst-address-list': 'LIST_ISOLIR_GATEWAY',
       action: 'accept',
     });
     if (billingIp) {
