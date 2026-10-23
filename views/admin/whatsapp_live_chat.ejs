@@ -151,7 +151,7 @@ let activePhone = '';
 
 async function loadConversations() {
   try {
-    const res = await fetch('/api/whatsapp/conversations');
+    const res = await fetch('/admin/api/whatsapp/conversations');
     const data = await res.json();
     if (data.ok) {
       conversationsData = data.conversations || [];
@@ -253,7 +253,7 @@ async function loadChatMessages(phone, showSpinner = false) {
   }
   
   try {
-    const res = await fetch(`/api/whatsapp/messages?phone=${encodeURIComponent(phone)}`);
+    const res = await fetch(`/admin/api/whatsapp/messages?phone=${encodeURIComponent(phone)}`);
     const data = await res.json();
     if (data.ok) {
       const messages = data.messages || [];
@@ -312,7 +312,7 @@ async function sendChatMessage(e) {
   sendBtn.disabled = true;
 
   try {
-    const res = await fetch('/api/whatsapp/send-direct', {
+    const res = await fetch('/admin/api/whatsapp/send-direct', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, message: text })
