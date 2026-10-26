@@ -722,14 +722,20 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-async function loadOltDashboard(id) {
+let oltForceNext = false;
+let oltPollTimer = null;
+
+async function loadOltDashboard(id, silent = false) {
   if (!id) return;
   
   const overlay = document.getElementById('loading-overlay');
-  overlay.style.display = 'flex';
+  if (oltPollTimer) { clearTimeout(oltPollTimer); oltPollTimer = null; }
+  if (!silent) overlay.style.display = 'flex';
+  const forceParam = oltForceNext ? '&force=1' : '';
+  oltForceNext = false;
   
   try {
-    const url = (id === 'all') ? `/admin/olts/all/stats?full=true` : `/admin/olts/${id}/stats?full=true`;
+    const url = (id === 'all') ? `/admin/olts/all/stats?full=true` : `/admin/olts/${id}/stats?full=true${forceParam}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(I18N.serverConnectFailed);
     const stats = await res.json();
@@ -917,6 +923,14 @@ async function loadOltDashboard(id) {
           </td>
         </tr>`;
       }).join('');
+    } else if (stats.loading) {
+      document.getElementById('search-container').style.display = 'none';
+      tbody.innerHTML = `<tr><td colspan="9">
+        <div class="empty-state">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p style="margin-top:12px">Membaca data ONU dari OLT di latar belakang… OLT dengan ribuan ONU bisa memakan beberapa menit. Halaman ini diperbarui otomatis.</p>
+        </div>
+      </td></tr>`;
     } else {
       document.getElementById('search-container').style.display = 'none';
       tbody.innerHTML = `<tr><td colspan="9">
@@ -926,6 +940,15 @@ async function loadOltDashboard(id) {
           ${stats.error ? '<button class="btn btn-sm btn-p mt-2" onclick="refreshCurrentOlt()">' + I18N.tryAgain + '</button>' : ''}
         </div>
       </td></tr>`;
+    }
+    const lu = document.getElementById('last-update');
+    if (lu) {
+      lu.innerText = stats.loading
+        ? 'memperbarui dari OLT…'
+        : (stats.updated_at ? new Date(stats.updated_at).toLocaleTimeString() : '-');
+    }
+    if (stats.loading && id !== 'all') {
+      oltPollTimer = setTimeout(() => loadOltDashboard(id, true), 5000);
     }
   } catch (e) {
     document.getElementById('onu-table-body').innerHTML = `<tr><td colspan="9" class="text-center p-5 text-danger">${I18N.errorPrefix}${e.message}</td></tr>`;
@@ -964,6 +987,7 @@ function handleOltChange() {
 }
 
 function refreshCurrentOlt() {
+  oltForceNext = true;
   handleOltChange();
 }
 

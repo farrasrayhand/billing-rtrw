@@ -884,6 +884,7 @@ const fetchHiosoOnuDetailViaTelnet = async (olt, full = false, stats = null) => 
 const slowWalk = async (session, baseOid, maxEntries = 5000) => {
   const results  = {};
   let walkCount  = 0;
+  const walkStartedAt = Date.now();
 
   return new Promise((resolve) => {
     session.subtree(
@@ -905,6 +906,10 @@ const slowWalk = async (session, baseOid, maxEntries = 5000) => {
       },
       (error) => {
         // Resolve results when done, ignoring errors
+        const elapsed = Date.now() - walkStartedAt;
+        if (elapsed > 3000 || error) {
+          logger.info(`[oltService] SNMP walk ${baseOid}: ${walkCount} baris dalam ${(elapsed / 1000).toFixed(1)}s${error ? ' (error: ' + error.message + ')' : ''}`);
+        }
         resolve(results);
       }
     );
@@ -1802,6 +1807,72 @@ async function getOltStats(id, full = false) {
   return promise;
 }
 
+// Pembacaan penuh di latar belakang (OLT besar / jalur lambat bisa jauh di atas 90 detik).
+// Halaman langsung dapat data terakhir yang tersimpan + penanda `loading`, lalu polling sampai selesai.
+const FULL_BACKGROUND_TIMEOUT_MS = 10 * 60 * 1000;
+const FULL_FRESH_MS = 120000;
+const FULL_RETRY_AFTER_FAILURE_MS = 30000;
+const lastBackgroundError = new Map();
+
+async function getOltStatsAsync(id, force = false) {
+  const key = `${id}:true`;
+  const now = Date.now();
+  let cached = statsCache.get(key);
+  const fresh = cached && !force && (now - cached.timestamp < FULL_FRESH_MS);
+
+  // Setelah gagal, jangan langsung membaca ulang otomatis (polling halaman akan berhenti dengan pesan error);
+  // pembacaan ulang dimulai lewat tombol Refresh (force) atau setelah jeda singkat.
+  const lastErr = lastBackgroundError.get(key);
+  const recentFailure = lastErr && !force && (now - lastErr.at < FULL_RETRY_AFTER_FAILURE_MS);
+
+  if (!fresh && !recentFailure && !pendingPromises.has(key)) {
+    lastBackgroundError.delete(key);
+    const startedAt = Date.now();
+    const promise = (async () => {
+      try {
+        const result = await getOltStatsInternal(id, true, FULL_BACKGROUND_TIMEOUT_MS);
+        if (result && !result.error) {
+          statsCache.set(key, { data: result, timestamp: Date.now() });
+          logger.info(`[oltService] Pembacaan penuh OLT ${id} selesai dalam ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+        } else if (result && result.error) {
+          lastBackgroundError.set(key, { message: result.error, at: Date.now() });
+        }
+        return result;
+      } catch (e) {
+        lastBackgroundError.set(key, { message: e.message, at: Date.now() });
+        logger.error(`[oltService] Pembacaan penuh OLT ${id} gagal: ${e.message}`);
+      } finally {
+        pendingPromises.delete(key);
+      }
+    })();
+    pendingPromises.set(key, promise);
+  }
+
+  const loading = pendingPromises.has(key);
+  cached = statsCache.get(key);
+  if (cached) {
+    return { ...cached.data, loading, stale: !fresh, updated_at: cached.timestamp };
+  }
+  const olt = getOltById(id);
+  const error = loading ? null : ((lastBackgroundError.get(key) || {}).message || null);
+  return {
+    id: olt ? olt.id : id,
+    name: olt ? olt.name : '',
+    host: olt ? olt.host : '',
+    brand: olt ? olt.brand : '',
+    status: loading ? 'Memuat' : 'Offline',
+    onus: [],
+    onus_total: 0,
+    onus_online: 0,
+    onus_offline: 0,
+    onus_weak: 0,
+    unauth_onus: [],
+    loading,
+    stale: false,
+    error
+  };
+}
+
 /**
  * Cek TCP reachability singkat (memastikan host benar-benar tidak dapat dijangkau).
  */
@@ -1879,7 +1950,7 @@ async function isOltReachable(olt, full = false) {
   return results.some(Boolean);
 }
 
-async function getOltStatsInternal(id, full = false) {
+async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
   const olt = getOltById(id);
   if (!olt) return null;
 
@@ -1946,11 +2017,13 @@ async function getOltStatsInternal(id, full = false) {
       resolve(data);
     };
 
-    const timeoutMs = full ? 90000 : 20000;
-    const globalTimeout = setTimeout(() => {
-      stats.error = `Koneksi Timeout (${Math.round(timeoutMs / 1000)}s) - OLT ${olt.host} tidak merespons SNMP/Telnet`;
+    // Batas awal tetap pendek; batas panjang (override) baru berlaku setelah OLT terbukti merespons SNMP,
+    // supaya OLT yang mati tidak menahan pembacaan latar belakang berpuluh menit.
+    const armTimeout = (ms) => setTimeout(() => {
+      stats.error = `Koneksi Timeout (${Math.round(ms / 1000)}s) - OLT ${olt.host} tidak merespons SNMP/Telnet`;
       safeResolve(stats);
-    }, timeoutMs);
+    }, ms);
+    let globalTimeout = armTimeout(full ? 90000 : 20000);
 
     (async () => {
       try {
@@ -2010,6 +2083,10 @@ async function getOltStatsInternal(id, full = false) {
 
         stats.uptime = decodeUptime(uptimeVbs[0].value);
         stats.status = 'Online';
+        if (timeoutOverrideMs > 0) {
+          clearTimeout(globalTimeout);
+          globalTimeout = armTimeout(timeoutOverrideMs);
+        }
 
         // 3. Deteksi profil yang cocok
         let activeProfile = null;
@@ -3101,6 +3178,6 @@ async function configureWanViaAcs(sn, data) {
  }
 
  module.exports = {
-  getAllOlts, getActiveOlts, getOltById, createOlt, updateOlt, deleteOlt, getOltStats, getAllOltsStats, testOltConnection, rebootOnu, renameOnu, authorizeOnu,
+  getAllOlts, getActiveOlts, getOltById, createOlt, updateOlt, deleteOlt, getOltStats, getOltStatsAsync, getAllOltsStats, testOltConnection, rebootOnu, renameOnu, authorizeOnu,
   configureOnuWan, configureZteWanViaGoApi, configureWanViaAcs
 };

@@ -640,7 +640,10 @@ router.get('/olts/all/stats', requireAdminSession, async (req, res) => {
 
 router.get('/olts/:id/stats', requireAdminSession, async (req, res) => {
   try {
-    const stats = await oltSvc.getOltStats(req.params.id, req.query.full === 'true');
+    const full = req.query.full === 'true';
+    const stats = full
+      ? await oltSvc.getOltStatsAsync(req.params.id, req.query.force === '1')
+      : await oltSvc.getOltStats(req.params.id, false);
     res.json(stats);
   } catch (e) {
     res.status(500).json({ error: e.message });
