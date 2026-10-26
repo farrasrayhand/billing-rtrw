@@ -556,10 +556,12 @@
                   const urlEl = document.getElementById('macro_webhook_url');
                   if (!secretEl || !urlEl) return;
                   const sync = function () {
-                    const base = urlEl.dataset.base || '';
+                    // Otomatis mengikuti domain yang sedang dipakai membuka panel admin
+                    const base = window.location.origin;
                     urlEl.value = base + '/api/webhook/v1/payment-notif?secret_key=' + encodeURIComponent(String(secretEl.value || '').trim());
                   };
                   secretEl.addEventListener('input', sync);
+                  sync();
                   window.regenWebhookSecret = function () {
                     const bytes = new Uint8Array(24);
                     (window.crypto || window.msCrypto).getRandomValues(bytes);
