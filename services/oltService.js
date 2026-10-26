@@ -901,10 +901,88 @@ const fetchHiosoOnuDetailViaTelnet = async (olt, full = false, stats = null) => 
 
 // ─── CORE SNMP FUNCTIONS ─────────────────────────────────────────────────────
 
+// Pelacak progres pembacaan OLT: tiap slowWalk melapor jumlah baris yang sudah terbaca.
+class ProgressTracker {
+  constructor(expectedRows = 0) {
+    this.startedAt = Date.now();
+    this.expected = Number(expectedRows) || 0;
+    this.stage = 'Menghubungi OLT…';
+    this.walks = new Map();
+    this.planned = 0;
+    this.labels = {};
+  }
+
+  plan(profile) {
+    const tables = [
+      ['status_table', 'status ONU'], ['name_table', 'nama ONU'], ['sn_table', 'serial number'],
+      ['rx_power_table', 'redaman RX'], ['tx_power_table', 'daya TX'], ['distance_table', 'jarak ONU'],
+      ['offline_reason_table', 'alasan offline'], ['unauth_sn_table', 'ONU belum terdaftar']
+    ];
+    let n = 0;
+    for (const [key, label] of tables) {
+      if (profile && profile[key]) { this.labels[profile[key]] = label; n++; }
+    }
+    const card = profile && profile.card_oids;
+    if (card) {
+      for (const k of ['type', 'status', 'cpu', 'ram']) if (card[k]) { this.labels[card[k]] = 'data kartu'; n++; }
+    }
+    this.planned = Math.max(n, 1);
+  }
+
+  label(oid) { return this.labels[oid] || 'data pendukung'; }
+
+  walkStart(oid) {
+    if (!this.walks.has(oid)) this.walks.set(oid, { rows: 0, done: false });
+    this.stage = `Membaca ${this.label(oid)}…`;
+  }
+
+  walkRows(oid, rows) {
+    const w = this.walks.get(oid);
+    if (w) w.rows = rows;
+  }
+
+  walkDone(oid) {
+    const w = this.walks.get(oid);
+    if (!w) return;
+    w.done = true;
+    if (w.rows > this.expected) this.expected = w.rows;
+  }
+
+  setStage(s) { this.stage = s; }
+
+  snapshot() {
+    const elapsed = Date.now() - this.startedAt;
+    const total = Math.max(this.planned, this.walks.size, 1);
+    let sum = 0;
+    let activeRows = 0;
+    let activeLabel = '';
+    for (const [oid, w] of this.walks) {
+      if (w.done) sum += 1;
+      else {
+        sum += this.expected > 0 ? Math.min(0.95, w.rows / this.expected) : 0;
+        if (w.rows >= activeRows) { activeRows = w.rows; activeLabel = this.label(oid); }
+      }
+    }
+    const percent = Math.min(99, Math.round((sum / total) * 100));
+    const eta = percent >= 8 ? Math.round(elapsed / (percent / 100) - elapsed) : null;
+    return {
+      percent,
+      stage: this.stage,
+      rows: activeRows,
+      rows_label: activeLabel,
+      expected_rows: this.expected,
+      elapsed_ms: elapsed,
+      eta_ms: eta
+    };
+  }
+}
+
 const slowWalk = async (session, baseOid, maxEntries = 5000) => {
   const results  = {};
   let walkCount  = 0;
   const walkStartedAt = Date.now();
+  const pg = session && session.__progress;
+  if (pg) pg.walkStart(baseOid);
 
   return new Promise((resolve) => {
     session.subtree(
@@ -923,9 +1001,11 @@ const slowWalk = async (session, baseOid, maxEntries = 5000) => {
             break;
           }
         }
+        if (pg) pg.walkRows(baseOid, walkCount);
       },
       (error) => {
         // Resolve results when done, ignoring errors
+        if (pg) pg.walkDone(baseOid);
         const elapsed = Date.now() - walkStartedAt;
         if (elapsed > 3000 || error) {
           logger.info(`[oltService] SNMP walk ${baseOid}: ${walkCount} baris dalam ${(elapsed / 1000).toFixed(1)}s${error ? ' (error: ' + error.message + ')' : ''}`);
@@ -1903,6 +1983,8 @@ const FULL_BACKGROUND_TIMEOUT_MS = 10 * 60 * 1000;
 const FULL_FRESH_MS = 120000;
 const FULL_RETRY_AFTER_FAILURE_MS = 30000;
 const lastBackgroundError = new Map();
+const progressTrackers = new Map();
+const lastFullDurations = new Map();
 
 async function getOltStatsAsync(id, force = false) {
   const key = `${id}:true`;
@@ -1918,11 +2000,14 @@ async function getOltStatsAsync(id, force = false) {
   if (!fresh && !recentFailure && !pendingPromises.has(key)) {
     lastBackgroundError.delete(key);
     const startedAt = Date.now();
+    const tracker = new ProgressTracker(cached && cached.data ? cached.data.onus_total : 0);
+    progressTrackers.set(key, tracker);
     const promise = (async () => {
       try {
-        const result = await getOltStatsInternal(id, true, FULL_BACKGROUND_TIMEOUT_MS);
+        const result = await getOltStatsInternal(id, true, FULL_BACKGROUND_TIMEOUT_MS, tracker);
         if (result && !result.error) {
           statsCache.set(key, { data: result, timestamp: Date.now() });
+          lastFullDurations.set(key, Date.now() - startedAt);
           logger.info(`[oltService] Pembacaan penuh OLT ${id} selesai dalam ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
         } else if (result && result.error) {
           lastBackgroundError.set(key, { message: result.error, at: Date.now() });
@@ -1933,15 +2018,21 @@ async function getOltStatsAsync(id, force = false) {
         logger.error(`[oltService] Pembacaan penuh OLT ${id} gagal: ${e.message}`);
       } finally {
         pendingPromises.delete(key);
+        progressTrackers.delete(key);
       }
     })();
     pendingPromises.set(key, promise);
   }
 
   const loading = pendingPromises.has(key);
+  const tracker = progressTrackers.get(key);
+  const progress = loading && tracker ? tracker.snapshot() : null;
+  if (progress && progress.eta_ms == null && lastFullDurations.has(key)) {
+    progress.eta_ms = Math.max(0, lastFullDurations.get(key) - progress.elapsed_ms);
+  }
   cached = statsCache.get(key);
   if (cached) {
-    return { ...cached.data, loading, stale: !fresh, updated_at: cached.timestamp };
+    return { ...cached.data, loading, progress, stale: !fresh, updated_at: cached.timestamp };
   }
   const olt = getOltById(id);
   const error = loading ? null : ((lastBackgroundError.get(key) || {}).message || null);
@@ -1958,6 +2049,7 @@ async function getOltStatsAsync(id, force = false) {
     onus_weak: 0,
     unauth_onus: [],
     loading,
+    progress,
     stale: false,
     error
   };
@@ -2040,7 +2132,7 @@ async function isOltReachable(olt, full = false) {
   return results.some(Boolean);
 }
 
-async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
+async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, progress = null) {
   const olt = getOltById(id);
   if (!olt) return null;
 
@@ -2095,6 +2187,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
   session.on('error', (err) => {
     logger.warn(`[SNMP Session Error] OLT ${olt.host}: ${err.message}`);
   });
+  if (progress) session.__progress = progress;
 
   let isResolved = false;
 
@@ -2180,6 +2273,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
 
         // 3. Deteksi profil yang cocok
         let activeProfile = null;
+        if (progress) progress.setStage('Mendeteksi profil OLT…');
         for (const profile of allAvailableProfiles) {
           const ok = await probeOid(session, profile.probe_oid);
           if (ok) {
@@ -2187,6 +2281,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
             break;
           }
         }
+        if (progress && activeProfile) progress.plan(activeProfile);
 
         if (!activeProfile) {
           // Telnet Fallback if profile not matched
@@ -2417,6 +2512,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
           }
         }
 
+        if (progress) progress.setStage('Menyusun hasil…');
         await systemMetricsPromise;
 
         const allIndices = new Set([...Object.keys(statusMap), ...Object.keys(nameMap)]);

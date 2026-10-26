@@ -724,6 +724,39 @@ function formatBytes(bytes) {
 
 let oltForceNext = false;
 let oltPollTimer = null;
+let oltRenderedId = null;
+
+function fmtDuration(ms) {
+  if (ms == null || !isFinite(ms)) return '';
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return s + ' dtk';
+  return Math.floor(s / 60) + ' mnt ' + (s % 60) + ' dtk';
+}
+
+function oltProgressSummary(p) {
+  if (!p) return 'memperbarui dari OLT…';
+  let txt = p.percent + '% — ' + (p.stage || 'membaca…');
+  if (p.rows > 0) {
+    txt += ' (' + p.rows.toLocaleString('id-ID') + (p.expected_rows ? ' / ' + p.expected_rows.toLocaleString('id-ID') : '') + ' baris)';
+  }
+  txt += ' · berjalan ' + fmtDuration(p.elapsed_ms);
+  if (p.eta_ms != null && p.eta_ms > 0) txt += ' · sisa ±' + fmtDuration(p.eta_ms);
+  return txt;
+}
+
+function oltProgressHtml(p) {
+  const pct = p ? p.percent : 0;
+  return `<div style="max-width:560px;margin:0 auto;text-align:left">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+      <strong>Membaca data ONU dari OLT</strong><span>${pct}%</span>
+    </div>
+    <div style="height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:#2563eb;border-radius:999px;transition:width .6s ease"></div>
+    </div>
+    <div class="hint" style="margin-top:8px">${oltProgressSummary(p)}</div>
+    <div class="hint" style="margin-top:4px">OLT dengan ribuan ONU bisa memakan beberapa menit. Halaman diperbarui otomatis.</div>
+  </div>`;
+}
 
 async function loadOltDashboard(id, silent = false) {
   if (!id) return;
@@ -739,6 +772,15 @@ async function loadOltDashboard(id, silent = false) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(I18N.serverConnectFailed);
     const stats = await res.json();
+
+    // Data lama sudah tampil dan pembaruan masih berjalan: cukup perbarui teks progres,
+    // jangan render ulang ribuan baris (hindari kedip, lompat scroll, dan filter pencarian hilang).
+    if (silent && stats.loading && id !== 'all' && oltRenderedId === id && stats.onus && stats.onus.length) {
+      const luQuick = document.getElementById('last-update');
+      if (luQuick) luQuick.innerText = oltProgressSummary(stats.progress);
+      oltPollTimer = setTimeout(() => loadOltDashboard(id, true), 2000);
+      return;
+    }
     
     // Update Stats Cards
     document.getElementById('stat-total-onu').innerText = stats.onus_total || 0;
@@ -926,9 +968,8 @@ async function loadOltDashboard(id, silent = false) {
     } else if (stats.loading) {
       document.getElementById('search-container').style.display = 'none';
       tbody.innerHTML = `<tr><td colspan="9">
-        <div class="empty-state">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p style="margin-top:12px">Membaca data ONU dari OLT di latar belakang… OLT dengan ribuan ONU bisa memakan beberapa menit. Halaman ini diperbarui otomatis.</p>
+        <div class="empty-state" style="padding:36px 16px">
+          ${oltProgressHtml(stats.progress)}
         </div>
       </td></tr>`;
     } else {
@@ -941,14 +982,15 @@ async function loadOltDashboard(id, silent = false) {
         </div>
       </td></tr>`;
     }
+    if (stats.onus && stats.onus.length) oltRenderedId = id;
     const lu = document.getElementById('last-update');
     if (lu) {
       lu.innerText = stats.loading
-        ? 'memperbarui dari OLT…'
+        ? oltProgressSummary(stats.progress)
         : (stats.updated_at ? new Date(stats.updated_at).toLocaleTimeString() : '-');
     }
     if (stats.loading && id !== 'all') {
-      oltPollTimer = setTimeout(() => loadOltDashboard(id, true), 5000);
+      oltPollTimer = setTimeout(() => loadOltDashboard(id, true), 2000);
     }
   } catch (e) {
     document.getElementById('onu-table-body').innerHTML = `<tr><td colspan="9" class="text-center p-5 text-danger">${I18N.errorPrefix}${e.message}</td></tr>`;
