@@ -91,6 +91,11 @@ const BRAND_PROFILES = {
       rx_offset: -30,
       tx_power_table: '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.14', // daya pancar ONU (skala sama dengan RX)
       tx_strip_suffix: 1,
+      // Jarak ONU (meter): kolom 2 tabel ranging. Ditemukan lewat snmpget pada OLT C300 V2.1
+      // (ONU 1/3/1:1 = 769); belum ada dokumentasi resmi, cocokkan dengan CLI `show gpon remote-onu distance`.
+      distance_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.10.1.2',
+      distance_tenths_meter: false,
+      distance_max: 100000,
       offline_reason_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.7',
       probe_oid:    '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
       unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
@@ -2387,7 +2392,8 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
             : undefined);
           const distInt = bufferToInt(distVal);
           let distance = '-';
-          if (activeProfile.distance_table && distInt != null && distInt > 0) {
+          if (activeProfile.distance_table && distInt != null && distInt > 0
+              && (!activeProfile.distance_max || distInt <= activeProfile.distance_max)) {
             const tenths = activeProfile.distance_tenths_meter !== false;
             distance = tenths ? (distInt / 10).toFixed(1) + ' m' : `${distInt} m`;
           }
