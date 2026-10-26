@@ -98,6 +98,8 @@ const BRAND_PROFILES = {
       distance_tenths_meter: false,
       distance_max: 100000,
       offline_reason_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.7',
+      // Waktu ONU terakhir online (DateAndTime, zona waktu OLT = zona waktu aplikasi); cocok dengan "Authpass Time" di CLI.
+      online_since_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.5',
       probe_oid:    '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
       unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
       unauth_type_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.10',
@@ -514,6 +516,40 @@ function normalizeSnForOltProvision(sn) {
   return alnum;
 }
 
+// SNMP DateAndTime (8 byte): tahun(2) bulan hari jam menit detik desi-detik.
+const parseSnmpDateAndTime = (val) => {
+  if (!Buffer.isBuffer(val) || val.length < 7) return null;
+  const y = val.readUInt16BE(0);
+  const mo = val[2], d = val[3], h = val[4], mi = val[5], s = val[6];
+  if (!y || !mo || !d || mo > 12 || d > 31) return null; // 0000-00-00 = belum pernah
+  return { y, mo, d, h, mi, s };
+};
+
+// Ubah waktu lokal (komponen) di zona waktu tertentu menjadi epoch ms.
+const zonedEpochMs = (p, timeZone) => {
+  const guess = Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi, p.s);
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const parts = Object.fromEntries(dtf.formatToParts(new Date(guess)).map((x) => [x.type, x.value]));
+    const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    return guess - (asUtc - guess);
+  } catch (e) {
+    return guess;
+  }
+};
+
+// Lama online ONU dari waktu "online sejak" -> teks seperti decodeUptime. nowMs untuk pengujian.
+const onuUptimeFromSince = (val, timeZone, nowMs = Date.now()) => {
+  const parts = parseSnmpDateAndTime(val);
+  if (!parts) return '-';
+  const diffSec = Math.floor((nowMs - zonedEpochMs(parts, timeZone)) / 1000);
+  if (!Number.isFinite(diffSec) || diffSec < 0) return '-';
+  return decodeUptime(diffSec * 100);
+};
+
 const decodeUptime = (ticks) => {
   if (!ticks) return 'N/A';
   let seconds = Math.floor(ticks / 100);
@@ -916,7 +952,7 @@ class ProgressTracker {
     const tables = [
       ['status_table', 'status ONU'], ['name_table', 'nama ONU'], ['sn_table', 'serial number'],
       ['rx_power_table', 'redaman RX'], ['tx_power_table', 'daya TX'], ['distance_table', 'jarak ONU'],
-      ['offline_reason_table', 'alasan offline'], ['unauth_sn_table', 'ONU belum terdaftar']
+      ['offline_reason_table', 'alasan offline'], ['online_since_table', 'waktu online'], ['unauth_sn_table', 'ONU belum terdaftar']
     ];
     let n = 0;
     for (const [key, label] of tables) {
@@ -2338,6 +2374,8 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
           brand: olt.brand
         };
         const onlineVals = getOnlineValues(detectedBrandKey, activeProfile);
+        let onuTimeZone = 'Asia/Jakarta';
+        try { onuTimeZone = require('../config/settingsManager').getSetting('timezone', 'Asia/Jakarta') || 'Asia/Jakarta'; } catch (e) {}
 
         // Start system metrics concurrently
         const systemMetricsPromise = fetchSystemMetrics(session, detectedBrandKey, stats, olt, activeProfile);
@@ -2370,6 +2408,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
         let distMap = {};
         let fwMap = {};
         let upMap = {};
+        let sinceMap = {};
         let reasonMap = {};
 
         // OPTIMIZATION: Only fetch detailed metrics if full=true
@@ -2493,6 +2532,9 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
             if (activeProfile.uptime_table) {
               tasks.push(() => slowWalk(session, activeProfile.uptime_table).then(res => upMap = res));
             }
+            if (activeProfile.online_since_table) {
+              tasks.push(() => slowWalk(session, activeProfile.online_since_table).then(res => sinceMap = res));
+            }
             if (activeProfile.offline_reason_table) {
               tasks.push(() => slowWalk(session, activeProfile.offline_reason_table).then(res => reasonMap = res));
             }
@@ -2559,7 +2601,11 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
             distance = tenths ? (distInt / 10).toFixed(1) + ' m' : `${distInt} m`;
           }
           const firmware = safeToString(fwVal) || '-';
-          const onuUptime = upVal ? decodeUptime(bufferToInt(upVal)) : '-';
+          let onuUptime = upVal ? decodeUptime(bufferToInt(upVal)) : '-';
+          if (activeProfile.online_since_table) {
+            const sinceVal = getByIdx(sinceMap, idx);
+            onuUptime = isUp && sinceVal ? onuUptimeFromSince(sinceVal, onuTimeZone) : '-';
+          }
           const onuId = (activeProfile.zte_ifindex && zteOnuIdFromIndex(idx)) || hiosoOnuIdFromIndex(idx);
           
           if (isUp) stats.onus_online++;
