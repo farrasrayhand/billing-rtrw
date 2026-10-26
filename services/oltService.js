@@ -89,6 +89,8 @@ const BRAND_PROFILES = {
       rx_strip_suffix: 1,
       rx_scale: 0.002,
       rx_offset: -30,
+      tx_power_table: '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.14', // daya pancar ONU (skala sama dengan RX)
+      tx_strip_suffix: 1,
       offline_reason_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.7',
       probe_oid:    '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
       unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
@@ -2297,7 +2299,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
               tasks.push(() => slowWalk(session, activeProfile.rx_power_table).then(res => rxMap = reindexMap(res, activeProfile.rx_strip_suffix)));
             }
             if (activeProfile.tx_power_table) {
-              tasks.push(() => slowWalk(session, activeProfile.tx_power_table).then(res => txMap = res));
+              tasks.push(() => slowWalk(session, activeProfile.tx_power_table).then(res => txMap = reindexMap(res, activeProfile.tx_strip_suffix)));
             }
             if (activeProfile.distance_table) {
               tasks.push(() => slowWalk(session, activeProfile.distance_table).then(res => distMap = res));
@@ -2361,7 +2363,10 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
 
           const sn   = snVal ? decodeSn(snVal) : '-';
           const rx   = decodeRxPower(detectedBrandKey, rxVal, activeProfile);
-          const tx   = decodeRxPower(detectedBrandKey, txVal);
+          const tx   = decodeRxPower(detectedBrandKey, txVal, activeProfile.rx_scale != null
+            ? { rx_scale: activeProfile.tx_scale != null ? activeProfile.tx_scale : activeProfile.rx_scale,
+                rx_offset: activeProfile.tx_offset != null ? activeProfile.tx_offset : activeProfile.rx_offset }
+            : undefined);
           const distInt = bufferToInt(distVal);
           let distance = '-';
           if (activeProfile.distance_table && distInt != null && distInt > 0) {
