@@ -1424,6 +1424,23 @@ router.put('/api/servers/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// DELETE /admin/acs/api/servers/legacy (Default ACS: kosongkan URL & kredensial GenieACS di settings.json)
+router.delete('/api/servers/legacy', requireAdmin, async (req, res) => {
+    try {
+        const currentSettings = getSettings();
+        currentSettings.genieacs_url = '';
+        currentSettings.genieacs_username = '';
+        currentSettings.genieacs_password = '';
+
+        const settingsPath = path.join(__dirname, '../settings.json');
+        fs.writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2), 'utf8');
+
+        res.json({ success: true, message: 'Default ACS dihapus.' });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
 // DELETE /admin/acs/api/servers/:id
 router.delete('/api/servers/:id', requireAdmin, async (req, res) => {
     try {

@@ -337,7 +337,7 @@
                                             >
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
-                                            <button class="btn-action danger" type="button" disabled title="Default ACS tidak bisa dihapus">
+                                            <button class="btn-action danger" type="button" onclick="deleteLegacyServer()" title="Hapus Default ACS">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -754,6 +754,12 @@ async function deleteServer(id) {
     if(!confirm('Hapus server ini?')) return;
     const res = await fetch('/admin/acs/api/servers/' + id, { method: 'DELETE' });
     if((await res.json()).success) location.reload();
+}
+async function deleteLegacyServer() {
+    if(!confirm('Hapus Default ACS? URL dan kredensial GenieACS di pengaturan akan dikosongkan.')) return;
+    const res = await fetch('/admin/acs/api/servers/legacy', { method: 'DELETE' });
+    const d = await res.json();
+    if(d.success) location.reload(); else alert(d.message || 'Gagal menghapus Default ACS');
 }
 async function refreshDevice(deviceId) {
     if(!confirm('Refresh device ' + deviceId + '?')) return;
