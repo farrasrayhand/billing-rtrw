@@ -112,6 +112,8 @@ const BRAND_PROFILES = {
         status_map: { 1: 'INSERVICE', 3: 'HWONLINE', 4: 'OFFLINE', 9: 'FAULT', 10: 'FAILURE' },
       },
       system_oids: { temp: '1.3.6.1.4.1.3902.1015.2.1.3.2.0' },
+      // Port uplink = interface xgei_/gei_ yang up (di OLT ini slot 19/20); trafik dijumlahkan.
+      uplink_name_pattern: '^(xgei|gei)_',
     },
     {
       name: 'ZTE_GPON_C300',
@@ -1411,6 +1413,52 @@ const pickUplinkIfIndexByTraffic = async (session, oltId) => {
   return ifIndex;
 };
 
+const uplinkPortsCache = new Map();
+
+// Port uplink berdasarkan pola nama ifName yang sedang up (cache 5 menit).
+const pickUplinkPortsByName = async (session, oltId, pattern) => {
+  const key = String(oltId || 'x');
+  const cached = uplinkPortsCache.get(key);
+  if (cached && Date.now() - cached.timestamp < 300000) return cached.ports;
+
+  const re = new RegExp(pattern, 'i');
+  const nameMap = await slowWalk(session, '1.3.6.1.2.1.31.1.1.1.1');
+  const operMap = await slowWalk(session, '1.3.6.1.2.1.2.2.1.8');
+  const ports = Object.keys(nameMap).filter((idx) => {
+    const name = (safeToString(nameMap[idx]) || '').replace(/\0/g, '').trim();
+    return re.test(name) && bufferToInt(operMap[idx]) === 1;
+  });
+  uplinkPortsCache.set(key, { ports, timestamp: Date.now() });
+  return ports;
+};
+
+// Ukur trafik semua port uplink (dijumlahkan) selama ~1 detik. Mengembalikan false bila tidak ada port.
+const measureUplinkByNames = async (session, oltId, pattern, stats) => {
+  const ports = await pickUplinkPortsByName(session, oltId, pattern);
+  if (!ports.length) return false;
+
+  const readAll = () => Promise.all(ports.map((idx) => readInterfaceOctets(session, idx)));
+  const t1 = Date.now();
+  const first = await readAll();
+  await new Promise((rv) => setTimeout(rv, 1000));
+  const second = await readAll();
+  const seconds = Math.max(0.2, (Date.now() - t1) / 1000);
+  const wrap64 = BigInt(1) << BigInt(64);
+
+  let rxSum = BigInt(0);
+  let txSum = BigInt(0);
+  ports.forEach((idx, i) => {
+    const a = first[i];
+    const b = second[i];
+    if (a.rx != null && b.rx != null) { let d = b.rx - a.rx; if (d < BigInt(0)) d += wrap64; rxSum += d; }
+    if (a.tx != null && b.tx != null) { let d = b.tx - a.tx; if (d < BigInt(0)) d += wrap64; txSum += d; }
+  });
+  stats.uplink_rx = Math.max(0, Math.round(Number(rxSum) / seconds));
+  stats.uplink_tx = Math.max(0, Math.round(Number(txSum) / seconds));
+  logger.info(`[oltService] Uplink OLT ${oltId}: ${ports.length} port up, masuk ${(stats.uplink_rx * 8 / 1e6).toFixed(1)} Mbps, keluar ${(stats.uplink_tx * 8 / 1e6).toFixed(1)} Mbps`);
+  return true;
+};
+
 const readInterfaceOctets = async (session, ifIndex) => {
   const [hcIn, hcOut] = await snmpGet(session, [
     `1.3.6.1.2.1.31.1.1.1.6.${ifIndex}`,
@@ -1496,12 +1544,27 @@ const fetchSystemMetrics = async (session, brandKey, stats, oltOrId, profile = n
     if (cpuN  != null) stats.cpu  = `${cpuN}%`;
     if (ramN  != null) stats.ram  = `${ramN}%`;
     if (stats.temp === 'N/A') {
-      const c = await getEntityTemperatureC(session);
-      if (c != null) stats.temp = `${c.toFixed(1)}°C`;
+      try {
+        const c = await getEntityTemperatureC(session);
+        if (c != null) stats.temp = `${c.toFixed(1)}°C`;
+      } catch (e) {
+        logger.warn(`[oltService] Baca suhu (ENTITY-MIB) gagal: ${e.message}`);
+      }
     }
 
-    const ifIndex = await pickUplinkIfIndexByTraffic(session, oltId);
-    if (ifIndex) {
+    let uplinkDone = false;
+    if (profile && profile.uplink_name_pattern) {
+      try {
+        uplinkDone = await measureUplinkByNames(session, oltId, profile.uplink_name_pattern, stats);
+      } catch (e) {
+        logger.warn(`[oltService] Ukur uplink berdasarkan nama gagal: ${e.message}`);
+      }
+    }
+
+    const ifIndex = uplinkDone ? null : await pickUplinkIfIndexByTraffic(session, oltId);
+    if (uplinkDone) {
+      // sudah terisi dari pengukuran berdasarkan nama port
+    } else if (ifIndex) {
       const first = await readInterfaceOctets(session, ifIndex);
       await new Promise(rv => setTimeout(rv, 800));
       const second = await readInterfaceOctets(session, ifIndex);
@@ -1547,6 +1610,7 @@ const fetchSystemMetrics = async (session, brandKey, stats, oltOrId, profile = n
       }
     }
   } catch (e) {
+    logger.warn(`[oltService] fetchSystemMetrics gagal: ${e.message}`);
   }
 };
 
