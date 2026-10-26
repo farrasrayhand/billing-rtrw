@@ -7438,7 +7438,8 @@ router.get('/onu-provision', requireAdminSession, restrictToAdmin, (req, res) =>
     host: getSetting('olt_host', ''),
     port: getSetting('olt_port', 22),
     username: getSetting('olt_username', ''),
-    password: getSetting('olt_password', '')
+    password: getSetting('olt_password', ''),
+    protocol: getSetting('olt_protocol', '')
   };
   
   res.render('admin/onu_provision', {
@@ -7454,10 +7455,11 @@ router.get('/onu-provision', requireAdminSession, restrictToAdmin, (req, res) =>
 router.post('/onu-provision/configure-olt', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const { vendor, host, port, username, password, action } = req.body;
+    const protocol = req.body.protocol === 'telnet' ? 'telnet' : 'ssh';
     
     if (action === 'test') {
       // Test connection
-      const oltConfig = { vendor, host, port: parseInt(port), username, password };
+      const oltConfig = { vendor, host, port: parseInt(port), username, password, protocol };
       
       try {
         const conn = await onuProvisionSvc.connectSSH(oltConfig);
@@ -7475,7 +7477,8 @@ router.post('/onu-provision/configure-olt', requireAdminSession, restrictToAdmin
         olt_host: host,
         olt_port: parseInt(port),
         olt_username: username,
-        olt_password: password
+        olt_password: password,
+        olt_protocol: protocol
       });
       
       if (success) {
@@ -7498,7 +7501,8 @@ router.post('/onu-provision/scan-unconfigured', requireAdminSession, restrictToA
       host: getSetting('olt_host', ''),
       port: getSetting('olt_port', 22),
       username: getSetting('olt_username', ''),
-      password: getSetting('olt_password', '')
+      password: getSetting('olt_password', ''),
+      protocol: getSetting('olt_protocol', '')
     };
     
     if (!oltConfig.host) {
@@ -7565,7 +7569,8 @@ router.post('/onu-provision/provision', requireAdminSession, restrictToAdmin, ex
       host: getSetting('olt_host', ''),
       port: getSetting('olt_port', 22),
       username: getSetting('olt_username', ''),
-      password: getSetting('olt_password', '')
+      password: getSetting('olt_password', ''),
+      protocol: getSetting('olt_protocol', '')
     };
     
     if (!oltConfig.host) {
@@ -7674,7 +7679,8 @@ router.post('/onu-provision/delete', requireAdminSession, restrictToAdmin, expre
       host: getSetting('olt_host', ''),
       port: getSetting('olt_port', 22),
       username: getSetting('olt_username', ''),
-      password: getSetting('olt_password', '')
+      password: getSetting('olt_password', ''),
+      protocol: getSetting('olt_protocol', '')
     };
     
     const { vendor, params } = req.body;

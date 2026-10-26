@@ -161,8 +161,14 @@
               <input type="text" class="fc" name="host" value="<%= oltConfig?.host || '' %>" placeholder="192.168.1.1" required>
             </div>
             <div class="fg">
-              <label class="fl">Port SSH</label>
-              <input type="number" class="fc" name="port" value="<%= oltConfig?.port || 22 %>" placeholder="22" required>
+              <label class="fl">Protokol &amp; Port</label>
+              <div style="display:flex;gap:8px">
+                <select class="fs" name="protocol" id="olt_protocol" style="max-width:110px" onchange="oltProtocolChanged()">
+                  <option value="ssh" <%= (oltConfig?.protocol || (Number(oltConfig?.port) === 23 ? 'telnet' : 'ssh')) === 'ssh' ? 'selected' : '' %>>SSH</option>
+                  <option value="telnet" <%= (oltConfig?.protocol || (Number(oltConfig?.port) === 23 ? 'telnet' : 'ssh')) === 'telnet' ? 'selected' : '' %>>Telnet</option>
+                </select>
+                <input type="number" class="fc" name="port" id="olt_port" value="<%= oltConfig?.port || 22 %>" placeholder="22" required>
+              </div>
             </div>
           </div>
           <div class="form-row2" style="margin-top:16px">
@@ -804,7 +810,7 @@ async function scanConfiguredONUs() {
       listDiv.innerHTML = html;
     } else {
       const errorMsg = data.error || 'Tidak ada ONU terkonfigurasi yang ditemukan';
-      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>\${errorMsg}</p></div>`;
+      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>${errorMsg}</p></div>`;
     }
   } catch (error) {
     listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
@@ -816,7 +822,7 @@ async function rebootConfiguredOnu(oltId, index) {
   if (!confirm('Apakah Anda yakin ingin me-reboot ONU dengan index ' + index + '?')) return;
   
   try {
-    const res = await fetch(`/admin/olts/\${oltId}/onu/\${index}/reboot`, { method: 'POST' });
+    const res = await fetch(`/admin/olts/${oltId}/onu/${index}/reboot`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
       alert('Perintah reboot berhasil dikirim!');
@@ -835,7 +841,7 @@ async function renameConfiguredOnu(oltId, index, oldName) {
   if (!newName || newName.trim() === '') return;
   
   try {
-    const res = await fetch(`/admin/olts/\${oltId}/onu/\${index}/rename`, {
+    const res = await fetch(`/admin/olts/${oltId}/onu/${index}/rename`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ name: newName })
@@ -874,6 +880,14 @@ async function deleteConfiguredOnu(index, sn) {
     }
   } catch (error) {
     alert('Error: ' + error.message);
+  }
+}
+
+function oltProtocolChanged() {
+  const proto = document.getElementById('olt_protocol').value;
+  const port = document.getElementById('olt_port');
+  if (port && (port.value === '22' || port.value === '23' || port.value === '')) {
+    port.value = proto === 'telnet' ? '23' : '22';
   }
 }
 </script>

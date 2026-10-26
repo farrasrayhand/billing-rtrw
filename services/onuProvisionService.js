@@ -1,4 +1,6 @@
 const { Client } = require('ssh2');
+const net = require('net');
+const { EventEmitter } = require('events');
 const { logger } = require('../config/logger');
 const { getSetting } = require('../config/settingsManager');
 
@@ -28,15 +30,139 @@ function sanitizeParams(params) {
  * - C-Data FD1600/FD1800 Series
  */
 
+/**
+ * Koneksi Telnet dengan antarmuka yang sama seperti ssh2 Client
+ * (shell() + end()), sehingga seluruh perintah ONU bisa dipakai tanpa diubah.
+ */
+class TelnetConnection extends EventEmitter {
+  constructor(socket) {
+    super();
+    this.socket = socket;
+    this.leftover = Buffer.alloc(0);
+  }
+
+  // Buang urutan negosiasi telnet (IAC) dan tolak semua opsi; kembalikan teks bersih.
+  _clean(chunk) {
+    const buf = Buffer.concat([this.leftover, chunk]);
+    this.leftover = Buffer.alloc(0);
+    const out = [];
+    for (let i = 0; i < buf.length; i++) {
+      const b = buf[i];
+      if (b !== 255) { out.push(b); continue; }
+      const cmd = buf[i + 1];
+      if (cmd === undefined) { this.leftover = buf.slice(i); break; }
+      if (cmd === 255) { out.push(255); i++; continue; }
+      if (cmd >= 251 && cmd <= 254) {
+        const opt = buf[i + 2];
+        if (opt === undefined) { this.leftover = buf.slice(i); break; }
+        if (cmd === 253) this.socket.write(Buffer.from([255, 252, opt])); // DO -> WONT
+        if (cmd === 251) this.socket.write(Buffer.from([255, 254, opt])); // WILL -> DONT
+        i += 2;
+        continue;
+      }
+      if (cmd === 250) { // SB ... IAC SE
+        let j = i + 2;
+        while (j < buf.length - 1 && !(buf[j] === 255 && buf[j + 1] === 240)) j++;
+        if (j >= buf.length - 1) { this.leftover = buf.slice(i); break; }
+        i = j + 1;
+        continue;
+      }
+      i++;
+    }
+    return Buffer.from(out).toString('utf8').replace(/\0/g, '');
+  }
+
+  static connect(oltConfig) {
+    return new Promise((resolve, reject) => {
+      const socket = new net.Socket();
+      const conn = new TelnetConnection(socket);
+      const user = String(oltConfig.username || '');
+      const pass = String(oltConfig.password || '');
+      const loginRe = /(login|username|user name)\s*[:>]\s*$/i;
+      const passRe = /(password|passwd)\s*[:>]\s*$/i;
+      const promptRe = /[>#]\s*$/;
+      let finished = false;
+      let buf = '';
+      let sentUser = false;
+      let sentPass = false;
+
+      const fail = (err) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        try { socket.destroy(); } catch (e) {}
+        reject(err);
+      };
+      const timer = setTimeout(() => fail(new Error('Connection timeout')), 30000);
+
+      const onData = (chunk) => {
+        buf += conn._clean(chunk);
+        const last = buf.split(/\r?\n/).pop();
+        if (!sentUser && loginRe.test(last)) {
+          sentUser = true; buf = '';
+          socket.write(user + '\r\n');
+        } else if (!sentPass && passRe.test(last)) {
+          sentPass = true; buf = '';
+          socket.write(pass + '\r\n');
+        } else if (sentPass && loginRe.test(last)) {
+          fail(new Error('Login telnet gagal: username atau password salah'));
+        } else if (promptRe.test(last) && !passRe.test(last) && !loginRe.test(last)) {
+          finished = true;
+          clearTimeout(timer);
+          socket.removeListener('data', onData);
+          resolve(conn);
+        }
+      };
+
+      socket.on('data', onData);
+      socket.on('error', (err) => fail(err));
+      socket.on('close', () => fail(new Error('Koneksi telnet ditutup sebelum login selesai')));
+      socket.connect(Number(oltConfig.port) || 23, oltConfig.host);
+    });
+  }
+
+  shell(cb) {
+    const stream = new EventEmitter();
+    stream.stderr = new EventEmitter();
+    let closed = false;
+    const emitClose = () => { if (!closed) { closed = true; stream.emit('close'); } };
+    stream.write = (d) => this.socket.write(String(d).replace(/\r?\n/g, '\r\n'));
+    stream.end = () => { try { this.socket.destroy(); } catch (e) {} emitClose(); };
+
+    this.socket.removeAllListeners('close');
+    this.socket.removeAllListeners('error');
+    this.socket.on('data', (chunk) => {
+      const text = this._clean(chunk);
+      if (text) stream.emit('data', Buffer.from(text));
+    });
+    this.socket.on('close', emitClose);
+    this.socket.on('error', emitClose);
+
+    setImmediate(() => {
+      cb(null, stream);
+      // Prompt sudah terbaca saat login; kirim Enter agar prompt muncul lagi dan perintah pertama dikirim.
+      setTimeout(() => { try { this.socket.write('\r\n'); } catch (e) {} }, 150);
+    });
+  }
+
+  end() {
+    try { this.socket.destroy(); } catch (e) {}
+  }
+}
+
 class ONUProvisionService {
   constructor() {
     this.connections = new Map();
   }
 
   /**
-   * Connect ke OLT via SSH
+   * Connect ke OLT via SSH (atau Telnet bila protocol = 'telnet' / port 23)
    */
   async connectSSH(oltConfig) {
+    const protocol = String(oltConfig.protocol || '').toLowerCase();
+    if (protocol === 'telnet' || (!protocol && Number(oltConfig.port) === 23)) {
+      return TelnetConnection.connect(oltConfig);
+    }
     return new Promise((resolve, reject) => {
       const conn = new Client();
       const timeout = setTimeout(() => {
