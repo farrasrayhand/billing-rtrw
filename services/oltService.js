@@ -3136,63 +3136,85 @@ async function configureWanViaAcs(sn, data) {
      messages: []
    };
 
-   // 1. Test SNMP v2c
-   try {
-     const session = snmp.createSession(host, snmpCommunity, {
-       port: snmpPort,
-       timeout: 3000,
-       retries: 1,
-       version: snmp.Version2c
-     });
-
-     const vbs = await new Promise((resolve) => {
-       session.get(['1.3.6.1.2.1.1.3.0'], (err, res) => {
-         if (err) resolve(null);
-         else resolve(res);
+   // SNMP dan Telnet diuji bersamaan (bukan berurutan) dan seluruh tes dibatasi 40 detik,
+   // supaya tidak melewati batas waktu proxy (OLT besar / jalur VPN lambat).
+   const testSnmp = async () => {
+     try {
+       const session = snmp.createSession(host, snmpCommunity, {
+         port: snmpPort,
+         timeout: 3000,
+         retries: 1,
+         version: snmp.Version2c
        });
-     });
 
-     if (vbs && vbs[0] && !snmp.isVarbindError(vbs[0])) {
-       result.snmp.ok = true;
-       result.snmp.uptime = decodeUptime(vbs[0].value);
+       const vbs = await new Promise((resolve) => {
+         session.get(['1.3.6.1.2.1.1.3.0'], (err, res) => {
+           if (err) resolve(null);
+           else resolve(res);
+         });
+       });
 
-       // Probe profile
-       const selectedProfiles = (BRAND_PROFILES[brand] || []).map(p => ({ ...p, __brandKey: brand }));
-       const otherProfiles = Object.keys(BRAND_PROFILES)
-         .filter(k => k !== brand)
-         .reduce((acc, k) => acc.concat((BRAND_PROFILES[k] || []).map(p => ({ ...p, __brandKey: k }))), []);
-       const allProfiles = [...selectedProfiles, ...otherProfiles];
+       if (vbs && vbs[0] && !snmp.isVarbindError(vbs[0])) {
+         result.snmp.ok = true;
+         result.snmp.uptime = decodeUptime(vbs[0].value);
 
-       for (const p of allProfiles) {
-         const ok = await probeOid(session, p.probe_oid);
-         if (ok) {
-           result.snmp.profile = p.name;
-           try {
-             const statusMap = await slowWalk(session, p.status_table, 500);
-             result.snmp.onus = Object.keys(statusMap).length;
-           } catch (e) {}
-           break;
+         // Probe profile
+         const selectedProfiles = (BRAND_PROFILES[brand] || []).map(p => ({ ...p, __brandKey: brand }));
+         const otherProfiles = Object.keys(BRAND_PROFILES)
+           .filter(k => k !== brand)
+           .reduce((acc, k) => acc.concat((BRAND_PROFILES[k] || []).map(p => ({ ...p, __brandKey: k }))), []);
+         const allProfiles = [...selectedProfiles, ...otherProfiles];
+
+         for (const p of allProfiles) {
+           const ok = await probeOid(session, p.probe_oid);
+           if (ok) {
+             result.snmp.profile = p.name;
+             try {
+               // Cukup contoh kecil: tujuan tes hanya memastikan tabel ONU terbaca (bukan menghitung semuanya)
+               const SAMPLE = 40;
+               const statusMap = await slowWalk(session, p.status_table, SAMPLE);
+               result.snmp.onus = Object.keys(statusMap).length;
+               result.snmp.onus_is_sample = result.snmp.onus >= SAMPLE;
+             } catch (e) {}
+             break;
+           }
          }
+         const onuText = result.snmp.onus_is_sample ? `${result.snmp.onus}+ ONU terbaca` : `${result.snmp.onus} ONU`;
+         result.messages.push(`SNMP OK (Uptime: ${result.snmp.uptime}, Profil: ${result.snmp.profile || 'Standar'}, ${onuText})`);
+       } else {
+         result.snmp.error = 'Tidak ada respon SNMP. Pastikan Service SNMP di OLT sudah Aktif dan IP/Community benar.';
        }
-       result.messages.push(`SNMP OK (Uptime: ${result.snmp.uptime}, Profil: ${result.snmp.profile || 'Standar'}, ${result.snmp.onus} ONU)`);
-     } else {
-       result.snmp.error = 'Tidak ada respon SNMP. Pastikan Service SNMP di OLT sudah Aktif dan IP/Community benar.';
+       try { session.close(); } catch (e) {}
+     } catch (e) {
+       result.snmp.error = e.message;
      }
-     try { session.close(); } catch (e) {}
-   } catch (e) {
-     result.snmp.error = e.message;
-   }
+   };
 
-   // 2. Test Telnet
-   try {
-     await telnetLoginAndRun(host, webUser, webPassword, ['show version'], {
-       port: telnetPort,
-       enablePassword
-     });
-     result.telnet.ok = true;
-     result.messages.push('Telnet CLI OK (Login Berhasil)');
-   } catch (e) {
-     result.telnet.error = e.message;
+   const testTelnet = async () => {
+     try {
+       await telnetLoginAndRun(host, webUser, webPassword, ['show version'], {
+         port: telnetPort,
+         enablePassword
+       });
+       result.telnet.ok = true;
+       result.messages.push('Telnet CLI OK (Login Berhasil)');
+     } catch (e) {
+       result.telnet.error = e.message;
+     }
+   };
+
+   const TEST_DEADLINE_MS = 40000;
+   let timedOut = false;
+   let deadlineTimer;
+   await Promise.race([
+     Promise.all([testSnmp(), testTelnet()]),
+     new Promise((resolve) => { deadlineTimer = setTimeout(() => { timedOut = true; resolve(); }, TEST_DEADLINE_MS); })
+   ]);
+   clearTimeout(deadlineTimer);
+   if (timedOut) {
+     if (!result.snmp.ok && !result.snmp.error) result.snmp.error = 'Belum ada respon SNMP dalam 40 detik.';
+     if (!result.telnet.ok && !result.telnet.error) result.telnet.error = 'Belum ada respon Telnet dalam 40 detik.';
+     result.messages.push('Tes dibatasi 40 detik; sebagian hasil mungkin belum lengkap.');
    }
 
    result.success = result.snmp.ok || result.telnet.ok;

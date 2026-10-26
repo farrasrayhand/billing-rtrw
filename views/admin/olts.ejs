@@ -1143,7 +1143,13 @@ async function testExistingOlt(id) {
   if (overlay) overlay.style.display = 'flex';
   try {
     const res = await fetch(`/admin/olts/${id}/test-connection`, { method: 'POST' });
-    const data = await res.json();
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch (_) {
+      throw new Error(res.status === 401 || res.status === 403 || /login/i.test(raw.slice(0, 600))
+        ? 'Sesi login habis, muat ulang halaman lalu masuk lagi.'
+        : `Server membalas HTTP ${res.status} (bukan JSON). Kemungkinan proses melewati batas waktu proxy.`);
+    }
     alert((data.success ? '✅ ' : '⚠️ ') + (data.message || 'Hasil tes koneksi selesai.'));
   } catch (e) {
     alert('❌ Error: ' + e.message);
