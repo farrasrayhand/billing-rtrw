@@ -78,6 +78,24 @@ const BRAND_PROFILES = {
   ],
   zte: [
     {
+      // ZTE C300 firmware V2.x: status = phase state (4 = working), RX power di tabel 500.20
+      // (indeks ifIndex.onuId.1, nilai * 0.002 - 30 dBm). Hanya dipilih bila tabel RX ini ada.
+      name: 'ZTE_GPON_C300_V21',
+      status_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.4',
+      online_values: [4],
+      name_table:   '1.3.6.1.4.1.3902.1082.500.10.2.3.3.1.2',
+      sn_table:     '1.3.6.1.4.1.3902.1082.500.10.2.3.3.1.6',
+      rx_power_table: '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
+      rx_strip_suffix: 1,
+      rx_scale: 0.002,
+      rx_offset: -30,
+      offline_reason_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.7',
+      probe_oid:    '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
+      unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
+      unauth_type_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.10',
+      zte_ifindex: true,
+    },
+    {
       name: 'ZTE_GPON_C300',
       status_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.3.1.9',
       name_table:   '1.3.6.1.4.1.3902.1082.500.10.2.3.3.1.2',
@@ -215,6 +233,7 @@ const ONLINE_VALUES = {
 };
 
 const getOnlineValues = (brandKey, profile) => {
+  if (Array.isArray(profile?.online_values) && profile.online_values.length) return profile.online_values;
   const base = ONLINE_VALUES[brandKey] || [1, 3];
   const profileName = String(profile?.name || '').toLowerCase();
   const nameOid = String(profile?.name_table || '');
@@ -1588,7 +1607,40 @@ const fetchUnauthOnus = async (session, profile, stats) => {
   }
 };
 
-const decodeRxPower = (brand, val) => {
+// Buang N segmen terakhir dari kunci indeks (mis. "285278977.1.1" -> "285278977.1").
+const reindexMap = (map, stripSegments) => {
+  const n = Number(stripSegments) || 0;
+  if (!n || !map) return map;
+  const out = {};
+  for (const key of Object.keys(map)) {
+    const parts = key.split('.');
+    if (parts.length <= n) continue;
+    out[parts.slice(0, parts.length - n).join('.')] = map[key];
+  }
+  return out;
+};
+
+// ifIndex ZTE C300 V2.x: 0x11SSPPNN (type, shelf, slot, port). ONU id = shelf/slot/port:onu
+const zteOnuIdFromIndex = (index) => {
+  const parts = String(index || '').split('.').filter(Boolean);
+  if (parts.length < 2) return null;
+  const ifIndex = parseInt(parts[0], 10);
+  const onu = parseInt(parts[1], 10);
+  if (!Number.isFinite(ifIndex) || !Number.isFinite(onu) || ifIndex < 0x10000000) return null;
+  const shelf = (ifIndex >>> 16) & 0xff;
+  const slot = (ifIndex >>> 8) & 0xff;
+  const port = ifIndex & 0xff;
+  return `${shelf}/${slot}/${port}:${onu}`;
+};
+
+const decodeRxPower = (brand, val, profile) => {
+  if (profile && profile.rx_scale != null) {
+    const n = bufferToInt(val);
+    if (n == null || n <= 0 || n === 65535) return 'N/A';
+    const dbm = n * profile.rx_scale + (profile.rx_offset || 0);
+    if (!Number.isFinite(dbm) || dbm < -60 || dbm > 10) return 'N/A';
+    return dbm.toFixed(2);
+  }
   const rx = computeRxDbm(brand, val);
   if (rx == null) return 'N/A';
   return rx.toFixed(2);
@@ -2165,7 +2217,7 @@ async function getOltStatsInternal(id, full = false) {
             tasks.push(() => fetchUnauthOnus(session, activeProfile, stats));
             tasks.push(() => pickSnTable(session, activeProfile).then(res => snMap = res.map || {}));
             if (activeProfile.rx_power_table) {
-              tasks.push(() => slowWalk(session, activeProfile.rx_power_table).then(res => rxMap = res));
+              tasks.push(() => slowWalk(session, activeProfile.rx_power_table).then(res => rxMap = reindexMap(res, activeProfile.rx_strip_suffix)));
             }
             if (activeProfile.tx_power_table) {
               tasks.push(() => slowWalk(session, activeProfile.tx_power_table).then(res => txMap = res));
@@ -2231,7 +2283,7 @@ async function getOltStatsInternal(id, full = false) {
           const upVal = getByIdx(upMap, idx);
 
           const sn   = snVal ? decodeSn(snVal) : '-';
-          const rx   = decodeRxPower(detectedBrandKey, rxVal);
+          const rx   = decodeRxPower(detectedBrandKey, rxVal, activeProfile);
           const tx   = decodeRxPower(detectedBrandKey, txVal);
           const distInt = bufferToInt(distVal);
           let distance = '-';
@@ -2241,7 +2293,7 @@ async function getOltStatsInternal(id, full = false) {
           }
           const firmware = safeToString(fwVal) || '-';
           const onuUptime = upVal ? decodeUptime(bufferToInt(upVal)) : '-';
-          const onuId = hiosoOnuIdFromIndex(idx);
+          const onuId = (activeProfile.zte_ifindex && zteOnuIdFromIndex(idx)) || hiosoOnuIdFromIndex(idx);
           
           if (isUp) stats.onus_online++;
           else stats.onus_offline++;
