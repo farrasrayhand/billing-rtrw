@@ -78,6 +78,7 @@ const BRAND_PROFILES = {
   ],
   zte: [
     {
+      // Terverifikasi dengan CLI pada ZTE C300 V2.1.0: status, RX/TX (show pon power onu-rx/onu-tx) dan jarak.
       // ZTE C300 firmware V2.x: status = phase state (4 = working), RX power di tabel 500.20
       // (indeks ifIndex.onuId.1, nilai * 0.002 - 30 dBm). Hanya dipilih bila tabel RX ini ada.
       name: 'ZTE_GPON_C300_V21',
@@ -91,8 +92,8 @@ const BRAND_PROFILES = {
       rx_offset: -30,
       tx_power_table: '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.14', // daya pancar ONU (skala sama dengan RX)
       tx_strip_suffix: 1,
-      // Jarak ONU (meter): kolom 2 tabel ranging. Ditemukan lewat snmpget pada OLT C300 V2.1
-      // (ONU 1/3/1:1 = 769); belum ada dokumentasi resmi, cocokkan dengan CLI `show gpon remote-onu distance`.
+      // Jarak ONU (meter): kolom 2 tabel ranging. Ditemukan lewat snmpget, lalu dicocokkan dengan CLI
+      // `show gpon onu detail-info gpon-onu_1/3/1:1` ("ONU Distance: 769m") pada OLT C300 V2.1.0.
       distance_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.10.1.2',
       distance_tenths_meter: false,
       distance_max: 100000,
