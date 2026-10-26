@@ -96,6 +96,16 @@ const BRAND_PROFILES = {
       unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
       unauth_type_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.10',
       zte_ifindex: true,
+      // Kartu & suhu chassis: OID dari template Zabbix komunitas "ZTE C300 v2.1"
+      // (zabbix/community-templates, Network_Devices/template_zte_c300_v2.1) dan thread LibreNMS ZTE C300/C320.
+      card_oids: {
+        type:   '1.3.6.1.4.1.3902.1015.2.1.1.3.1.4',
+        status: '1.3.6.1.4.1.3902.1015.2.1.1.3.1.5',
+        cpu:    '1.3.6.1.4.1.3902.1015.2.1.1.3.1.9',
+        ram:    '1.3.6.1.4.1.3902.1015.2.1.1.3.1.11',
+        status_map: { 1: 'INSERVICE', 3: 'HWONLINE', 4: 'OFFLINE', 9: 'FAULT', 10: 'FAILURE' },
+      },
+      system_oids: { temp: '1.3.6.1.4.1.3902.1015.2.1.3.2.0' },
     },
     {
       name: 'ZTE_GPON_C300',
@@ -1466,8 +1476,8 @@ const fetchHiosoSystemMetricsViaTelnet = async (olt, stats) => {
  * Ambil system metrics (temp, cpu, ram, uplink) untuk brand tertentu.
  * Mengisi field stats secara langsung.
  */
-const fetchSystemMetrics = async (session, brandKey, stats, oltOrId) => {
-  const oids = SYSTEM_OIDS[brandKey] || SYSTEM_OIDS.hioso;
+const fetchSystemMetrics = async (session, brandKey, stats, oltOrId, profile = null) => {
+  const oids = { ...(SYSTEM_OIDS[brandKey] || SYSTEM_OIDS.hioso), ...((profile && profile.system_oids) || {}) };
   const oltId = (oltOrId && typeof oltOrId === 'object') ? oltOrId.id : oltOrId;
   try {
     const [temp, cpu, ram, rx, tx] = await snmpGet(session, [
@@ -1537,17 +1547,18 @@ const fetchSystemMetrics = async (session, brandKey, stats, oltOrId) => {
 /**
  * Ambil daftar card/board OLT.
  */
-const fetchCardMetrics = async (session, brandKey, stats) => {
-  const oids = CARD_OIDS[brandKey];
+const fetchCardMetrics = async (session, brandKey, stats, profile = null) => {
+  const oids = (profile && profile.card_oids) || CARD_OIDS[brandKey];
   if (!oids) return;
+  const walkIf = (oid) => (oid ? slowWalk(session, oid) : Promise.resolve({}));
 
   try {
-    const typeMap   = await slowWalk(session, oids.type);
-    const statusMap = await slowWalk(session, oids.status);
-    const portMap   = await slowWalk(session, oids.ports);
-    const serialMap = await slowWalk(session, oids.serial);
-    const cpuMap    = await slowWalk(session, oids.cpu);
-    const ramMap    = await slowWalk(session, oids.ram);
+    const typeMap   = await walkIf(oids.type);
+    const statusMap = await walkIf(oids.status);
+    const portMap   = await walkIf(oids.ports);
+    const serialMap = await walkIf(oids.serial);
+    const cpuMap    = await walkIf(oids.cpu);
+    const ramMap    = await walkIf(oids.ram);
 
     const cards = [];
     const indices = Object.keys(typeMap);
@@ -1557,7 +1568,7 @@ const fetchCardMetrics = async (session, brandKey, stats) => {
       if (!type || type === '0') continue;
 
       const statusNum = bufferToInt(statusMap[idx]);
-      const statusText = CARD_STATUS_MAP[statusNum] || (statusNum != null ? String(statusNum) : 'UNKNOWN');
+      const statusText = (oids.status_map && oids.status_map[statusNum]) || CARD_STATUS_MAP[statusNum] || (statusNum != null ? String(statusNum) : 'UNKNOWN');
       
       const cpuVal = bufferToInt(cpuMap[idx]);
       const ramVal = bufferToInt(ramMap[idx]);
@@ -1567,7 +1578,7 @@ const fetchCardMetrics = async (session, brandKey, stats) => {
         type: type,
         status: statusText,
         ports: bufferToInt(portMap[idx]) || 0,
-        serial: decodeSn(serialMap[idx]),
+        serial: serialMap[idx] != null ? decodeSn(serialMap[idx]) : 'N/A',
         cpu: cpuVal != null ? `${cpuVal}%` : 'N/A',
         ram: ramVal != null ? `${ramVal}%` : 'N/A',
       });
@@ -1575,6 +1586,13 @@ const fetchCardMetrics = async (session, brandKey, stats) => {
 
     if (cards.length > 0) {
       stats.cards = cards.sort((a, b) => String(a.index).localeCompare(String(b.index), undefined, { numeric: true }));
+      // Header CPU/RAM OLT: beban tertinggi di antara kartu yang aktif (bila belum terisi dari OID sistem)
+      const loads = (key) => cards
+        .filter((c) => c.status === 'INSERVICE' || c.status === 'HWONLINE' || !oids.status_map)
+        .map((c) => parseInt(c[key], 10))
+        .filter((n) => Number.isFinite(n) && n >= 0 && n <= 100);
+      if (stats.cpu === 'N/A' && oids.cpu) { const l = loads('cpu'); if (l.length) stats.cpu = `${Math.max(...l)}%`; }
+      if (stats.ram === 'N/A' && oids.ram) { const l = loads('ram'); if (l.length) stats.ram = `${Math.max(...l)}%`; }
     }
   } catch (e) {
     logger.error(`fetchCardMetrics error: ${e.message}`);
@@ -2157,7 +2175,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
         const onlineVals = getOnlineValues(detectedBrandKey, activeProfile);
 
         // Start system metrics concurrently
-        const systemMetricsPromise = fetchSystemMetrics(session, detectedBrandKey, stats, olt);
+        const systemMetricsPromise = fetchSystemMetrics(session, detectedBrandKey, stats, olt, activeProfile);
 
         // 4. Mode Counter (ZTE)
         if (activeProfile.is_counter) {
@@ -2292,7 +2310,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0) {
           } else {
             // --- Standard path for all other brands ---
             const tasks = [];
-            tasks.push(() => fetchCardMetrics(session, detectedBrandKey, stats));
+            tasks.push(() => fetchCardMetrics(session, detectedBrandKey, stats, activeProfile));
             tasks.push(() => fetchUnauthOnus(session, activeProfile, stats));
             tasks.push(() => pickSnTable(session, activeProfile).then(res => snMap = res.map || {}));
             if (activeProfile.rx_power_table) {
