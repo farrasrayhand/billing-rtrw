@@ -30,6 +30,8 @@ try {
         this.once('done', (data) => resolve(data));
         this.once('trap', (data) => reject(new Error(data.message)));
         this.once('unknown', (reply) => {
+          // RouterOS v7 membalas "!empty" saat daftar kosong; itu bukan error.
+          if (String(reply).trim() === '!empty') return resolve([]);
           reject(new RosException('UNKNOWNREPLY', { reply: reply }));
         });
         this.readAndWrite(params);
@@ -387,6 +389,61 @@ async function getConnection(routerId = null) {
     }
     logger.error(`Failed to connect to MikroTik (${host}): ${err?.message || err}`);
     throw err;
+  }
+}
+
+async function testConnectionDirect({ host, port, user, password } = {}) {
+  host = String(host || '').trim();
+  user = String(user || '').trim();
+  const p = Number(port) || 8728;
+  if (!host || !user) {
+    return { ok: false, stage: 'config', message: 'IP/Host dan User API wajib diisi.' };
+  }
+  const started = Date.now();
+  if (!(await canConnectTcp(host, p, 4000))) {
+    return {
+      ok: false,
+      stage: 'tcp',
+      message: `Port ${p} di ${host} tidak terjangkau (timeout/ditolak). Cek IP, jalur VPN/jaringan, firewall, dan service API di MikroTik.`
+    };
+  }
+  let api = null;
+  try {
+    api = new RouterOSClient({
+      host,
+      port: p,
+      user,
+      password: String(password || ''),
+      tls: p === 8729 ? { rejectUnauthorized: false } : false,
+      timeout: 5000
+    });
+    if (typeof api.on === 'function') api.on('error', () => {});
+    if (api.rosApi && typeof api.rosApi.on === 'function') api.rosApi.on('error', () => {});
+    await withTimeout(api.connect(), 8000, 'testConnection');
+    const identityRows = await withTimeout(api.rosApi.write(['/system/identity/print']), 8000, 'testConnection-identity');
+    const resourceRows = await withTimeout(api.rosApi.write(['/system/resource/print']), 8000, 'testConnection-resource');
+    const identity = (Array.isArray(identityRows) && identityRows[0] && identityRows[0].name) || '';
+    const res = (Array.isArray(resourceRows) && resourceRows[0]) || {};
+    return {
+      ok: true,
+      stage: 'ok',
+      identity,
+      version: res.version || '',
+      board: res['board-name'] || '',
+      uptime: res.uptime || '',
+      ms: Date.now() - started,
+      message: `Terhubung ke "${identity || host}"${res.version ? ` — RouterOS ${res.version}` : ''}${res['board-name'] ? `, ${res['board-name']}` : ''}.`
+    };
+  } catch (e) {
+    const msg = String(e?.message || e || '');
+    if (/invalid user name or password|cannot log in|not logged in/i.test(msg)) {
+      return { ok: false, stage: 'login', message: 'Port terbuka, tapi login gagal: username atau password API salah (atau user tidak punya policy api).' };
+    }
+    return { ok: false, stage: 'api', message: `Port terbuka, tapi API gagal merespons: ${msg}` };
+  } finally {
+    if (api && typeof api.close === 'function') {
+      try { await api.close(); } catch {}
+    }
   }
 }
 
@@ -2067,6 +2124,7 @@ async function getBackup(routerId = null) {
 
 module.exports = {
   checkConnection,
+  testConnectionDirect,
   getConnection,
   getPppoeProfiles,
   getPppoeUsers,

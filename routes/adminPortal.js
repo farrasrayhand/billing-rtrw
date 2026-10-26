@@ -5113,6 +5113,21 @@ router.get('/mikrotik/settings', requireAdminSession, restrictToAdmin, requireSi
   });
 });
 
+router.post('/mikrotik/settings/test', requireAdminSession, restrictToAdmin, express.json(), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const result = await mikrotikService.testConnectionDirect({
+      host: b.host,
+      port: b.port,
+      user: b.user,
+      password: b.password
+    });
+    res.json(result);
+  } catch (e) {
+    res.json({ ok: false, stage: 'error', message: e.message });
+  }
+});
+
 router.post('/mikrotik/settings', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
     const payload = {

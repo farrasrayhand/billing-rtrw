@@ -81,7 +81,9 @@
         </div>
       </div>
 
+      <div id="mikrotik_test_result" class="hint" style="display:none;margin-bottom:12px"></div>
       <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" class="btn btn-g" id="mikrotik_test_btn" onclick="testMikrotikConnection()"><i class="bi bi-plug"></i> Tes Koneksi</button>
         <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Simpan Pengaturan MikroTik</button>
       </div>
     </form>
@@ -97,6 +99,44 @@
     if (grp) grp.style.display = (mode === 'disabled') ? 'block' : 'none';
     const hint = document.getElementById('mikrotik_router_hint');
     if (hint) hint.style.display = (mode === 'disabled') ? 'none' : 'block';
+  }
+
+  async function testMikrotikConnection() {
+    const f = document.querySelector('form[action="/admin/mikrotik/settings"]');
+    const box = document.getElementById('mikrotik_test_result');
+    const btn = document.getElementById('mikrotik_test_btn');
+    const show = function (ok, text) {
+      box.style.display = 'block';
+      box.style.color = ok ? '#166534' : '#991b1b';
+      box.style.background = ok ? '#dcfce7' : '#fee2e2';
+      box.style.border = '1px solid ' + (ok ? '#bbf7d0' : '#fecaca');
+      box.style.borderRadius = '10px';
+      box.style.padding = '10px 14px';
+      box.textContent = (ok ? '✔ ' : '✖ ') + text;
+    };
+    btn.disabled = true;
+    box.style.display = 'block';
+    box.removeAttribute('style');
+    box.style.display = 'block';
+    box.textContent = 'Menguji koneksi...';
+    try {
+      const res = await fetch('/admin/mikrotik/settings/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: f.mikrotik_host.value,
+          port: f.mikrotik_port.value,
+          user: f.mikrotik_user.value,
+          password: f.mikrotik_password.value
+        })
+      });
+      const data = await res.json();
+      show(Boolean(data.ok), (data.message || 'Selesai.') + (data.ok && data.ms ? ' (' + data.ms + ' ms)' : ''));
+    } catch (e) {
+      show(false, 'Gagal menjalankan tes: ' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
   }
 </script>
 </body>
