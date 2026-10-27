@@ -950,6 +950,7 @@ function initTelegram() {
 
   bot.onText(/\/saldodigi/i, async (msg) => {
     if (!isAdmin(msg)) return;
+    if (!(require('../config/features').isDigiflazzEnabled())) return;
     const chatId = msg.chat.id;
     try {
       const r = await agentSvc.digiflazzCheckBalance();

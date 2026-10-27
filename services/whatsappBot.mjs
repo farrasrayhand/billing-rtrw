@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const QRCodeNode = require('qrcode');
 const { logger } = require('../config/logger.js');
 const { getSetting, getNowLocal, formatDateLocal, getCurrentDateInTimezone } = require('../config/settingsManager.js');
+const isDigiflazzOn = () => { const v = getSetting('digiflazz_enabled', false); return v === true || String(v).toLowerCase() === 'true'; };
 const db = require('../config/database.js');
 const customerDevice = require('./customerDeviceService.js');
 const { WaLidStore } = require('./waLidStore.js');
@@ -758,7 +759,7 @@ function parseCommand(text, isAdmin) {
     return { cmd: 'listonu', admin: true };
   }
 
-  if (isAdmin && ['saldodigi', 'ceksaldodigi', 'digisaldo', 'ceksaldo.digi'].includes(cmd)) {
+  if (isDigiflazzOn() && isAdmin && ['saldodigi', 'ceksaldodigi', 'digisaldo', 'ceksaldo.digi'].includes(cmd)) {
     return { cmd: 'digiflazz_balance', admin: true };
   }
 
@@ -849,11 +850,11 @@ function parseCommand(text, isAdmin) {
     return { cmd: 'gantisandi', rest: newPass };
   }
 
-  if (['pulsa', 'belipulsa'].includes(cmd) && parts.length >= 3) {
+  if (isDigiflazzOn() && ['pulsa', 'belipulsa'].includes(cmd) && parts.length >= 3) {
     const sellPrice = parts.length >= 4 ? Number(String(parts[3]).replace(/[^\d]/g, '')) : 0;
     return { cmd: 'agent_pulsa', sku: parts[1], target: parts[2], sellPrice: Number.isFinite(sellPrice) ? sellPrice : 0 };
   }
-  if (['cekpulsa', 'statuspulsa'].includes(cmd) && parts.length >= 2) {
+  if (isDigiflazzOn() && ['cekpulsa', 'statuspulsa'].includes(cmd) && parts.length >= 2) {
     return { cmd: 'agent_pulsa_check', txId: parts[1] };
   }
 

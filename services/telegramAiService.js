@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const { getSetting } = require('../config/settingsManager');
 const { logger } = require('../config/logger');
-const { adminToolDeclarations, executeAdminTool } = require('./adminAiTools');
+const { getAdminToolDeclarations, executeAdminTool } = require('./adminAiTools');
 
 // Cache untuk dokumen knowledge base
 let cachedKnowledge = null;
@@ -349,10 +349,10 @@ async function callGeminiApi(apiKey, userQuestion, senderName = 'Member', custom
         }
       };
 
-      if (isAdmin && Array.isArray(adminToolDeclarations) && adminToolDeclarations.length > 0) {
+      if (isAdmin && Array.isArray(getAdminToolDeclarations()) && getAdminToolDeclarations().length > 0) {
         payload.tools = [
           {
-            functionDeclarations: adminToolDeclarations
+            functionDeclarations: getAdminToolDeclarations()
           }
         ];
       }
@@ -440,8 +440,8 @@ async function callOpenAiCompatibleApi({
     temperature: 0.2
   };
 
-  if (isAdmin && Array.isArray(adminToolDeclarations) && adminToolDeclarations.length > 0) {
-    payload.tools = convertGeminiToolsToOpenAI(adminToolDeclarations);
+  if (isAdmin && Array.isArray(getAdminToolDeclarations()) && getAdminToolDeclarations().length > 0) {
+    payload.tools = convertGeminiToolsToOpenAI(getAdminToolDeclarations());
     payload.tool_choice = 'auto';
   }
 

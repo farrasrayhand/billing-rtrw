@@ -1,5 +1,7 @@
 const express = require('express');
+const { isDigiflazzEnabled, requireDigiflazzEnabled } = require('../config/features');
 const router = express.Router();
+router.use((req, res, next) => { res.locals.digiflazzEnabled = isDigiflazzEnabled(); next(); });
 const { requireHotspotEnabled } = require('../config/features');
 const QRCode = require('qrcode');
 const { getSetting, getSettings, formatDateLocal, getNowLocal } = require('../config/settingsManager');
@@ -542,7 +544,7 @@ router.post('/sell-voucher', requireAgentSession, requireHotspotEnabled, express
   res.redirect('/agent');
 });
 
-router.post('/pulsa', requireAgentSession, express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/pulsa', requireAgentSession, requireDigiflazzEnabled, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const sku = String(req.body.sku || '').trim();
     const target = String(req.body.target || '').trim();
@@ -602,7 +604,7 @@ router.post('/pulsa', requireAgentSession, express.urlencoded({ extended: true }
   res.redirect('/agent');
 });
 
-router.post('/api/pulsa/order', requireAgentSession, express.json({ limit: '50kb' }), async (req, res) => {
+router.post('/api/pulsa/order', requireAgentSession, requireDigiflazzEnabled, express.json({ limit: '50kb' }), async (req, res) => {
   try {
     const sku = String(req.body?.sku || '').trim();
     const target = String(req.body?.target || '').trim();
@@ -670,7 +672,7 @@ router.post('/api/pulsa/order', requireAgentSession, express.json({ limit: '50kb
   }
 });
 
-router.post('/pulsa/check', requireAgentSession, express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/pulsa/check', requireAgentSession, requireDigiflazzEnabled, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const txId = Number(req.body.tx_id || 0);
     if (!txId) throw new Error('ID transaksi tidak valid');

@@ -1368,11 +1368,13 @@ app.post('/api/webhook/v1/payment-notif', webhookRateLimiter, multer().any(), as
   }
 });
 
-app.get('/webhook/digiflazz', (req, res) => {
+const { isDigiflazzEnabled: isDigiflazzOn } = require('./config/features');
+const digiflazzOffGuard = (req, res, next) => (isDigiflazzOn() ? next() : res.status(404).json({ success: false, disabled: true }));
+app.get('/webhook/digiflazz', digiflazzOffGuard, (req, res) => {
   res.json({ success: true, message: 'OK. Use POST for Digiflazz webhook.' });
 });
-app.head('/webhook/digiflazz', (req, res) => res.status(200).end());
-app.post('/webhook/digiflazz', async (req, res) => {
+app.head('/webhook/digiflazz', digiflazzOffGuard, (req, res) => res.status(200).end());
+app.post('/webhook/digiflazz', digiflazzOffGuard, async (req, res) => {
   const payload = req.body || {};
   const signature = req.headers['x-hub-signature'] || req.headers['x-digiflazz-delivery'];
   const eventName = String(req.headers['x-digiflazz-event'] || '').trim();

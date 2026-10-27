@@ -76,7 +76,7 @@ const DEFAULT_MENU_STATES = {
   customers: STATE_VISIBLE,
   packages: STATE_VISIBLE,
   billing: STATE_VISIBLE,
-  digiflazz: STATE_VISIBLE,
+  digiflazz: STATE_HIDDEN,
   collector_payments: STATE_VISIBLE,
   promo_slides: STATE_VISIBLE,
   reports: STATE_VISIBLE,

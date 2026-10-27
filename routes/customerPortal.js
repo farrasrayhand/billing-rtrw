@@ -1,4 +1,5 @@
 const express = require('express');
+const { isDigiflazzEnabled, requireDigiflazzEnabled } = require('../config/features');
 const router = express.Router();
 const { requireHotspotEnabled } = require('../config/features');
 // Pembelian voucher publik hanya tersedia bila fitur hotspot aktif (callback pembayaran tidak terpengaruh).
@@ -1774,7 +1775,7 @@ router.get('/dashboard', async (req, res) => {
   }
 
   const states = sidebarMenuSvc.getStoredMenuStates();
-  const showPPOB = states['digiflazz'] === 'visible';
+  const showPPOB = isDigiflazzEnabled() && states['digiflazz'] === 'visible';
 
   res.render('dashboard', {
     customer: deviceData || fallbackCustomer(loginId),
@@ -2172,7 +2173,7 @@ router.post('/change-tag', async (req, res) => {
     const data = await getCustomerDeviceData(oldTag);
     const invoices = billingSvc.getInvoicesByAny(oldTag);
     const states = sidebarMenuSvc.getStoredMenuStates();
-    const showPPOB = states['digiflazz'] === 'visible';
+    const showPPOB = isDigiflazzEnabled() && states['digiflazz'] === 'visible';
     return res.render('dashboard', {
       customer: data || fallbackCustomer(oldTag),
       profile: null,
@@ -2231,7 +2232,7 @@ router.post('/change-tag', async (req, res) => {
   const customerBalance = profile ? getCustomerBalance(profile.id) : 0;
 
   const states = sidebarMenuSvc.getStoredMenuStates();
-  const showPPOB = states['digiflazz'] === 'visible';
+  const showPPOB = isDigiflazzEnabled() && states['digiflazz'] === 'visible';
   res.render('dashboard', {
     customer: deviceData || fallbackCustomer(resolvedPhone),
     profile: profile || null,
@@ -3400,7 +3401,7 @@ function adjustCustomerBalance(customerId, delta, note = '') {
 }
 
 // Halaman PPOB & saldo untuk pelanggan (wajib login)
-router.get('/ppob', (req, res) => {
+router.get('/ppob', requireDigiflazzEnabled, (req, res) => {
   const states = sidebarMenuSvc.getStoredMenuStates();
   if (states['digiflazz'] !== 'visible') {
     return res.redirect('/customer');
@@ -3462,7 +3463,7 @@ router.get('/ppob', (req, res) => {
 });
 
 // Beli PPOB pakai saldo (wajib login)
-router.post('/ppob/buy', express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/ppob/buy', requireDigiflazzEnabled, express.urlencoded({ extended: true }), async (req, res) => {
   const states = sidebarMenuSvc.getStoredMenuStates();
   if (states['digiflazz'] !== 'visible') {
     return res.redirect('/customer');

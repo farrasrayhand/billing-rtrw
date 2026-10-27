@@ -492,7 +492,14 @@ async function executeAdminTool(toolName, args, extraContext = {}) {
   }
 }
 
+// Alat saldo Digiflazz hanya ditawarkan ke AI saat fitur Digiflazz diaktifkan.
+function getAdminToolDeclarations() {
+  const on = require('../config/features').isDigiflazzEnabled();
+  return on ? adminToolDeclarations : adminToolDeclarations.filter((t) => t.name !== 'check_digiflazz_balance');
+}
+
 module.exports = {
   adminToolDeclarations,
+  getAdminToolDeclarations,
   executeAdminTool
 };

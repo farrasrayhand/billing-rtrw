@@ -12,7 +12,7 @@ const billingSvc = require('../services/billingService');
 const pdfSvc = require('../services/pdfInvoiceService');
 const mikrotikService = require('../services/mikrotikService');
 const { verifyPassword, hashPassword, isHashed } = require('../utils/passwordHash');
-const { requireHotspotEnabled, isHotspotEnabled } = require('../config/features');
+const { requireHotspotEnabled, isHotspotEnabled, requireDigiflazzEnabled } = require('../config/features');
 const adminSvc = require('../services/adminService');
 const agentSvc = require('../services/agentService');
 const oltSvc = require('../services/oltService');
@@ -4005,7 +4005,7 @@ router.post('/settings/logo-upload', requireAdminSession, qrisUpload.single('log
   res.redirect('/admin/settings');
 });
 
-router.get('/digiflazz', requireAdminSession, requireSidebarMenuAccess('digiflazz'), restrictToAdmin, async (req, res) => {
+router.get('/digiflazz', requireAdminSession, requireDigiflazzEnabled, requireSidebarMenuAccess('digiflazz'), restrictToAdmin, async (req, res) => {
   const settings = getSettings();
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
   const host = req.get('host');
@@ -4084,7 +4084,7 @@ router.get('/digiflazz', requireAdminSession, requireSidebarMenuAccess('digiflaz
   });
 });
 
-router.post('/digiflazz/check-balance', requireAdminSession, restrictToAdmin, async (req, res) => {
+router.post('/digiflazz/check-balance', requireAdminSession, requireDigiflazzEnabled, restrictToAdmin, async (req, res) => {
   try {
     const data = await digiflazzCekSaldo();
     const depo = Number(data?.deposit || 0);
@@ -4095,7 +4095,7 @@ router.post('/digiflazz/check-balance', requireAdminSession, restrictToAdmin, as
   res.redirect('/admin/digiflazz');
 });
 
-router.post('/digiflazz/sync-products', requireAdminSession, restrictToAdmin, async (req, res) => {
+router.post('/digiflazz/sync-products', requireAdminSession, requireDigiflazzEnabled, restrictToAdmin, async (req, res) => {
   try {
     const markup = Math.max(0, Math.floor(Number(getSetting('digiflazz_markup', 0) || 0)));
     const list = await digiflazzPriceListAll();
@@ -4169,7 +4169,7 @@ router.post('/digiflazz/sync-products', requireAdminSession, restrictToAdmin, as
   res.redirect('/admin/digiflazz');
 });
 
-router.post('/digiflazz/products/update-price', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
+router.post('/digiflazz/products/update-price', requireAdminSession, requireDigiflazzEnabled, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
   try {
     const sku = String(req.body.sku || '').trim();
     const priceSell = Math.max(0, Math.floor(Number(req.body.price_sell || 0) || 0));
@@ -4414,7 +4414,8 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
     
     newSettings.login_otp_enabled = (newSettings.login_otp_enabled === 'true');
     newSettings.auto_backup_enabled = (newSettings.auto_backup_enabled === 'true');
-    newSettings.use_builtin_acs = (newSettings.use_builtin_acs === 'true' || newSettings.use_builtin_acs === true);
+    // Pengaturan ACS dipindah ke halaman GenieACS Pro; jangan menimpa nilainya bila tidak ada di form ini.
+    if ('use_builtin_acs' in newSettings) newSettings.use_builtin_acs = (newSettings.use_builtin_acs === 'true' || newSettings.use_builtin_acs === true);
 
     // Pengaturan MikroTik (multi_router_mode, default_router_id, mikrotik_*)
     // kini disimpan lewat POST /admin/mikrotik/settings, bukan dari form ini.
@@ -4788,7 +4789,7 @@ router.post('/telegram/test', requireAdminSession, restrictToAdmin, async (req, 
 // ─── ASISTEN AI ──────────────────────────────────────────────────────────────
 router.get('/ai', requireAdminSession, requireSidebarMenuAccess('ai'), restrictToAdmin, (req, res) => {
   let tools = [];
-  try { tools = require('../services/adminAiTools').adminToolDeclarations || []; } catch (e) { tools = []; }
+  try { tools = require('../services/adminAiTools').getAdminToolDeclarations() || []; } catch (e) { tools = []; }
   const aiTest = req.session._aiTest || null;
   delete req.session._aiTest;
   res.render('admin/ai_settings', {

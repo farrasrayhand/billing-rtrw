@@ -180,6 +180,7 @@
               </div>
             </a>
 
+            <% if (String(settings.company_email || '').trim()) { %>
             <div class="contact-item">
               <div class="contact-icon" style="background: #fef3c7; color: #92400e;">
                 <i class="bi bi-envelope"></i>
@@ -187,10 +188,11 @@
               <div class="contact-info">
                 <h6><%= t('customer.pages.contact.email_title', 'Email Support') %></h6>
                 <p>
-                  <%= settings.company_email || `support@${company.toLowerCase().replace(/\s+/g, '' )}.com` %>
+                  <%= String(settings.company_email).trim() %>
                 </p>
               </div>
             </div>
+            <% } %>
 
             <div class="contact-item">
               <div class="contact-icon" style="background: #eff6ff; color: #2563eb;">

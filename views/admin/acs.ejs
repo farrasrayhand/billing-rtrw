@@ -281,6 +281,36 @@
             </div>
 
             <div id="tab-servers" class="tab-pane">
+                <div style="border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:22px; background:var(--bg2);">
+                    <h3 style="margin:0 0 12px; font-size:15px;"><i class="fas fa-sliders-h"></i> Pengaturan ACS</h3>
+                    <label style="display:flex; gap:8px; align-items:center; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="acsBuiltin" <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'checked' : '' %> onchange="toggleAcsExternal()">
+                        Gunakan Built-in ACS Server (TR-069)
+                    </label>
+                    <div style="font-size:12px; color:var(--muted); margin:4px 0 0 24px;">
+                        Aplikasi bertindak sebagai server ACS TR-069 sendiri (endpoint <code>/acs</code>) tanpa perlu server GenieACS terpisah.
+                    </div>
+                    <div id="acsExternalFields" style="margin-top:14px; <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'display:none;' : '' %>">
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS API URL</label>
+                                <input class="fc" id="acsGenieUrl" value="<%= (typeof settings !== 'undefined' && settings && settings.genieacs_url) || '' %>" placeholder="http://192.168.8.89:7557" style="width:100%;">
+                            </div>
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS Username</label>
+                                <input class="fc" id="acsGenieUser" value="<%= (typeof settings !== 'undefined' && settings && settings.genieacs_username) || '' %>" autocomplete="off" style="width:100%;">
+                            </div>
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS Password</label>
+                                <input class="fc" type="password" id="acsGeniePass" value="" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah" style="width:100%;">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; margin-top:14px;">
+                        <button type="button" class="btn btn-p btn-sm" onclick="saveAcsSettings(this)"><i class="bi bi-save"></i> Simpan Pengaturan ACS</button>
+                        <span id="acsSettingsMsg" style="font-size:13px;"></span>
+                    </div>
+                </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                     <h3>ACS Servers</h3>
                     <button class="btn btn-p btn-sm" onclick="openAddServerModal()"><i class="bi bi-plus-lg"></i> Add ACS Server</button>
@@ -1310,6 +1340,32 @@ async function submitChangePassword() {
     }
 }
 
+function toggleAcsExternal() {
+    const chk = document.getElementById('acsBuiltin');
+    const box = document.getElementById('acsExternalFields');
+    if (chk && box) box.style.display = chk.checked ? 'none' : 'block';
+}
+async function saveAcsSettings(btn) {
+    const msg = document.getElementById('acsSettingsMsg');
+    const show = (ok, text) => { msg.style.color = ok ? '#166534' : '#991b1b'; msg.textContent = (ok ? '✔ ' : '✖ ') + text; };
+    btn.disabled = true; msg.style.color = ''; msg.textContent = 'Menyimpan…';
+    try {
+        const res = await fetch('/admin/acs/api/settings', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                use_builtin_acs: document.getElementById('acsBuiltin').checked,
+                genieacs_url: document.getElementById('acsGenieUrl').value,
+                genieacs_username: document.getElementById('acsGenieUser').value,
+                genieacs_password: document.getElementById('acsGeniePass').value
+            })
+        });
+        const raw = await res.text();
+        let d; try { d = JSON.parse(raw); } catch (_) { throw new Error('Server membalas HTTP ' + res.status + ' (bukan JSON).'); }
+        if (!d.success) throw new Error(d.message || 'Gagal menyimpan');
+        show(true, d.message + ' Memuat ulang…');
+        setTimeout(() => location.reload(), 900);
+    } catch (e) { show(false, e.message); btn.disabled = false; }
+}
 </script>
 </body>
 </html>

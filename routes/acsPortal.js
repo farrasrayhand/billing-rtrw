@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rawAxios = require('axios');
 const db = require('../config/database');
-const { getSetting, getSettings } = require('../config/settingsManager');
+const { getSetting, getSettings, saveSettings } = require('../config/settingsManager');
 const sidebarMenuSvc = require('../services/sidebarMenuService');
 const customerDevice = require('../services/customerDeviceService');
 const mikrotikSvc = require('../services/mikrotikService');
@@ -1353,6 +1353,28 @@ router.post('/api/servers', requireAdmin, async (req, res) => {
             'INSERT INTO genieacs_servers (name, url, username, password, location) VALUES (?, ?, ?, ?, ?)'
         ).run(name, url, username || null, password || null, location || '');
         res.json({ success: true, message: 'ACS server added' });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// PUT /admin/acs/api/settings (pengaturan ACS: Built-in ACS & GenieACS eksternal; dulu ada di halaman Pengaturan)
+router.put('/api/settings', requireAdmin, express.json(), async (req, res) => {
+    try {
+        const b = req.body || {};
+        const payload = { use_builtin_acs: b.use_builtin_acs === true || b.use_builtin_acs === 'true' };
+        if (typeof b.genieacs_url === 'string') {
+            const url = b.genieacs_url.trim();
+            if (url && !/^https?:\/\//i.test(url)) {
+                return res.status(400).json({ success: false, message: 'URL GenieACS harus diawali http:// atau https://' });
+            }
+            payload.genieacs_url = url;
+        }
+        if (typeof b.genieacs_username === 'string') payload.genieacs_username = b.genieacs_username.trim();
+        // Password hanya diganti bila diisi (kolom kosong = tidak diubah)
+        if (typeof b.genieacs_password === 'string' && b.genieacs_password.trim()) payload.genieacs_password = b.genieacs_password;
+        if (!saveSettings(payload)) throw new Error('Gagal menyimpan pengaturan');
+        res.json({ success: true, message: 'Pengaturan ACS disimpan.' });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }

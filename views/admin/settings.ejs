@@ -102,7 +102,6 @@
         </style>
         <div class="hub-tabs" id="settings-tabs">
           <button type="button" class="hub-tab active" data-tab="umum"><i class="bi bi-info-circle"></i> Umum</button>
-          <button type="button" class="hub-tab" data-tab="jaringan"><i class="bi bi-router"></i> Jaringan &amp; ACS</button>
           <button type="button" class="hub-tab" data-tab="keamanan"><i class="bi bi-shield-lock"></i> Keamanan</button>
           <button type="button" class="hub-tab" data-tab="whatsapp"><i class="bi bi-whatsapp"></i> WhatsApp</button>
           <button type="button" class="hub-tab" data-tab="pembayaran"><i class="bi bi-wallet2"></i> Pembayaran</button>
@@ -242,92 +241,6 @@
           </div>
         </div>
 
-        <!-- GenieACS & MikroTik -->
-        <div data-settings-tab="jaringan">
-          <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-router"></i> <%= t('admin.settings.external_api', 'API Eksternal') %></h6>
-          
-          <div class="fg" style="margin-bottom:16px; background:#eff6ff; padding:12px; border-radius:8px; border:1px dashed #bfdbfe;">
-            <label class="fl" style="display:flex; align-items:center; gap:8px; font-weight:bold; cursor:pointer; margin:0;">
-              <input type="checkbox" name="use_builtin_acs" value="true" id="use_builtin_acs" <%= settings.use_builtin_acs ? 'checked' : '' %> onchange="toggleAcsFields()">
-              Gunakan Built-in ACS Server (TR-069)
-            </label>
-            <div style="font-size:10px; color:var(--muted); margin-top:4px; padding-left:20px;">
-              Jika diaktifkan, aplikasi akan bertindak sebagai server ACS TR-069 sendiri (endpoint: <span class="mono" style="font-weight:700;">/acs</span>) tanpa perlu server GenieACS terpisah.
-            </div>
-          </div>
-
-          <script>
-            function toggleAcsFields() {
-              const chk = document.getElementById('use_builtin_acs');
-              const fields = document.getElementById('genieacs_external_fields');
-              if (chk && fields) {
-                fields.style.display = chk.checked ? 'none' : 'block';
-              }
-            }
-          </script>
-
-          <div id="genieacs_external_fields" <% if (settings.use_builtin_acs) { %>style="display:none;"<% } %>>
-            <div class="fg">
-              <label class="fl">GenieACS API URL</label>
-              <input class="fc" name="genieacs_url" value="<%= settings.genieacs_url || '' %>" placeholder="http://192.168.8.89:7557">
-            </div>
-            <div class="form-row">
-              <div class="fg">
-                <label class="fl">GenieACS Username</label>
-                <input class="fc" name="genieacs_username" value="<%= settings.genieacs_username || '' %>">
-              </div>
-              <div class="fg">
-                <label class="fl">GenieACS Password</label>
-                <input class="fc" type="password" name="genieacs_password" value="<%= settings.genieacs_password || '' %>">
-              </div>
-            </div>
-          </div>
-
-          <div class="hint" style="margin-top:16px; background:#eff6ff; border:1px dashed #bfdbfe; padding:12px; border-radius:8px;">
-            Pengaturan MikroTik (mode multi-router, default router, kredensial router) dipindahkan ke <a href="/admin/mikrotik/settings" style="font-weight:700;color:var(--primary)">MikroTik &rarr; tab Pengaturan</a>.
-          </div>
-
-          <div class="form-row" style="margin-top:20px">
-            <div class="fg">
-              <label class="fl">Digiflazz Username</label>
-              <input class="fc" name="digiflazz_username" value="<%= settings.digiflazz_username || '' %>" placeholder="username digiflazz">
-            </div>
-            <div class="fg">
-              <label class="fl">Digiflazz API Key</label>
-              <input class="fc" type="password" name="digiflazz_api_key" value="<%= settings.digiflazz_api_key || '' %>" placeholder="api key digiflazz">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="fg">
-              <label class="fl">Digiflazz Webhook Secret</label>
-              <input class="fc" name="digiflazz_webhook_secret" value="<%= settings.digiflazz_webhook_secret || '' %>" placeholder="secret untuk verifikasi webhook">
-              <div style="font-size:10px; color:var(--muted); margin-top:4px">Header yang dicek: <span class="mono">X-Hub-Signature</span> (HMAC-SHA1) dan event di <span class="mono">X-Digiflazz-Event</span>.</div>
-            </div>
-            <div class="fg">
-              <label class="fl">Digiflazz Webhook ID (Opsional)</label>
-              <input class="fc" name="digiflazz_webhook_id" value="<%= settings.digiflazz_webhook_id || '' %>" placeholder="contoh: ABC123">
-              <div style="font-size:10px; color:var(--muted); margin-top:4px">Dipakai untuk validasi ping event (hook_id). Tidak wajib untuk transaksi.</div>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="fg">
-              <label class="fl">Webhook URL</label>
-              <div class="hint"><span class="mono"><%= (typeof digiflazzWebhookUrl !== 'undefined' && digiflazzWebhookUrl) ? digiflazzWebhookUrl : ('http://' + (settings.server_host || 'localhost') + ':' + (settings.server_port || 3001) + '/webhook/digiflazz') %></span></div>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="fg">
-              <label class="fl">Digiflazz Markup (Rp)</label>
-              <input class="fc" type="number" name="digiflazz_markup" value="<%= settings.digiflazz_markup || 0 %>" min="0">
-              <div style="font-size:10px; color:var(--muted); margin-top:4px">Dipakai saat Sync Produk: harga jual = modal + markup.</div>
-            </div>
-            <div class="fg">
-              <label class="fl">Halaman Admin Digiflazz</label>
-              <div class="hint"><a href="/admin/digiflazz" style="color:var(--primary);font-weight:700;text-decoration:none">Buka Dashboard Digiflazz</a></div>
-            </div>
-          </div>
-        </div>
-
         <!-- Admin Auth -->
         <div data-settings-tab="keamanan">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-shield-lock"></i> Kredensial Admin</h6>
@@ -343,7 +256,12 @@
           </div>
           <div class="fg">
             <label class="fl">Admin API Key (Untuk akses luar)</label>
-            <input class="fc" name="admin_api_key" value="<%= settings.admin_api_key || '' %>">
+            <div style="display:flex;gap:8px">
+              <input class="fc" id="admin_api_key_input" name="admin_api_key" value="<%= settings.admin_api_key || '' %>" autocomplete="off" placeholder="Kosongkan untuk menonaktifkan akses API luar">
+              <button type="button" class="btn btn-g" onclick="generateAdminApiKey()" title="Buat API Key acak baru"><i class="bi bi-arrow-repeat"></i> Generate</button>
+              <button type="button" class="btn btn-g" onclick="copyInput('admin_api_key_input', 'API Key')" title="Salin"><i class="bi bi-copy"></i></button>
+            </div>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px">Dipakai sebagai header <span class="mono">x-admin-key</span> untuk akses API dari luar. Setelah generate, klik <strong>Simpan Pengaturan</strong>. Menggantinya memutus aplikasi lain yang masih memakai key lama.</div>
           </div>
         </div>
 
@@ -1032,6 +950,15 @@ setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='n
   if (!start) { try { start = localStorage.getItem('settingsTab') || ''; } catch (e) {} }
   show(start || 'umum');
 })();
+function generateAdminApiKey() {
+  var el = document.getElementById('admin_api_key_input');
+  if (!el) return;
+  if (el.value && !confirm('Ganti API Key yang sekarang? Aplikasi lain yang memakai key lama akan berhenti bekerja.')) return;
+  var bytes = new Uint8Array(24);
+  (window.crypto || window.msCrypto).getRandomValues(bytes);
+  el.value = Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  el.focus();
+}
 </script>
 </body>
 </html>
