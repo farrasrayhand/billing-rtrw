@@ -309,7 +309,8 @@ function startCronJobs() {
           let qrisUniqueCode = 0;
           let finalTagihanStr = totalTagihan.toLocaleString('id-ID');
 
-          if (unpaidInvoices.length > 0) {
+          // Kode unik & QRIS hanya bila QRIS statis aktif dan diatur; selain itu nominal tagihan apa adanya.
+          if (unpaidInvoices.length > 0 && require('./uniqueCodeService').isStaticQrisReady()) {
             try {
               const inv = unpaidInvoices[0];
               let code = Number(inv.qris_unique_code || 0) || 0;
