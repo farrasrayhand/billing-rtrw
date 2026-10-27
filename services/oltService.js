@@ -1050,7 +1050,9 @@ const slowWalk = async (session, baseOid, maxEntries = 5000) => {
     }
     failures = 0;
 
-    const list = Array.isArray(res.varbinds) ? res.varbinds : [];
+    // SNMP v2c: getBulk memberi array di dalam array (varbinds[0] = baris untuk OID permintaan pertama).
+    const raw = Array.isArray(res.varbinds) ? res.varbinds : [];
+    const list = Array.isArray(raw[0]) ? raw[0] : raw;
     if (!list.length) break;
     let ended = false;
     let advanced = false;
