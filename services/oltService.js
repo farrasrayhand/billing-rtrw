@@ -1013,43 +1013,69 @@ class ProgressTracker {
   }
 }
 
+// Baca satu tabel SNMP dengan GETBULK. Berbeda dari session.subtree (yang berhenti dan mengembalikan data
+// sebagian begitu SATU paket gagal), pembacaan ini MELANJUTKAN dari OID terakhir setelah kegagalan sementara
+// (OLT besar / jalur VPN bisa menghilangkan paket), dan menghormati batas maxEntries.
 const slowWalk = async (session, baseOid, maxEntries = 5000) => {
-  const results  = {};
-  let walkCount  = 0;
+  const results = {};
+  let walkCount = 0;
   const walkStartedAt = Date.now();
   const pg = session && session.__progress;
   if (pg) pg.walkStart(baseOid);
 
-  return new Promise((resolve) => {
-    session.subtree(
-      baseOid,
-      20, // maxRepetitions (GETBULK size)
-      (varbinds) => {
-        for (const vb of varbinds) {
-          if (!vb || vb.oid == null) continue;
-          if (snmp.isVarbindError(vb)) continue;
-          if (!oidUnderBase(vb.oid, baseOid)) continue;
+  const MAX_REPETITIONS = 20;
+  const MAX_CONSECUTIVE_FAILURES = 5;
+  let cursor = baseOid;
+  let failures = 0;
+  let totalFailures = 0;
+  let lastError = null;
+  let truncated = false;
 
-          const idx = extractIdx(vb.oid, baseOid);
-          results[idx] = vb.value;
-          walkCount++;
-          if (walkCount >= maxEntries) {
-            break;
-          }
-        }
-        if (pg) pg.walkRows(baseOid, walkCount);
-      },
-      (error) => {
-        // Resolve results when done, ignoring errors
-        if (pg) pg.walkDone(baseOid);
-        const elapsed = Date.now() - walkStartedAt;
-        if (elapsed > 3000 || error) {
-          logger.info(`[oltService] SNMP walk ${baseOid}: ${walkCount} baris dalam ${(elapsed / 1000).toFixed(1)}s${error ? ' (error: ' + error.message + ')' : ''}`);
-        }
-        resolve(results);
+  while (walkCount < maxEntries) {
+    const res = await new Promise((resolve) => {
+      try {
+        session.getBulk([cursor], 0, MAX_REPETITIONS, (err, varbinds) => resolve({ err, varbinds }));
+      } catch (e) {
+        resolve({ err: e });
       }
-    );
-  });
+    });
+
+    if (res.err) {
+      lastError = res.err;
+      failures++;
+      totalFailures++;
+      if (failures >= MAX_CONSECUTIVE_FAILURES) { truncated = true; break; }
+      await new Promise((r) => setTimeout(r, 200 * failures));
+      continue; // ulangi dari OID terakhir, tanpa kehilangan baris yang sudah terbaca
+    }
+    failures = 0;
+
+    const list = Array.isArray(res.varbinds) ? res.varbinds : [];
+    if (!list.length) break;
+    let ended = false;
+    let advanced = false;
+    for (const vb of list) {
+      if (!vb || vb.oid == null || snmp.isVarbindError(vb) || !oidUnderBase(vb.oid, baseOid)) { ended = true; break; }
+      results[extractIdx(vb.oid, baseOid)] = vb.value;
+      walkCount++;
+      cursor = vb.oid;
+      advanced = true;
+      if (walkCount >= maxEntries) { ended = true; break; }
+    }
+    if (pg) pg.walkRows(baseOid, walkCount);
+    if (ended || !advanced) break;
+  }
+
+  if (pg) pg.walkDone(baseOid);
+  if (truncated) {
+    session.__truncated = (session.__truncated || []).concat(baseOid);
+    logger.warn(`[oltService] SNMP walk ${baseOid} TERPUTUS setelah ${walkCount} baris (${lastError && lastError.message}); data tabel ini belum lengkap`);
+  }
+  const elapsed = Date.now() - walkStartedAt;
+  if (elapsed > 3000 || totalFailures > 0) {
+    logger.info(`[oltService] SNMP walk ${baseOid}: ${walkCount} baris dalam ${(elapsed / 1000).toFixed(1)}s${totalFailures ? ` (${totalFailures} paket diulang)` : ''}`);
+  }
+  return results;
 };
 
 const walkSample = async (session, baseOid, maxItems = 3) => {
@@ -2042,7 +2068,9 @@ async function getOltStatsAsync(id, force = false) {
       try {
         const result = await getOltStatsInternal(id, true, FULL_BACKGROUND_TIMEOUT_MS, tracker);
         if (result && !result.error) {
-          statsCache.set(key, { data: result, timestamp: Date.now() });
+          // Data sebagian (ada tabel terputus) hanya dianggap segar 20 detik agar segera dibaca ulang.
+          const ts = result.partial ? Date.now() - (FULL_FRESH_MS - 20000) : Date.now();
+          statsCache.set(key, { data: result, timestamp: ts });
           lastFullDurations.set(key, Date.now() - startedAt);
           logger.info(`[oltService] Pembacaan penuh OLT ${id} selesai dalam ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
         } else if (result && result.error) {
@@ -2556,6 +2584,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
 
         if (progress) progress.setStage('Menyusun hasil…');
         await systemMetricsPromise;
+        if (session.__truncated && session.__truncated.length) stats.partial = session.__truncated.length;
 
         const allIndices = new Set([...Object.keys(statusMap), ...Object.keys(nameMap)]);
         stats.onus_total = allIndices.size;

@@ -985,9 +985,10 @@ async function loadOltDashboard(id, silent = false) {
     if (stats.onus && stats.onus.length) oltRenderedId = id;
     const lu = document.getElementById('last-update');
     if (lu) {
-      lu.innerText = stats.loading
+      lu.innerText = (stats.loading
         ? oltProgressSummary(stats.progress)
-        : (stats.updated_at ? new Date(stats.updated_at).toLocaleTimeString() : '-');
+        : (stats.updated_at ? new Date(stats.updated_at).toLocaleTimeString() : '-'))
+        + (stats.partial ? ' ⚠ sebagian data belum lengkap (koneksi ke OLT putus-putus), akan dibaca ulang otomatis' : '');
     }
     if (stats.loading && id !== 'all') {
       oltPollTimer = setTimeout(() => loadOltDashboard(id, true), 2000);
