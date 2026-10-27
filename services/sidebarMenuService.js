@@ -159,6 +159,15 @@ function sanitizeMenuStates(input) {
   return clean;
 }
 
+// Menu yang mengikuti saklar fitur: tersembunyi (dan tidak bisa dibuka) selama fiturnya nonaktif,
+// apa pun status yang tersimpan di Pengaturan Sidebar.
+function isForcedHidden(menuKey) {
+  if (menuKey === 'digiflazz') {
+    try { return !require('../config/features').isDigiflazzEnabled(); } catch (e) { return true; }
+  }
+  return false;
+}
+
 function isMenuAllowedForSession(menu, session) {
   const roles = Array.isArray(menu.roles) ? menu.roles : ['admin'];
   if (roles.includes('admin') && session && session.isAdmin) return true;
@@ -168,7 +177,7 @@ function isMenuAllowedForSession(menu, session) {
 
 function enrichMenu(menu, states, session) {
   const state = states[menu.key] || DEFAULT_MENU_STATES[menu.key] || STATE_VISIBLE;
-  const hidden = state === STATE_HIDDEN;
+  const hidden = state === STATE_HIDDEN || isForcedHidden(menu.key);
   const asCashier = Boolean(session && session.isCashier && !session.isAdmin);
   return {
     ...menu,
@@ -206,7 +215,7 @@ function getBottomNavItems(session) {
 
 function getConfigMenus() {
   const states = getStoredMenuStates();
-  return MENU_DEFINITIONS.filter((menu) => !menu.navHidden).map((menu) => {
+  return MENU_DEFINITIONS.filter((menu) => !menu.navHidden && !isForcedHidden(menu.key)).map((menu) => {
     const section = SECTION_DEFINITIONS.find((s) => s.key === menu.section);
     return {
       ...menu,
@@ -234,6 +243,10 @@ function evaluateMenuAccess(menuKey, session) {
 
   if (!isMenuAllowedForSession(menu, session)) {
     return { allowed: false, state: 'forbidden', menu, reason: 'forbidden' };
+  }
+
+  if (isForcedHidden(menu.key)) {
+    return { allowed: false, state: STATE_HIDDEN, menu, reason: 'hidden' };
   }
 
   const states = getStoredMenuStates();
