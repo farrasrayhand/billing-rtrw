@@ -306,6 +306,20 @@
                             </div>
                         </div>
                     </div>
+                    <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+                        <div style="font-size:13px; font-weight:700; margin-bottom:4px;"><i class="fas fa-lock"></i> Login ONU ke ACS (opsional)</div>
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Kosongkan username untuk tanpa login (bawaan). Bila diisi, isi sama persis di ONU pada kolom ACS Username/Password. Dipakai agar hanya ONU yang tahu kredensial ini yang bisa mendaftar.</div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:var(--muted);">ACS Username</label>
+                                <input class="fc" id="acsAuthUser" value="<%= (typeof settings !== 'undefined' && settings && settings.acs_auth_username) || '' %>" autocomplete="off" style="width:100%;">
+                            </div>
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:var(--muted);">ACS Password</label>
+                                <input class="fc" type="password" id="acsAuthPass" value="" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah" style="width:100%;">
+                            </div>
+                        </div>
+                    </div>
                     <div style="display:flex; gap:12px; align-items:center; margin-top:14px;">
                         <button type="button" class="btn btn-p btn-sm" onclick="saveAcsSettings(this)"><i class="bi bi-save"></i> Simpan Pengaturan ACS</button>
                         <span id="acsSettingsMsg" style="font-size:13px;"></span>
@@ -1356,7 +1370,9 @@ async function saveAcsSettings(btn) {
                 use_builtin_acs: document.getElementById('acsBuiltin').checked,
                 genieacs_url: document.getElementById('acsGenieUrl').value,
                 genieacs_username: document.getElementById('acsGenieUser').value,
-                genieacs_password: document.getElementById('acsGeniePass').value
+                genieacs_password: document.getElementById('acsGeniePass').value,
+                acs_auth_username: document.getElementById('acsAuthUser').value,
+                acs_auth_password: document.getElementById('acsAuthPass').value
             })
         });
         const raw = await res.text();

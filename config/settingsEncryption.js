@@ -23,6 +23,7 @@ function getMasterKey() {
 // List field yang harus di-encrypt
 const SENSITIVE_FIELDS = [
   'genieacs_password',
+  'acs_auth_password',
   'admin_password',
   'admin_api_key',
   'mikrotik_password',

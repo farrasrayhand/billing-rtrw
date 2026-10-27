@@ -2299,7 +2299,26 @@ app.get('/acs', (req, res) => {
     builtin_acs_enabled: v === true || String(v).toLowerCase() === 'true'
   });
 });
-app.post('/acs', express.raw({ type: ['text/xml', 'application/soap+xml', 'application/xml', 'text/plain'], limit: '2mb' }), acsServerService.handleCwmpRequest);
+// Login opsional untuk ONU/CPE ke ACS (HTTP Basic). Aktif hanya bila `acs_auth_username` diisi di Pengaturan ACS.
+function acsBasicAuth(req, res, next) {
+  const user = String(getSetting('acs_auth_username', '') || '');
+  if (!user) return next();
+  const pass = String(getSetting('acs_auth_password', '') || '');
+  const digest = (s) => require('crypto').createHash('sha256').update(String(s)).digest();
+  const m = String(req.get('authorization') || '').match(/^Basic\s+(.+)$/i);
+  if (m) {
+    const decoded = Buffer.from(m[1], 'base64').toString('utf8');
+    const i = decoded.indexOf(':');
+    const u = i >= 0 ? decoded.slice(0, i) : decoded;
+    const p = i >= 0 ? decoded.slice(i + 1) : '';
+    const sameUser = require('crypto').timingSafeEqual(digest(u), digest(user));
+    const samePass = require('crypto').timingSafeEqual(digest(p), digest(pass));
+    if (sameUser && samePass) return next();
+  }
+  res.set('WWW-Authenticate', 'Basic realm="ACS"');
+  return res.status(401).end();
+}
+app.post('/acs', acsBasicAuth, express.raw({ type: ['text/xml', 'application/soap+xml', 'application/xml', 'text/plain'], limit: '2mb' }), acsServerService.handleCwmpRequest);
 
 // Landing page untuk scan QR stiker modem ONU pelanggan
 app.get('/app/connect', (req, res) => {

@@ -1373,6 +1373,15 @@ router.put('/api/settings', requireAdmin, express.json(), async (req, res) => {
         if (typeof b.genieacs_username === 'string') payload.genieacs_username = b.genieacs_username.trim();
         // Password hanya diganti bila diisi (kolom kosong = tidak diubah)
         if (typeof b.genieacs_password === 'string' && b.genieacs_password.trim()) payload.genieacs_password = b.genieacs_password;
+        // Login ONU ke ACS (opsional). Username kosong = login dimatikan (password ikut dihapus).
+        if (typeof b.acs_auth_username === 'string') {
+            const au = b.acs_auth_username.trim();
+            payload.acs_auth_username = au;
+            if (!au) payload.acs_auth_password = '';
+        }
+        if (typeof b.acs_auth_password === 'string' && b.acs_auth_password.trim() && payload.acs_auth_username !== '') {
+            payload.acs_auth_password = b.acs_auth_password;
+        }
         if (!saveSettings(payload)) throw new Error('Gagal menyimpan pengaturan');
         res.json({ success: true, message: 'Pengaturan ACS disimpan.' });
     } catch (e) {
