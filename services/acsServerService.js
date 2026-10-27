@@ -939,6 +939,21 @@ function buildDeviceId(deviceInfo) {
  * Must be mounted with:
  *   app.post('/acs', express.raw({ type: ['text/xml', 'application/soap+xml', 'application/xml'] }), handleCwmpRequest);
  */
+// Log koneksi masuk ke endpoint ACS (200 terakhir, di memori) untuk diagnosis "ONU tidak terdeteksi".
+const ACCESS_LOG_MAX = 200;
+const accessLog = [];
+function logAcsAccess(ip, result, detail, ua) {
+  accessLog.unshift({
+    time: new Date().toISOString(),
+    ip: String(ip || '-'),
+    result: String(result || ''),
+    detail: String(detail || ''),
+    userAgent: String(ua || '').slice(0, 80)
+  });
+  if (accessLog.length > ACCESS_LOG_MAX) accessLog.length = ACCESS_LOG_MAX;
+}
+function getAcsAccessLog() { return accessLog.slice(); }
+
 const handleCwmpRequest = async (req, res) => {
   try {
     // Get body as string
@@ -961,6 +976,7 @@ const handleCwmpRequest = async (req, res) => {
 
     // ── EMPTY POST (step 2 or 3) ───────────────────────────────────────────
     if (!body || body.trim().length === 0) {
+      logAcsAccess(cpeIp, 'POST kosong', session && session.deviceId ? session.deviceId : '', req.get('user-agent'));
       return handleEmptyPost(session, sid, res, cpeIp);
     }
 
@@ -968,6 +984,7 @@ const handleCwmpRequest = async (req, res) => {
     if (hasCwmpMethod(body, 'Inform')) {
       return handleInform(body, session, sid, cpeIp, res);
     }
+    logAcsAccess(cpeIp, 'Pesan lain', body.slice(0, 60).replace(/\s+/g, ' '), req.get('user-agent'));
 
     // ── RESPONSE TO A TASK ─────────────────────────────────────────────────
     // Check for known response types
@@ -1016,6 +1033,7 @@ function handleInform(body, session, sid, cpeIp, res) {
   const deviceInfo = parseDeviceId(body);
 
   if (!deviceInfo || !deviceInfo.SerialNumber) {
+    logAcsAccess(cpeIp, 'Inform tidak terbaca', 'DeviceId/SerialNumber tidak ditemukan', res.req && res.req.get('user-agent'));
     logger.warn(`[ACS] Inform received but could not parse DeviceId`);
     return sendSoapResponse(res, buildInformResponse(cwmpId));
   }
@@ -1024,6 +1042,7 @@ function handleInform(body, session, sid, cpeIp, res) {
   const params = parseParameterValues(body);
 
   logger.info(`[ACS] Inform from ${deviceId} (${deviceInfo.Manufacturer} ${deviceInfo.ProductClass}) IP=${cpeIp}`);
+  logAcsAccess(cpeIp, 'Inform', deviceId, res.req && res.req.get('user-agent'));
 
   // Upsert device in database
   let mergedParams = params;
@@ -1643,6 +1662,8 @@ function createBuiltinTask(deviceId, taskName, payload) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 module.exports = {
+  getAcsAccessLog,
+  logAcsAccess,
   handleCwmpRequest,
   triggerConnectionRequest,
   getBuiltinDevices,

@@ -1358,6 +1358,15 @@ router.post('/api/servers', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /admin/acs/api/access-log (koneksi masuk ke endpoint /acs, untuk diagnosis)
+router.get('/api/access-log', requireAdmin, (req, res) => {
+    try {
+        res.json({ success: true, items: require('../services/acsServerService').getAcsAccessLog() });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
 // PUT /admin/acs/api/settings (pengaturan ACS: Built-in ACS & GenieACS eksternal; dulu ada di halaman Pengaturan)
 router.put('/api/settings', requireAdmin, express.json(), async (req, res) => {
     try {

@@ -2315,6 +2315,11 @@ function acsBasicAuth(req, res, next) {
     const samePass = require('crypto').timingSafeEqual(digest(p), digest(pass));
     if (sameUser && samePass) return next();
   }
+  try {
+    require('./services/acsServerService').logAcsAccess(
+      req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : (req.socket && req.socket.remoteAddress),
+      m ? 'Login salah' : 'Minta login (401)', m ? 'username/password tidak cocok' : 'belum mengirim kredensial', req.get('user-agent'));
+  } catch (e) {}
   res.set('WWW-Authenticate', 'Basic realm="ACS"');
   return res.status(401).end();
 }
