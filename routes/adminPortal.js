@@ -2661,7 +2661,6 @@ router.post('/customers/:id/billing/generate', requireAdminSession, express.urle
   try {
     const { month, year } = req.body;
     const result = billingSvc.generateInvoiceForCustomer(req.params.id, parseInt(month), parseInt(year));
-    try { uniqueCodeService.autoAssignQrisForUnpaidInvoices({ customerId: Number(req.params.id) }); } catch (qe) { logger.warn('[QRIS] auto-assign gagal: ' + qe.message); }
     if (result.created) {
       req.session._msg = { type: 'success', text: `Tagihan berhasil dibuat untuk "${result.customerName}" periode ${month}/${year}.` };
     } else {
@@ -3019,12 +3018,7 @@ router.post('/billing/generate', requireAdminSession, express.urlencoded({ exten
   try {
     const { month, year } = req.body;
     const count = billingSvc.generateMonthlyInvoices(parseInt(month), parseInt(year));
-    let qrisNote = '';
-    try {
-      const q = uniqueCodeService.autoAssignQrisForUnpaidInvoices();
-      if (!q.skipped && q.assigned > 0) qrisNote = ` Kode QRIS dibuat otomatis untuk ${q.assigned} pelanggan.`;
-    } catch (qe) { logger.warn('[QRIS] auto-assign setelah generate gagal: ' + qe.message); }
-    req.session._msg = { type: 'success', text: `${count} tagihan baru berhasil digenerate untuk periode ${month}/${year}.${qrisNote}` };
+    req.session._msg = { type: 'success', text: `${count} tagihan baru berhasil digenerate untuk periode ${month}/${year}.` };
   } catch (e) {
     req.session._msg = { type: 'error', text: 'Gagal generate: ' + e.message };
   }

@@ -273,6 +273,27 @@ function ensureVoucherOrderQrisUnique(order, force = false) {
 /**
  * Pastikan invoice memiliki QRIS amount unik
  */
+const STALE_INVOICE_CODE_MIN_HOURS = 72;
+
+/**
+ * Lepaskan kode QRIS tagihan belum bayar yang paling lama (minimal 72 jam) pada rentang nominal yang sama.
+ * Dipakai hanya saat kolom kode 1-999 penuh. Mengembalikan true bila ada yang dilepas.
+ */
+function reclaimOldestInvoiceCode(baseAmount, excludeInvoiceId) {
+  const base = Math.floor(Number(baseAmount || 0));
+  const cutoff = formatLocalTimestamp(new Date(Date.now() - STALE_INVOICE_CODE_MIN_HOURS * 3600 * 1000));
+  const row = db.prepare(
+    `SELECT id FROM invoices
+     WHERE status = 'unpaid' AND qris_amount_unique BETWEEN ? AND ? AND id <> ?
+       AND qris_assigned_at IS NOT NULL AND qris_assigned_at < ?
+     ORDER BY qris_assigned_at ASC LIMIT 1`
+  ).get(base + 1, base + 999, Number(excludeInvoiceId || 0), cutoff);
+  if (!row) return false;
+  db.prepare("UPDATE invoices SET qris_unique_code = NULL, qris_amount_unique = NULL, qris_assigned_at = NULL WHERE id = ?").run(row.id);
+  logger.info(`[QRIS] Kolom kode penuh: kode tagihan ${row.id} (paling lama) dilepas untuk dipakai ulang.`);
+  return true;
+}
+
 function ensureInvoiceQrisUnique(inv, force = false) {
   const invId = Number(inv?.id || 0);
   if (!Number.isFinite(invId) || invId <= 0) throw new Error('Invoice ID tidak valid');
@@ -298,11 +319,17 @@ function ensureInvoiceQrisUnique(inv, force = false) {
   }
 
   const prefCode = (custId > 0) ? ((custId % 499 === 0) ? 499 : (custId % 499)) : null;
-  const { uniqueCode, amountUnique } = allocateUniqueCode(baseAmount, {
-    preferredCode: prefCode,
-    randomize: false,
-    excludeInvoiceId: invId
-  });
+  const allocOpts = { preferredCode: prefCode, randomize: false, excludeInvoiceId: invId };
+  let allocated;
+  try {
+    allocated = allocateUniqueCode(baseAmount, allocOpts);
+  } catch (e) {
+    // Kolom kode untuk nominal ini penuh: daur ulang kode tagihan belum bayar yang PALING LAMA tidak dipakai,
+    // lalu coba lagi sekali. Pemilik kode lama akan mendapat kode baru saat membuka pembayaran/dikirimi tagihan lagi.
+    if (!/slot kode/i.test(String(e.message)) || !reclaimOldestInvoiceCode(baseAmount, invId)) throw e;
+    allocated = allocateUniqueCode(baseAmount, allocOpts);
+  }
+  const { uniqueCode, amountUnique } = allocated;
 
   db.prepare(`
     UPDATE invoices

@@ -18,7 +18,7 @@
     <div class="tb-right">
       <button class="btn btn-p btn-sm" onclick="openModal('genModal')"><i class="bi bi-lightning-charge"></i> <%= t('admin.billing.generate', 'Generate Tagihan') %></button>
       <% if (typeof hasStaticQris === 'undefined' || hasStaticQris) { %>
-      <form method="POST" action="/admin/billing/qris-assign-all" style="display:inline" title="Kode QRIS dibuat otomatis tiap tagihan terbit; tombol ini untuk menyusul tagihan yang sudah ada">
+      <form method="POST" action="/admin/billing/qris-assign-all" style="display:inline" title="Opsional. Kode QRIS sudah dibuat otomatis saat pelanggan membuka pembayaran atau tagihan dikirim; tombol ini membuatnya untuk semua tagihan sekaligus (memakai banyak slot kode)">
         <button class="btn btn-g btn-sm"><i class="bi bi-qr-code"></i> Buat Semua Kode QRIS</button>
       </form>
       <% } %>

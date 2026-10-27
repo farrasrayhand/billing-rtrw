@@ -80,26 +80,8 @@ function startCronJobs() {
     try {
       const count = billingSvc.generateMonthlyInvoices(month, year);
       logger.info(`[CRON] Berhasil generate ${count} tagihan otomatis.`);
-      try {
-        const q = require('./uniqueCodeService').autoAssignQrisForUnpaidInvoices();
-        if (!q.skipped) logger.info(`[CRON] Kode QRIS otomatis: ${q.assigned} dibuat/diperbarui, ${q.errors} gagal.`);
-      } catch (qe) {
-        logger.error(`[CRON] Gagal membuat kode QRIS otomatis: ${qe.message}`);
-      }
     } catch (error) {
       logger.error(`[CRON] Gagal generate tagihan otomatis: ${error.message}`);
-    }
-  });
-
-  // 1a. Jaring pengaman: tagihan belum bayar yang belum punya kode QRIS (atau kodenya tidak cocok lagi) dibuatkan otomatis tiap 10 menit
-  cron.schedule('*/10 * * * *', () => {
-    try {
-      const q = require('./uniqueCodeService').autoAssignQrisForUnpaidInvoices();
-      if (!q.skipped && (q.assigned > 0 || q.errors > 0)) {
-        logger.info(`[CRON] Kode QRIS otomatis: ${q.assigned} dibuat/diperbarui, ${q.errors} gagal.`);
-      }
-    } catch (e) {
-      logger.error(`[CRON] Gagal membuat kode QRIS otomatis: ${e.message}`);
     }
   });
 
