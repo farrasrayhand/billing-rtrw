@@ -84,16 +84,6 @@
         </div>
       </div>
     </div>
-    <% } else { %>
-    <div class="card mb16">
-      <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <h6 style="margin:0"><i class="bi bi-wallet2"></i> <%= t('admin.settings.ewallet_logs.title', 'Log Notifikasi E-Wallet (Webhook)') %></h6>
-        <a class="btn btn-p btn-sm" href="/admin/ewallet-logs"><i class="bi bi-box-arrow-up-right"></i> <%= t('common.open', 'Buka') %></a>
-      </div>
-      <div class="card-bd">
-        <div class="hint">Log notifikasi e-wallet dipindah ke halaman khusus agar pengaturan tidak terdorong ke bawah.</div>
-      </div>
-    </div>
     <% } %>
 
     <% if (!logsOnly) { %>
@@ -103,12 +93,28 @@
           Pengaturan bot Telegram (token, Admin ID, AI grup, sambutan) dipindahkan ke menu <a href="/admin/telegram" style="font-weight:700;color:var(--primary)">Telegram</a>.
         </div>
 
+        <style>
+          button.hub-tab { border:0; background:transparent; font:inherit; font-weight:700; }
+          button.hub-tab.active { background:var(--primary); color:#fff; }
+          .settings-grid.tabs-on > [data-settings-tab] { display:none; }
+          .settings-grid.tabs-on > [data-settings-tab].active { display:block; grid-column:1 / -1; }
+          .settings-savebar { position:sticky; bottom:0; z-index:5; background:var(--bg2, #fff); }
+        </style>
+        <div class="hub-tabs" id="settings-tabs">
+          <button type="button" class="hub-tab active" data-tab="umum"><i class="bi bi-info-circle"></i> Umum</button>
+          <button type="button" class="hub-tab" data-tab="jaringan"><i class="bi bi-router"></i> Jaringan &amp; ACS</button>
+          <button type="button" class="hub-tab" data-tab="keamanan"><i class="bi bi-shield-lock"></i> Keamanan</button>
+          <button type="button" class="hub-tab" data-tab="whatsapp"><i class="bi bi-whatsapp"></i> WhatsApp</button>
+          <button type="button" class="hub-tab" data-tab="pembayaran"><i class="bi bi-wallet2"></i> Pembayaran</button>
+          <a class="hub-tab" href="/admin/ewallet-logs"><i class="bi bi-receipt-cutoff"></i> Log E-Wallet</a>
+        </div>
+
         <div class="card mb16">
-          <div class="card-hd"><h6><i class="bi bi-whatsapp"></i> <%= t('admin.settings.whatsapp.title', 'Pengaturan WhatsApp') %></h6></div>
+          <div class="card-hd"><h6><i class="bi bi-gear"></i> <%= t('admin.settings.system_title', 'Pengaturan Sistem') %></h6></div>
           <div class="card-bd settings-grid">
         
         <!-- General Info -->
-        <div>
+        <div data-settings-tab="umum">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-info-circle"></i> <%= t('admin.settings.app_info', 'Info Aplikasi') %></h6>
           <div class="fg">
             <label class="fl"><%= t('admin.settings.company_name', 'Nama Aplikasi / Perusahaan') %></label>
@@ -237,7 +243,7 @@
         </div>
 
         <!-- GenieACS & MikroTik -->
-        <div>
+        <div data-settings-tab="jaringan">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-router"></i> <%= t('admin.settings.external_api', 'API Eksternal') %></h6>
           
           <div class="fg" style="margin-bottom:16px; background:#eff6ff; padding:12px; border-radius:8px; border:1px dashed #bfdbfe;">
@@ -323,7 +329,7 @@
         </div>
 
         <!-- Admin Auth -->
-        <div>
+        <div data-settings-tab="keamanan">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-shield-lock"></i> Kredensial Admin</h6>
           <div class="form-row">
             <div class="fg">
@@ -342,7 +348,7 @@
         </div>
 
         <!-- WhatsApp -->
-        <div>
+        <div data-settings-tab="whatsapp">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-whatsapp"></i> Integrasi WhatsApp</h6>
           <div class="fg">
             <label class="fl">Enable WhatsApp Bot</label>
@@ -367,7 +373,7 @@
         </div>
 
         <!-- Payment Gateway -->
-        <div class="settings-span-2">
+        <div class="settings-span-2" data-settings-tab="pembayaran">
           <h6 style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px"><i class="bi bi-wallet2"></i> Pengaturan Payment Gateway</h6>
           
           <div class="form-row3" style="margin-bottom: 20px;">
@@ -695,7 +701,7 @@
 
       </div>
       
-          <div class="card-bd" style="border-top:1px solid var(--border);padding-top:20px;text-align:right">
+          <div class="card-bd settings-savebar" style="border-top:1px solid var(--border);padding-top:20px;text-align:right">
             <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Simpan Pengaturan</button>
           </div>
         </div>
@@ -1005,6 +1011,27 @@ async function clearEwalletLogs() {
 setTimeout(loadEwalletLogs, 200);
 setTimeout(updateNotifHint, 250);
 setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='none'),5000);
+</script>
+<script>
+(function () {
+  const grid = document.querySelector('.settings-grid');
+  const bar = document.getElementById('settings-tabs');
+  if (!grid || !bar) return;
+  const panels = Array.prototype.slice.call(grid.children).filter(function (el) { return el.hasAttribute('data-settings-tab'); });
+  const buttons = Array.prototype.slice.call(bar.querySelectorAll('button[data-tab]'));
+  function show(name) {
+    if (!panels.some(function (p) { return p.getAttribute('data-settings-tab') === name; })) name = 'umum';
+    panels.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-settings-tab') === name); });
+    buttons.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
+    try { localStorage.setItem('settingsTab', name); } catch (e) {}
+    if (location.hash !== '#' + name) { try { history.replaceState(null, '', '#' + name); } catch (e) {} }
+  }
+  grid.classList.add('tabs-on');
+  buttons.forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-tab')); }); });
+  let start = location.hash.replace('#', '');
+  if (!start) { try { start = localStorage.getItem('settingsTab') || ''; } catch (e) {} }
+  show(start || 'umum');
+})();
 </script>
 </body>
 </html>
