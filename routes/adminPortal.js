@@ -231,33 +231,47 @@ function routerContextMiddleware(req, res, next) {
 
 router.use(routerContextMiddleware);
 
-// Defense-in-depth: kasir tidak boleh menyentuh area khusus admin, apa pun metodenya,
-// meskipun route-nya hanya dijaga requireAdminSession.
-const CASHIER_DENIED_PATHS = [
-  /^\/(settings|backup|update|telegram|ai|digiflazz|payroll|technicians|collectors|olts|onu-provision|monitoring|audit-logs|ewallet-logs|sidebar-settings|routers|acs|promo-slides)(\/|$)/,
-  /^\/cashiers(?!\/(attendance|reports)(\/|$))(\/|$)/,
-  /^\/agents\/reports(\/|$)/,
-  /^\/mikrotik\/settings(\/|$)/,
-  /^\/whatsapp\/(gateway-settings|reset|repair-keys|test-fonnte)(\/|$)/,
-  /^\/api\/(system|telegram|routers|genieacs|promo-slides|webhook|isolir-portal-script|settings)(\/|$)/,
-  /^\/api\/mikrotik\/backup(\/|$)/
+// Kasir memakai DAFTAR IZIN (allowlist): hanya yang disebut di sini yang boleh, selebihnya ditolak.
+// Tugas kasir: menerima pembayaran dan mengirim broadcast WhatsApp (tanpa mengubah pengaturan).
+const CASHIER_ALLOWED = [
+  ['GET',  /^\/$/],
+  ['GET',  /^\/logout$/],
+  ['GET',  /^\/set-active-router$/],
+  // lihat pelanggan & tagihan
+  ['GET',  /^\/customers$/],
+  ['GET',  /^\/billing$/],
+  ['GET',  /^\/billing\/[^/]+\/(print|print-thermal|pdf)$/],
+  ['GET',  /^\/api\/billing\/unpaid\/[^/]+$/],
+  ['GET',  /^\/api\/customers\/[^/]+\/(paid-months|billing-year)$/],
+  // terima pembayaran (tanpa membatalkan/menghapus/menerbitkan tagihan massal)
+  ['POST', /^\/billing\/(pay-bulk|[^/]+\/(pay|send-pdf-wa|whatsapp|qris-assign|qris-clear))$/],
+  ['POST', /^\/customers\/[^/]+\/(billing\/pay|topup)$/],
+  // absensi & laporan kasir sendiri
+  ['GET',  /^\/cashiers\/(attendance|reports)$/],
+  ['POST', /^\/cashiers\/attendance\/(checkin|checkout)$/],
+  // broadcast WhatsApp: boleh kirim/jeda/lanjut/stop, tidak boleh mengubah pengaturan/template
+  ['GET',  /^\/whatsapp\/broadcast$/],
+  ['POST', /^\/whatsapp\/broadcast$/],
+  ['GET',  /^\/api\/whatsapp\/(broadcast-status|status)$/],
+  ['POST', /^\/api\/whatsapp\/broadcast-(pause|resume|stop)$/],
+  ['GET',  /^\/api\/stats$/]
 ];
+function isCashierAllowed(method, path) {
+  const m = String(method || 'GET').toUpperCase() === 'HEAD' ? 'GET' : String(method || 'GET').toUpperCase();
+  return CASHIER_ALLOWED.some(([allowedMethod, re]) => allowedMethod === m && re.test(path));
+}
+
 // Fitur voucher/hotspot dapat dimatikan lewat Pengaturan (hotspot_enabled).
 router.use(['/vouchers', '/api/vouchers', '/api/mikrotik/hotspot-users', '/api/mikrotik/hotspot-profiles', '/api/mikrotik/hotspot-user-profiles', '/api/mikrotik/active-hotspot'], requireHotspotEnabled);
-
-// Kasir boleh melihat RADIUS, tetapi tidak boleh mengubahnya.
-const CASHIER_DENIED_WRITE_PATHS = [/^\/(radius-settings|radius)(\/|$)/];
 
 router.use((req, res, next) => {
   const sess = req.session;
   if (!sess || sess.isAdmin || !sess.isCashier) return next();
-  const denied = CASHIER_DENIED_PATHS.some((re) => re.test(req.path))
-    || (req.method !== 'GET' && req.method !== 'HEAD' && CASHIER_DENIED_WRITE_PATHS.some((re) => re.test(req.path)));
-  if (!denied) return next();
+  if (req.path === '/login' || isCashierAllowed(req.method, req.path)) return next();
   if (req.path.startsWith('/api/') || req.xhr || /json/.test(req.get('accept') || '')) {
-    return res.status(403).json({ success: false, error: 'Hanya Admin yang dapat mengakses fitur ini.' });
+    return res.status(403).json({ success: false, error: 'Fitur ini tidak tersedia untuk kasir.' });
   }
-  sess._msg = { type: 'error', text: 'Hanya Admin yang dapat mengakses halaman ini.' };
+  sess._msg = { type: 'error', text: 'Fitur ini tidak tersedia untuk akun kasir.' };
   return res.redirect('/admin');
 });
 
@@ -1343,7 +1357,10 @@ router.post('/cashiers/attendance/checkout', requireAdminSession, uploadAttendan
 });
 
 
-router.get('/cashiers/reports', requireAdminSession, requireSidebarMenuAccess('reports'), (req, res) => {
+// Admin memakai menu "reports"; kasir memakai menu "Laporan Saya" (hanya data miliknya sendiri).
+const cashierReportsAccess = (req, res, next) =>
+  requireSidebarMenuAccess(req.session?.isAdmin ? 'reports' : 'cashier_reports')(req, res, next);
+router.get('/cashiers/reports', requireAdminSession, cashierReportsAccess, (req, res) => {
   const allCashiers = adminSvc.getAllCashiers();
   const isAdmin = Boolean(req.session?.isAdmin);
   const isCashier = Boolean(req.session?.isCashier);

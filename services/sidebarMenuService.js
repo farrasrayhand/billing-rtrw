@@ -12,44 +12,45 @@ const VALID_STATES = new Set([STATE_VISIBLE, STATE_HIDDEN]);
 const MENU_DEFINITIONS = [
   // ── UTAMA ──
   { key: 'dashboard', section: 'main', href: '/admin', icon: 'bi bi-speedometer2', labelKey: 'admin.nav.dashboard', labelDefault: 'Dashboard', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['dashboard'] },
-  { key: 'mikrotik', section: 'network', href: '/admin/mikrotik', icon: 'bi bi-router', labelKey: 'admin.nav.mikrotik', labelDefault: 'MikroTik', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['mikrotik'] },
+  { key: 'mikrotik', section: 'network', href: '/admin/mikrotik', icon: 'bi bi-router', labelKey: 'admin.nav.mikrotik', labelDefault: 'MikroTik', roles: ['admin'], bottomNav: true, activePages: ['mikrotik'] },
   { key: 'radius_server', section: 'network', href: '/admin/radius-settings', icon: 'bi bi-broadcast', labelKey: 'admin.nav.radius_server', labelDefault: 'RADIUS Server', roles: ['admin'], activePages: ['radius_settings'] },
-  { key: 'map', section: 'main', href: '/admin/map', icon: 'bi bi-map', labelKey: 'admin.nav.network_map', labelDefault: 'Peta Jaringan', roles: ['admin', 'cashier'], activePages: ['map'] },
+  { key: 'map', section: 'main', href: '/admin/map', icon: 'bi bi-map', labelKey: 'admin.nav.network_map', labelDefault: 'Peta Jaringan', roles: ['admin'], activePages: ['map'] },
   { key: 'acs_pro', section: 'network', href: '/admin/acs', icon: 'bi bi-hdd-network', labelKey: 'admin.nav.acs_pro', labelDefault: 'GenieACS Pro', roles: ['admin'], activePages: ['acs_pro'] },
   { key: 'onu_provision', section: 'network', href: '/admin/onu-provision', icon: 'bi bi-diagram-3', labelKey: 'admin.nav.onu_provision', labelDefault: 'ONU Provision', roles: ['admin'], activePages: ['onu_provision'] },
   { key: 'olts', section: 'network', href: '/admin/olts', icon: 'bi bi-hdd-rack', labelKey: 'admin.nav.olt_management', labelDefault: 'Manajemen OLT', roles: ['admin'], activePages: ['olts'] },
-  { key: 'whatsapp', section: 'comm', href: '/admin/whatsapp', icon: 'bi bi-whatsapp', labelKey: 'admin.nav.whatsapp', labelDefault: 'WhatsApp', roles: ['admin', 'cashier'], activePages: ['whatsapp'] },
+  { key: 'whatsapp', section: 'comm', href: '/admin/whatsapp', icon: 'bi bi-whatsapp', labelKey: 'admin.nav.whatsapp', labelDefault: 'WhatsApp', cashierHref: '/admin/whatsapp/broadcast', roles: ['admin', 'cashier'], activePages: ['whatsapp'] },
   { key: 'telegram', section: 'comm', href: '/admin/telegram', icon: 'bi bi-telegram', labelKey: 'admin.nav.telegram', labelDefault: 'Telegram', roles: ['admin'], activePages: ['telegram'] },
   { key: 'ai', section: 'comm', href: '/admin/ai', icon: 'bi bi-robot', labelKey: 'admin.nav.ai', labelDefault: 'Asisten AI', roles: ['admin'], activePages: ['ai'] },
 
   // ── BILLING ──
   { key: 'customers', section: 'billing', href: '/admin/customers', icon: 'bi bi-people', labelKey: 'admin.nav.customers', labelDefault: 'Pelanggan', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['customers'] },
-  { key: 'packages', section: 'billing', href: '/admin/packages', icon: 'bi bi-box-seam', labelKey: 'admin.nav.internet_packages', labelDefault: 'Paket Internet', roles: ['admin', 'cashier'], activePages: ['packages'] },
+  { key: 'packages', section: 'billing', href: '/admin/packages', icon: 'bi bi-box-seam', labelKey: 'admin.nav.internet_packages', labelDefault: 'Paket Internet', roles: ['admin'], activePages: ['packages'] },
   { key: 'billing', section: 'billing', href: '/admin/billing', icon: 'bi bi-receipt', labelKey: 'admin.nav.invoices', labelDefault: 'Tagihan', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['billing'] },
   { key: 'digiflazz', section: 'billing', href: '/admin/digiflazz', icon: 'bi bi-phone', labelKey: 'admin.nav.digiflazz', labelDefault: 'Digiflazz', roles: ['admin'], activePages: ['digiflazz'] },
-  { key: 'collector_payments', section: 'billing', href: '/admin/collector-payments', icon: 'bi bi-check2-square', labelKey: 'admin.nav.collector_payments', labelDefault: 'Approval Kolektor', roles: ['admin', 'cashier'], activePages: ['collector_payments'] },
+  { key: 'collector_payments', section: 'billing', href: '/admin/collector-payments', icon: 'bi bi-check2-square', labelKey: 'admin.nav.collector_payments', labelDefault: 'Approval Kolektor', roles: ['admin'], activePages: ['collector_payments'] },
   { key: 'promo_slides', section: 'billing', href: '/admin/promo-slides', icon: 'bi bi-image', labelKey: 'admin.nav.promo_slides', labelDefault: 'Promo Slides', roles: ['admin'], activePages: ['promo_slides'] },
 
   // ── KEUANGAN ── (hub: Laporan Keuangan → tab: Kas Masuk, Pengeluaran, Kategori, Laporan Kasir)
-  { key: 'reports', section: 'finance', href: '/admin/reports', icon: 'bi bi-bar-chart-line', labelKey: 'admin.nav.finance_report', labelDefault: 'Laporan Keuangan', roles: ['admin', 'cashier'], activePages: ['reports'] },
+  { key: 'reports', section: 'finance', href: '/admin/reports', icon: 'bi bi-bar-chart-line', labelKey: 'admin.nav.finance_report', labelDefault: 'Laporan Keuangan', roles: ['admin'], activePages: ['reports'] },
   { key: 'payroll', section: 'finance', href: '/admin/payroll', icon: 'bi bi-cash-coin', labelKey: 'admin.nav.payroll', labelDefault: 'Gaji & Payroll', roles: ['admin'], activePages: ['payroll'] },
 
   // ── LAYANAN ──
-  { key: 'tickets', section: 'service', href: '/admin/tickets', icon: 'bi bi-headset', labelKey: 'admin.nav.customer_tickets', labelDefault: 'Keluhan Pelanggan', roles: ['admin', 'cashier'], activePages: ['tickets'] },
-  { key: 'inventory', section: 'service', href: '/admin/inventory', icon: 'bi bi-boxes', labelKey: 'admin.nav.inventory', labelDefault: 'Inventaris (Stok)', roles: ['admin', 'cashier'], activePages: ['inventory'] },
-  { key: 'attendance', section: 'service', href: '/admin/attendance', icon: 'bi bi-calendar-check', labelKey: 'admin.nav.attendance', labelDefault: 'Absensi Karyawan', roles: ['admin', 'cashier'], activePages: ['attendance'] },
+  { key: 'tickets', section: 'service', href: '/admin/tickets', icon: 'bi bi-headset', labelKey: 'admin.nav.customer_tickets', labelDefault: 'Keluhan Pelanggan', roles: ['admin'], activePages: ['tickets'] },
+  { key: 'inventory', section: 'service', href: '/admin/inventory', icon: 'bi bi-boxes', labelKey: 'admin.nav.inventory', labelDefault: 'Inventaris (Stok)', roles: ['admin'], activePages: ['inventory'] },
+  { key: 'attendance', section: 'service', href: '/admin/attendance', icon: 'bi bi-calendar-check', labelKey: 'admin.nav.attendance', labelDefault: 'Absensi Karyawan', roles: ['admin'], activePages: ['attendance'] },
 
   // ── KASIR ──
   { key: 'cashier_attendance', section: 'cashier', href: '/admin/cashiers/attendance', icon: 'bi bi-person-check', labelKey: 'admin.nav.cashier_attendance', labelDefault: 'Absensi Saya', roles: ['cashier'], activePages: ['cashier_attendance'] },
+  { key: 'cashier_reports', section: 'cashier', href: '/admin/cashiers/reports', icon: 'bi bi-receipt', labelKey: 'admin.nav.cashier_reports', labelDefault: 'Laporan Saya', roles: ['cashier'], activePages: ['cashier_reports'] },
 
   // ── MANAJEMEN USER ──
-  { key: 'areas', section: 'user_management', href: '/admin/areas', icon: 'bi bi-geo-alt', labelKey: 'admin.nav.areas', labelDefault: 'Manajemen Area', roles: ['admin', 'cashier'], activePages: ['areas'] },
+  { key: 'areas', section: 'user_management', href: '/admin/areas', icon: 'bi bi-geo-alt', labelKey: 'admin.nav.areas', labelDefault: 'Manajemen Area', roles: ['admin'], activePages: ['areas'] },
   // Hub Staf: Teknisi → tab Kasir, Kolektor (cashiers & collectors tidak tampil sebagai menu sendiri)
   { key: 'technicians', section: 'user_management', href: '/admin/technicians', icon: 'bi bi-people-fill', labelKey: 'admin.nav.staff', labelDefault: 'Staf & Tim', roles: ['admin'], activePages: ['technicians', 'cashiers', 'collectors'] },
   { key: 'cashiers', section: 'user_management', href: '/admin/cashiers', icon: 'bi bi-person-vcard', labelKey: 'admin.nav.cashiers', labelDefault: 'Kasir', roles: ['admin'], activePages: ['cashiers'], navHidden: true },
   { key: 'collectors', section: 'user_management', href: '/admin/collectors', icon: 'bi bi-person-badge', labelKey: 'admin.nav.collectors', labelDefault: 'Kolektor', roles: ['admin'], activePages: ['collectors'], navHidden: true },
   // Hub Agent: Agent → tab Laporan Agent
-  { key: 'agents', section: 'user_management', href: '/admin/agents', icon: 'bi bi-shop', labelKey: 'admin.nav.agents', labelDefault: 'Agent', roles: ['admin', 'cashier'], activePages: ['agents', 'agents_reports'] },
+  { key: 'agents', section: 'user_management', href: '/admin/agents', icon: 'bi bi-shop', labelKey: 'admin.nav.agents', labelDefault: 'Agent', roles: ['admin'], activePages: ['agents', 'agents_reports'] },
   { key: 'agents_reports', section: 'user_management', href: '/admin/agents/reports', icon: 'bi bi-journal-text', labelKey: 'admin.nav.agent_reports', labelDefault: 'Laporan Agent', roles: ['admin'], activePages: ['agents_reports'], navHidden: true },
 
   // ── SISTEM ──
@@ -84,6 +85,7 @@ const DEFAULT_MENU_STATES = {
   inventory: STATE_VISIBLE,
   attendance: STATE_VISIBLE,
   cashier_attendance: STATE_VISIBLE,
+  cashier_reports: STATE_VISIBLE,
   technicians: STATE_VISIBLE,
   cashiers: STATE_VISIBLE,
   collectors: STATE_VISIBLE,
@@ -164,14 +166,15 @@ function isMenuAllowedForSession(menu, session) {
   return false;
 }
 
-function enrichMenu(menu, states) {
+function enrichMenu(menu, states, session) {
   const state = states[menu.key] || DEFAULT_MENU_STATES[menu.key] || STATE_VISIBLE;
   const hidden = state === STATE_HIDDEN;
+  const asCashier = Boolean(session && session.isCashier && !session.isAdmin);
   return {
     ...menu,
     state,
     hidden,
-    hrefResolved: menu.href
+    hrefResolved: (asCashier && menu.cashierHref) ? menu.cashierHref : menu.href
   };
 }
 
@@ -182,7 +185,7 @@ function getSidebarSections(session) {
       .filter((menu) => menu.section === section.key)
       .filter((menu) => !menu.navHidden)
       .filter((menu) => isMenuAllowedForSession(menu, session))
-      .map((menu) => enrichMenu(menu, states))
+      .map((menu) => enrichMenu(menu, states, session))
       .filter((menu) => !menu.hidden);
 
     return {
@@ -197,7 +200,7 @@ function getBottomNavItems(session) {
   return MENU_DEFINITIONS
     .filter((menu) => menu.bottomNav)
     .filter((menu) => isMenuAllowedForSession(menu, session))
-    .map((menu) => enrichMenu(menu, states))
+    .map((menu) => enrichMenu(menu, states, session))
     .filter((menu) => !menu.hidden);
 }
 

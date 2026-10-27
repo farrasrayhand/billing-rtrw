@@ -2213,5 +2213,14 @@ async function miSubmit() {
   }
 }
 </script>
+<% if (typeof session !== 'undefined' && session && session.isCashier && !session.isAdmin) { %>
+<script>
+// Kasir: sembunyikan tombol yang memang ditolak server (penegakan sebenarnya ada di server).
+(function () {
+  var sel = ["a[href=\"/admin/customers/export\"]", "button[onclick*=\"importModal\"]", "button[onclick*=\"addModal\"]", "button[onclick*=\"openMikrotikImport\"]", "#bulkCustDeleteBtn", "#bulkCustCount", "th input[type=\"checkbox\"]", ".cust_sel", "button[onclick^=\"editCust\"]", "form[action$=\"/delete\"]", "form[action$=\"/isolate\"]", "form[action$=\"/unisolate\"]", "form[action$=\"/disconnect\"]", "form[action$=\"/billing/generate\"]", "form[action$=\"/billing/reset-promo-cycles\"]", "form[action$=\"/billing/install-prorata\"]", "a[href=\"/admin/onu-stickers\"]"];
+  document.querySelectorAll(sel.join(',')).forEach(function (el) { el.style.display = 'none'; });
+})();
+</script>
+<% } %>
 </body>
 </html>
