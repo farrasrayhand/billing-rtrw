@@ -2487,6 +2487,133 @@ router.post('/customers/import', requireAdminSession, restrictToAdmin, upload.si
   res.redirect('/admin/customers');
 });
 
+// ─── IMPOR PELANGGAN DARI MIKROTIK (PPPoE secret yang sudah ada di router) ───
+// Hanya MEMBACA router. Pelanggan baru dibuat di aplikasi tanpa membuat/mengubah secret di router.
+const IMPORT_ISOLIR_PROFILE_RE = /isolir|isolate|suspend/i;
+
+function buildMikrotikImportPreview(secrets) {
+  const existing = new Set(
+    db.prepare("SELECT pppoe_username FROM customers WHERE pppoe_username IS NOT NULL AND pppoe_username != ''").all()
+      .map((c) => String(c.pppoe_username).trim().toLowerCase())
+  );
+  const packages = customerSvc.getAllPackages();
+  const pkgByName = new Map(packages.map((p) => [String(p.name || '').trim().toLowerCase(), p]));
+
+  const items = secrets.map((s) => {
+    const pkg = pkgByName.get(s.profile.toLowerCase());
+    return {
+      name: s.name,
+      profile: s.profile,
+      comment: s.comment,
+      disabled: s.disabled,
+      remote_address: s.remote_address,
+      exists: existing.has(s.name.toLowerCase()),
+      isolir: IMPORT_ISOLIR_PROFILE_RE.test(s.profile),
+      suggested_package_id: pkg ? pkg.id : null
+    };
+  });
+
+  const profileMap = new Map();
+  for (const it of items) {
+    if (it.exists) continue;
+    const key = it.profile || '(kosong)';
+    if (!profileMap.has(key)) profileMap.set(key, { profile: it.profile, count: 0, package_id: it.suggested_package_id, isolir: it.isolir });
+    profileMap.get(key).count++;
+  }
+  return {
+    items,
+    profiles: Array.from(profileMap.values()).sort((a, b) => b.count - a.count),
+    packages: packages.map((p) => ({ id: p.id, name: p.name })),
+    total: items.length,
+    existing: items.filter((i) => i.exists).length
+  };
+}
+
+router.get('/customers/import-mikrotik/preview', requireAdminSession, restrictToAdmin, async (req, res) => {
+  try {
+    const routerId = req.query.router_id ? Number(req.query.router_id) : null;
+    const secrets = await mikrotikService.getPppoeSecretsForImport(routerId);
+    res.json({ success: true, router_id: routerId, ...buildMikrotikImportPreview(secrets) });
+  } catch (e) {
+    logger.error('[ImportMikroTik] Gagal membaca secret: ' + e.message);
+    res.json({ success: false, message: 'Gagal membaca user dari router: ' + e.message });
+  }
+});
+
+router.post('/customers/import-mikrotik', requireAdminSession, restrictToAdmin, express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const routerId = body.router_id ? Number(body.router_id) : null;
+    const wanted = new Set((Array.isArray(body.usernames) ? body.usernames : []).map((u) => String(u).trim().toLowerCase()).filter(Boolean));
+    if (!wanted.size) throw new Error('Tidak ada user yang dipilih.');
+    const mapping = (body.mapping && typeof body.mapping === 'object') ? body.mapping : {};
+    const status = ['active', 'inactive'].includes(body.status) ? body.status : 'inactive';
+    const disableAutoIsolate = body.disable_auto_isolate !== false;
+
+    const effectiveRouterId = routerId || customerSvc.getEffectiveRouterId(null) || null;
+    // Baca ulang dari router: data tidak dipercaya dari klien.
+    const secrets = await mikrotikService.getPppoeSecretsForImport(routerId);
+    const existing = new Set(
+      db.prepare("SELECT pppoe_username FROM customers WHERE pppoe_username IS NOT NULL AND pppoe_username != ''").all()
+        .map((c) => String(c.pppoe_username).trim().toLowerCase())
+    );
+    const validPkgIds = new Set(customerSvc.getAllPackages().map((p) => Number(p.id)));
+    const today = new Date().toISOString().slice(0, 10);
+
+    const result = { created: 0, skipped_existing: 0, skipped_missing: 0, errors: [] };
+    const found = new Set();
+    for (const s of secrets) {
+      const key = s.name.toLowerCase();
+      if (!wanted.has(key)) continue;
+      found.add(key);
+      if (existing.has(key)) { result.skipped_existing++; continue; }
+      try {
+        const pkgRaw = mapping[s.profile];
+        const pkgId = pkgRaw && validPkgIds.has(Number(pkgRaw)) ? Number(pkgRaw) : null;
+        const isIsolir = IMPORT_ISOLIR_PROFILE_RE.test(s.profile);
+        customerSvc.createCustomer({
+          name: s.comment || s.name,
+          pppoe_username: s.name,
+          pppoe_password: s.password,
+          pppoe_remote_address: s.remote_address,
+          package_id: pkgId,
+          router_id: effectiveRouterId,
+          connection_type: 'pppoe',
+          // profil isolir di router => status isolir; selain itu sesuai pilihan (default: pendaftar baru/nonaktif)
+          status: (status === 'active' && isIsolir) ? 'suspended' : status,
+          auto_isolate: disableAutoIsolate ? 0 : 1,
+          is_radius: 0,
+          notes: `Diimpor dari MikroTik pada ${today} (profil router: ${s.profile || '-'})${s.disabled ? ' - secret dinonaktifkan di router' : ''}`
+        });
+        existing.add(key);
+        result.created++;
+      } catch (e) {
+        result.errors.push(`${s.name}: ${e.message}`);
+      }
+    }
+    for (const u of wanted) if (!found.has(u)) result.skipped_missing++;
+
+    if (auditSvc && typeof auditSvc.logAuditTrail === 'function') {
+      auditSvc.logAuditTrail({
+        action: 'CREATE',
+        entity_type: 'customers_import_mikrotik',
+        entity_id: String(effectiveRouterId || ''),
+        actor_type: req.session?.isAdmin ? 'admin' : 'cashier',
+        actor_id: String(req.session?.adminUser || ''),
+        actor_name: req.session?.adminUser || 'Admin',
+        details: { created: result.created, skipped_existing: result.skipped_existing, status, disable_auto_isolate: disableAutoIsolate },
+        ip_address: req.ip,
+        user_agent: req.get('user-agent')
+      });
+    }
+    logger.info(`[ImportMikroTik] dibuat=${result.created}, sudah ada=${result.skipped_existing}, tidak ditemukan=${result.skipped_missing}, error=${result.errors.length}`);
+    res.json({ success: true, ...result });
+  } catch (e) {
+    logger.error('[ImportMikroTik] ' + e.message);
+    res.json({ success: false, message: e.message });
+  }
+});
+
 router.post('/customers/:id/isolate', requireAdminSession, async (req, res) => {
   try {
     await customerSvc.suspendCustomer(req.params.id);

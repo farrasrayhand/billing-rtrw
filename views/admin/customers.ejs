@@ -121,6 +121,9 @@
           <a href="/admin/onu-stickers" class="btn btn-g btn-sm" title="Cetak Stiker Modem / ONU"><i class="bi bi-qr-code-scan"></i> Stiker ONU</a>
           <a href="/admin/customers/export" class="btn btn-g btn-sm"><i class="bi bi-file-earmark-excel"></i> <%= t('admin.customers.export_excel', 'Export Excel') %></a>
           <button class="btn btn-g btn-sm" onclick="openModal('importModal')"><i class="bi bi-file-earmark-arrow-up"></i> <%= t('admin.customers.import_excel', 'Import Excel') %></button>
+          <% if (typeof session !== 'undefined' && session && session.isAdmin) { %>
+          <button class="btn btn-g btn-sm" onclick="openMikrotikImport()"><i class="bi bi-router"></i> Impor dari MikroTik</button>
+          <% } %>
           <button class="btn btn-p btn-sm" onclick="openModal('addModal')"><i class="bi bi-plus-lg"></i> <%= t('admin.customers.add', 'Tambah Pelanggan') %></button>
         </div>
       </div>
@@ -187,6 +190,17 @@
                   <%= c.name %>
                   <i class="bi bi-info-circle-fill" style="font-size:12px;opacity:0.75;"></i>
                 </a>
+                <%
+                  const impMiss = [];
+                  if (String(c.notes || '').indexOf('Diimpor dari MikroTik') === 0) {
+                    if (!c.phone) impMiss.push('telepon');
+                    if (!c.package_id) impMiss.push('paket');
+                    if (!c.address) impMiss.push('alamat');
+                  }
+                %>
+                <% if (impMiss.length) { %>
+                <div style="margin-top:3px"><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px;padding:2px 7px" title="Hasil impor dari MikroTik, perlu dilengkapi: <%= impMiss.join(', ') %>"><i class="bi bi-exclamation-triangle"></i> Belum diatur: <%= impMiss.join(', ') %></span></div>
+                <% } %>
                 <div style="font-size:11px;font-weight:700;color:var(--success);margin-top:2px;display:flex;align-items:center;gap:4px;" title="Saldo Dompet Pelanggan">
                   <i class="bi bi-wallet2"></i> Rp <%= Number(c.balance || 0).toLocaleString('id-ID') %>
                 </div>
@@ -602,6 +616,77 @@
         <button type="submit" class="btn btn-p"><i class="bi bi-upload"></i> Mulai Impor</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal Impor dari MikroTik -->
+<div class="mo" id="mikrotikImportModal">
+  <div class="mb" style="max-width:920px">
+    <div class="mh"><span class="mt"><i class="bi bi-router"></i> Impor Pelanggan dari MikroTik</span><button class="mc" onclick="closeModal('mikrotikImportModal')">&times;</button></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        Membaca daftar <strong>PPPoE secret</strong> di router, lalu membuatnya sebagai pelanggan di aplikasi.
+        Router <strong>hanya dibaca</strong>: tidak ada secret yang dibuat, diubah, atau dihapus.
+        Nama pelanggan diambil dari komentar secret (kalau kosong, memakai username).
+      </p>
+      <div class="form-row" style="align-items:flex-end">
+        <% if (routers && routers.length > 1) { %>
+        <div class="fg" style="flex:1">
+          <label class="fl">Router</label>
+          <select class="fs" id="mi-router">
+            <% routers.forEach(function (r) { %><option value="<%= r.id %>"><%= r.name %> (<%= r.host %>)</option><% }); %>
+          </select>
+        </div>
+        <% } %>
+        <div class="fg"><button type="button" class="btn btn-g" onclick="miLoad()"><i class="bi bi-arrow-repeat"></i> Muat dari router</button></div>
+      </div>
+      <div id="mi-msg" class="hint" style="margin:8px 0"></div>
+
+      <div id="mi-config" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-hd"><h6 style="margin:0"><i class="bi bi-diagram-3"></i> Pengaturan impor</h6></div>
+          <div class="card-bd">
+            <div class="form-row">
+              <div class="fg">
+                <label class="fl">Status pelanggan hasil impor</label>
+                <select class="fs" id="mi-status">
+                  <option value="inactive" selected>Pendaftar baru / nonaktif (aman, disarankan)</option>
+                  <option value="active">Aktif (langsung ikut tagihan &amp; isolir)</option>
+                </select>
+                <div class="hint">Nonaktif = belum ditagih dan tidak diisolir otomatis sampai kamu mengaktifkannya. Secret yang berprofil isolir otomatis menjadi berstatus isolir bila memilih Aktif.</div>
+              </div>
+              <div class="fg">
+                <label class="fl">Isolir otomatis</label>
+                <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="mi-noiso" checked> Matikan isolir otomatis untuk pelanggan hasil impor</label>
+                <div class="hint">Disarankan, supaya pelanggan lama tidak terputus sebelum datanya dilengkapi.</div>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <label class="fl">Paket untuk tiap profil router</label>
+              <div id="mi-profiles" class="tbl-wrap"></div>
+              <div class="hint">Paket dicocokkan otomatis bila nama paket sama dengan nama profil PPPoE. Profil tanpa paket diimpor tanpa paket (tidak akan ditagih sampai paket dipilih).</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <input class="fc" id="mi-filter" placeholder="Cari username / nama…" style="max-width:260px" oninput="miFilter()">
+          <button type="button" class="btn btn-g btn-sm" onclick="miSelect(true)">Pilih semua yang baru</button>
+          <button type="button" class="btn btn-g btn-sm" onclick="miSelect(false)">Kosongkan pilihan</button>
+          <span id="mi-count" class="badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;padding:4px 8px"></span>
+        </div>
+        <div class="tbl-wrap" style="max-height:340px;overflow:auto">
+          <table class="dtbl">
+            <thead><tr><th style="width:36px"></th><th>Username</th><th>Nama / komentar</th><th>Profil router</th><th>Keterangan</th></tr></thead>
+            <tbody id="mi-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button type="button" class="btn btn-g" onclick="closeModal('mikrotikImportModal')">Tutup</button>
+      <button type="button" class="btn btn-p" id="mi-submit" onclick="miSubmit()" disabled><i class="bi bi-download"></i> Impor yang dipilih</button>
+    </div>
   </div>
 </div>
 
@@ -2039,6 +2124,94 @@ document.getElementById('bulkCustDeleteBtn')?.addEventListener('click', function
 });
 
 setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='none'),4000);
+</script>
+<script>
+let miData = null;
+function miEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+function miRouterId() { const el = document.getElementById('mi-router'); return el ? el.value : ''; }
+function openMikrotikImport() { openModal('mikrotikImportModal'); if (!miData) miLoad(); }
+
+async function miLoad() {
+  const msg = document.getElementById('mi-msg');
+  document.getElementById('mi-config').style.display = 'none';
+  document.getElementById('mi-submit').disabled = true;
+  msg.style.color = ''; msg.textContent = 'Membaca user dari router… (router besar bisa memakan satu menit)';
+  try {
+    const rid = miRouterId();
+    const res = await fetch('/admin/customers/import-mikrotik/preview' + (rid ? '?router_id=' + encodeURIComponent(rid) : ''));
+    const raw = await res.text();
+    let data; try { data = JSON.parse(raw); } catch (_) { throw new Error('Server membalas HTTP ' + res.status + ' (bukan JSON). Kemungkinan sesi habis atau melewati batas waktu proxy.'); }
+    if (!data.success) throw new Error(data.message || 'Gagal membaca router');
+    miData = data;
+    miRender();
+  } catch (e) {
+    miData = null;
+    msg.style.color = '#991b1b'; msg.textContent = '✖ ' + e.message;
+  }
+}
+
+function miRender() {
+  const d = miData;
+  const msg = document.getElementById('mi-msg');
+  msg.style.color = '#166534';
+  msg.textContent = '✔ ' + d.total + ' user ditemukan di router. ' + (d.total - d.existing) + ' belum ada di aplikasi, ' + d.existing + ' sudah ada.';
+  const pkgOpts = '<option value="">— tanpa paket —</option>' + d.packages.map(function (p) { return '<option value="' + p.id + '">' + miEsc(p.name) + '</option>'; }).join('');
+  document.getElementById('mi-profiles').innerHTML = d.profiles.length
+    ? '<table class="dtbl"><thead><tr><th>Profil di router</th><th style="width:90px">Jumlah user</th><th>Paket di aplikasi</th></tr></thead><tbody>' +
+      d.profiles.map(function (p, i) {
+        return '<tr><td><code>' + miEsc(p.profile || '(kosong)') + '</code>' + (p.isolir ? ' <span class="badge" style="background:#fee2e2;color:#991b1b">isolir</span>' : '') + '</td><td>' + p.count + '</td>' +
+               '<td><select class="fs mi-map" data-profile="' + miEsc(p.profile) + '" id="mi-map-' + i + '">' + pkgOpts + '</select></td></tr>';
+      }).join('') + '</tbody></table>'
+    : '<div class="hint">Tidak ada user baru.</div>';
+  d.profiles.forEach(function (p, i) { const el = document.getElementById('mi-map-' + i); if (el && p.package_id) el.value = String(p.package_id); });
+  document.getElementById('mi-body').innerHTML = d.items.map(function (it, i) {
+    const notes = [];
+    if (it.exists) notes.push('<span style="color:#6b7280">sudah ada di aplikasi</span>');
+    if (it.disabled) notes.push('<span style="color:#b45309">nonaktif di router</span>');
+    if (it.isolir) notes.push('<span style="color:#991b1b">profil isolir</span>');
+    return '<tr data-q="' + miEsc((it.name + ' ' + it.comment).toLowerCase()) + '"><td><input type="checkbox" class="mi-chk" data-i="' + i + '" ' + (it.exists ? 'disabled' : 'checked') + ' onchange="miCount()"></td>' +
+           '<td><code>' + miEsc(it.name) + '</code></td><td>' + miEsc(it.comment || '—') + '</td><td>' + miEsc(it.profile || '—') + '</td><td>' + (notes.join(' · ') || '—') + '</td></tr>';
+  }).join('');
+  document.getElementById('mi-config').style.display = 'block';
+  miCount();
+}
+
+function miFilter() {
+  const q = document.getElementById('mi-filter').value.toLowerCase().trim();
+  document.querySelectorAll('#mi-body tr').forEach(function (tr) { tr.style.display = (!q || tr.getAttribute('data-q').indexOf(q) !== -1) ? '' : 'none'; });
+}
+function miSelect(on) { document.querySelectorAll('.mi-chk:not(:disabled)').forEach(function (c) { c.checked = on; }); miCount(); }
+function miCount() {
+  const n = document.querySelectorAll('.mi-chk:checked').length;
+  document.getElementById('mi-count').textContent = n + ' dipilih';
+  document.getElementById('mi-submit').disabled = n === 0;
+}
+
+async function miSubmit() {
+  const picked = Array.prototype.map.call(document.querySelectorAll('.mi-chk:checked'), function (c) { return miData.items[Number(c.getAttribute('data-i'))].name; });
+  if (!picked.length) return;
+  const status = document.getElementById('mi-status').value;
+  const ok = confirm('Impor ' + picked.length + ' user sebagai pelanggan berstatus ' + (status === 'active' ? 'AKTIF (akan ikut tagihan & isolir otomatis)' : 'nonaktif / pendaftar baru') + '?\nRouter tidak diubah.');
+  if (!ok) return;
+  const mapping = {};
+  document.querySelectorAll('.mi-map').forEach(function (s) { mapping[s.getAttribute('data-profile')] = s.value; });
+  const btn = document.getElementById('mi-submit'); const msg = document.getElementById('mi-msg');
+  btn.disabled = true; msg.style.color = ''; msg.textContent = 'Mengimpor…';
+  try {
+    const res = await fetch('/admin/customers/import-mikrotik', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ router_id: miRouterId() || null, usernames: picked, mapping: mapping, status: status, disable_auto_isolate: document.getElementById('mi-noiso').checked })
+    });
+    const raw = await res.text();
+    let data; try { data = JSON.parse(raw); } catch (_) { throw new Error('Server membalas HTTP ' + res.status + ' (bukan JSON).'); }
+    if (!data.success) throw new Error(data.message || 'Gagal mengimpor');
+    msg.style.color = '#166534';
+    msg.textContent = '✔ Selesai: ' + data.created + ' pelanggan dibuat' + (data.skipped_existing ? ', ' + data.skipped_existing + ' dilewati (sudah ada)' : '') + (data.errors.length ? ', ' + data.errors.length + ' gagal: ' + data.errors.slice(0, 3).join('; ') : '') + '. Memuat ulang…';
+    setTimeout(function () { location.reload(); }, 1800);
+  } catch (e) {
+    msg.style.color = '#991b1b'; msg.textContent = '✖ ' + e.message; btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>

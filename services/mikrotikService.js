@@ -686,6 +686,41 @@ async function getPppoeSecrets(routerId = null) {
   }
 }
 
+// Baca semua PPPoE secret dari router untuk keperluan impor (hanya membaca, tidak mengubah apa pun).
+// Berbeda dari getPppoeSecrets: menyertakan password & komentar, dan MELEMPAR error bila router tidak terjangkau.
+async function getPppoeSecretsForImport(routerId = null) {
+  const conn = await getConnection(routerId);
+  try {
+    const rows = await withTimeout(
+      conn.api.send([
+        '/ppp/secret/print',
+        '=.proplist=.id,name,password,profile,remote-address,disabled,service,comment'
+      ]),
+      60000,
+      'getPppoeSecretsForImport'
+    );
+    return (Array.isArray(rows) ? rows : [])
+      .filter((r) => {
+        const svc = String(r?.service || '').toLowerCase();
+        return !svc || svc === 'pppoe' || svc === 'any';
+      })
+      .map((r) => ({
+        id: r['.id'] || r.id || '',
+        name: String(r.name || '').trim(),
+        password: String(r.password || ''),
+        profile: String(r.profile || '').trim(),
+        remote_address: String(r['remote-address'] || r.remoteAddress || '').trim(),
+        disabled: r.disabled === true || String(r.disabled).toLowerCase() === 'true' || String(r.disabled).toLowerCase() === 'yes',
+        comment: String(r.comment || '').trim()
+      }))
+      .filter((r) => r.name);
+  } finally {
+    if (conn && conn.api) {
+      try { conn.api.close(); } catch (e) {}
+    }
+  }
+}
+
 async function addPppoeSecret(data, routerId = null) {
   let conn = null;
   try {
@@ -2124,6 +2159,7 @@ async function getBackup(routerId = null) {
 
 module.exports = {
   checkConnection,
+  getPppoeSecretsForImport,
   testConnectionDirect,
   getConnection,
   getPppoeProfiles,
