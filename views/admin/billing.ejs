@@ -17,6 +17,11 @@
     <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-receipt"></i> <%= t('admin.billing.manage_title', 'Manajemen Tagihan') %></div>
     <div class="tb-right">
       <button class="btn btn-p btn-sm" onclick="openModal('genModal')"><i class="bi bi-lightning-charge"></i> <%= t('admin.billing.generate', 'Generate Tagihan') %></button>
+      <% if (typeof hasStaticQris === 'undefined' || hasStaticQris) { %>
+      <form method="POST" action="/admin/billing/qris-assign-all" style="display:inline" title="Kode QRIS dibuat otomatis tiap tagihan terbit; tombol ini untuk menyusul tagihan yang sudah ada">
+        <button class="btn btn-g btn-sm"><i class="bi bi-qr-code"></i> Buat Semua Kode QRIS</button>
+      </form>
+      <% } %>
       <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
       <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
     </div>
@@ -188,9 +193,11 @@
                     data-period="<%= mns[inv.period_month-1] %> <%= inv.period_year %>">
                     <i class="bi bi-check-lg"></i>
                   </button>
+                  <% if (typeof hasStaticQris === 'undefined' || hasStaticQris) { %>
                   <form method="POST" action="/admin/billing/<%= inv.id %>/qris-assign" style="display:inline" title="Buat nominal unik QRIS (semi-otomatis)" onsubmit="return true">
                     <button class="btn btn-g btn-icon btn-sm"><i class="bi bi-qr-code"></i></button>
                   </form>
+                  <% } %>
                   <% if (inv.qris_amount_unique) { %>
                     <form method="POST" action="/admin/billing/<%= inv.id %>/qris-assign?force=1" style="display:inline" title="Regenerate kode QRIS" onsubmit="return confirm('Ganti kode QRIS untuk tagihan ini?')">
                       <button class="btn btn-w btn-icon btn-sm"><i class="bi bi-arrow-repeat"></i></button>

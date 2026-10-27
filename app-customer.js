@@ -2020,6 +2020,21 @@ app.get('/admin/manifest.webmanifest', (req, res) => {
     ]
   });
 });
+// Logo aplikasi yang diunggah admin disimpan di public/uploads (volume persisten), bukan di public/img
+// (ikut image dan hilang saat redeploy). Semua halaman tetap memanggil /img/logo.png.
+app.get('/img/logo.png', (req, res, next) => {
+  try {
+    const dir = path.join(__dirname, 'public', 'uploads');
+    for (const ext of ['png', 'jpg', 'jpeg', 'webp']) {
+      const f = path.join(dir, `app-logo.${ext}`);
+      if (fs.existsSync(f)) {
+        res.set('Cache-Control', 'no-cache');
+        return res.sendFile(f);
+      }
+    }
+  } catch (e) { /* jatuh ke logo bawaan */ }
+  return next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Route: Kebijakan Privasi (Privacy Policy) untuk Google Play Store

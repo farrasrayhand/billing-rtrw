@@ -352,7 +352,67 @@ function ensureTopupQrisUnique(topup, force = false) {
   return { uniqueCode, amountUnique };
 }
 
+/**
+ * QRIS statis aktif dan sudah diatur (gambar QR atau payload)?
+ */
+function isStaticQrisReady() {
+  const { getSetting } = require('../config/settingsManager');
+  const raw = getSetting('qris_static_enabled', true);
+  const on = !(raw === false || raw === 'false' || raw === 0 || raw === '0');
+  const hasQr = String(getSetting('qris_static_qr_url', '') || '').trim() || String(getSetting('qris_static_payload', '') || '').trim();
+  return on && !!hasQr;
+}
+
+/**
+ * Buat kode QRIS unik otomatis untuk tagihan BELUM BAYAR (tanpa klik satu per satu).
+ * Satu kode per pelanggan: dipasang di tagihan belum bayar TERBARU dengan nominal = total semua
+ * tagihan belum bayar pelanggan itu; kode lama yang tidak cocok lagi (mis. ada tagihan baru) dihitung ulang,
+ * dan kode di tagihan belum bayar lainnya milik pelanggan yang sama dibersihkan agar tidak bentrok.
+ * Tidak melakukan apa-apa bila QRIS statis tidak aktif/diatur.
+ */
+function autoAssignQrisForUnpaidInvoices({ customerId = null } = {}) {
+  const result = { assigned: 0, unchanged: 0, errors: 0, skipped: null, firstError: null };
+  if (!isStaticQrisReady()) { result.skipped = 'qris_nonaktif'; return result; }
+
+  const rows = db.prepare(
+    `SELECT id, customer_id, status, amount, qris_unique_code, qris_amount_unique
+     FROM invoices WHERE status = 'unpaid' ${customerId ? 'AND customer_id = ?' : ''}
+     ORDER BY customer_id, id`
+  ).all(...(customerId ? [customerId] : []));
+
+  const byCustomer = new Map();
+  for (const r of rows) {
+    if (!byCustomer.has(r.customer_id)) byCustomer.set(r.customer_id, []);
+    byCustomer.get(r.customer_id).push(r);
+  }
+
+  const clearOthers = db.prepare(
+    `UPDATE invoices SET qris_unique_code = NULL, qris_amount_unique = NULL, qris_assigned_at = NULL
+     WHERE customer_id = ? AND status = 'unpaid' AND id <> ? AND qris_amount_unique IS NOT NULL`
+  );
+  for (const [cid, list] of byCustomer) {
+    const target = list[list.length - 1];
+    if (!(Number(target.amount) > 0)) continue;
+    try {
+      const before = Number(target.qris_amount_unique || 0);
+      const r = ensureInvoiceQrisUnique(target, false);
+      if (r.amountUnique !== before) result.assigned++; else result.unchanged++;
+      clearOthers.run(cid, target.id);
+    } catch (e) {
+      result.errors++;
+      if (!result.firstError) result.firstError = e.message;
+    }
+  }
+  if (result.errors > 0) {
+    // Satu ringkasan per proses (bukan per tagihan) agar log tidak membanjir saat kolom kode penuh.
+    logger.warn(`[QRIS] ${result.errors} pelanggan belum kebagian kode unik: ${result.firstError}`);
+  }
+  return result;
+}
+
 module.exports = {
+  isStaticQrisReady,
+  autoAssignQrisForUnpaidInvoices,
   cleanupExpiredPendingOrders,
   isQrisAmountAvailable,
   allocateUniqueCode,

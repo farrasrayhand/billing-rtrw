@@ -2661,6 +2661,7 @@ router.post('/customers/:id/billing/generate', requireAdminSession, express.urle
   try {
     const { month, year } = req.body;
     const result = billingSvc.generateInvoiceForCustomer(req.params.id, parseInt(month), parseInt(year));
+    try { uniqueCodeService.autoAssignQrisForUnpaidInvoices({ customerId: Number(req.params.id) }); } catch (qe) { logger.warn('[QRIS] auto-assign gagal: ' + qe.message); }
     if (result.created) {
       req.session._msg = { type: 'success', text: `Tagihan berhasil dibuat untuk "${result.customerName}" periode ${month}/${year}.` };
     } else {
@@ -2907,9 +2908,12 @@ router.get('/billing', requireAdminSession, requireSidebarMenuAccess('billing'),
   const { month: filterMonth, year: filterYear = timeInfo.year, status: filterStatus = 'all', search = '' } = req.query;
   const summary = billingSvc.getInvoiceSummary(filterMonth || timeInfo.month, filterYear);
   const invoices = billingSvc.getAllInvoices({ month: filterMonth, year: filterYear, status: filterStatus, search });
+  const qrisEnabledRaw = getSetting('qris_static_enabled', true);
+  const qrisOn = !(qrisEnabledRaw === false || qrisEnabledRaw === 'false' || qrisEnabledRaw === 0 || qrisEnabledRaw === '0');
+  const hasStaticQris = qrisOn && (!!String(getSetting('qris_static_qr_url', '') || '').trim() || !!String(getSetting('qris_static_payload', '') || '').trim());
   res.render('admin/billing', {
     title: 'Tagihan', company: company(), activePage: 'billing',
-    invoices, summary, filterMonth, filterYear: parseInt(filterYear), filterStatus, search, msg: flashMsg(req)
+    invoices, summary, filterMonth, filterYear: parseInt(filterYear), filterStatus, search, msg: flashMsg(req), hasStaticQris
   });
 });
 
@@ -3015,7 +3019,12 @@ router.post('/billing/generate', requireAdminSession, express.urlencoded({ exten
   try {
     const { month, year } = req.body;
     const count = billingSvc.generateMonthlyInvoices(parseInt(month), parseInt(year));
-    req.session._msg = { type: 'success', text: `${count} tagihan baru berhasil digenerate untuk periode ${month}/${year}.` };
+    let qrisNote = '';
+    try {
+      const q = uniqueCodeService.autoAssignQrisForUnpaidInvoices();
+      if (!q.skipped && q.assigned > 0) qrisNote = ` Kode QRIS dibuat otomatis untuk ${q.assigned} pelanggan.`;
+    } catch (qe) { logger.warn('[QRIS] auto-assign setelah generate gagal: ' + qe.message); }
+    req.session._msg = { type: 'success', text: `${count} tagihan baru berhasil digenerate untuk periode ${month}/${year}.${qrisNote}` };
   } catch (e) {
     req.session._msg = { type: 'error', text: 'Gagal generate: ' + e.message };
   }
@@ -3198,6 +3207,17 @@ router.post('/billing/:id/unpay', requireAdminSession, (req, res) => {
     req.session._msg = { type: 'success', text: 'Status tagihan direset ke Belum Bayar.' };
   } catch (e) {
     req.session._msg = { type: 'error', text: 'Gagal: ' + e.message };
+  }
+  res.redirect('back');
+});
+
+router.post('/billing/qris-assign-all', requireAdminSession, (req, res) => {
+  try {
+    const q = uniqueCodeService.autoAssignQrisForUnpaidInvoices();
+    if (q.skipped) throw new Error('QRIS statis belum diaktifkan/diatur di Pengaturan → Pembayaran.');
+    req.session._msg = { type: q.errors ? 'error' : 'success', text: `Kode QRIS: ${q.assigned} dibuat/diperbarui, ${q.unchanged} sudah sesuai${q.errors ? `, ${q.errors} belum kebagian (kolom kode 1-999 untuk nominal yang sama penuh; dicoba lagi otomatis tiap 10 menit seiring tagihan lunas)` : ''}.` };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal membuat kode QRIS: ' + e.message };
   }
   res.redirect('back');
 });
@@ -3992,11 +4012,13 @@ router.post('/settings/logo-upload', requireAdminSession, qrisUpload.single('log
       throw new Error('Format file tidak didukung. Gunakan PNG/JPG/WebP');
     }
 
-    const dir = path.join(__dirname, '../public/img');
+    // Simpan di public/uploads (persisten di Easypanel/Docker). public/img ikut image dan kembali ke bawaan saat redeploy.
+    const dir = path.join(__dirname, '../public/uploads');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const fullPath = path.join(dir, 'logo.png');
-    fs.writeFileSync(fullPath, f.buffer);
+    for (const old of ['png', 'jpg', 'jpeg', 'webp']) {
+      try { fs.unlinkSync(path.join(dir, `app-logo.${old}`)); } catch (e) {}
+    }
+    fs.writeFileSync(path.join(dir, `app-logo${ext === '.jpeg' ? '.jpg' : ext}`), f.buffer);
 
     req.session._msg = { type: 'success', text: 'Logo aplikasi berhasil diperbarui!' };
   } catch (e) {
