@@ -2289,6 +2289,16 @@ app.post(['/donasi/confirm', '/api/donasi/confirm'], async (req, res) => {
 
 // Mount built-in ACS server endpoint (TR-069)
 const acsServerService = require('./services/acsServerService');
+// Pemeriksaan lewat browser: GET /acs hanya menunjukkan bahwa endpoint hidup (ONU/CPE tetap memakai POST).
+app.get('/acs', (req, res) => {
+  const v = getSetting('use_builtin_acs', false);
+  res.json({
+    success: true,
+    service: 'TR-069 ACS (Built-in)',
+    message: 'Endpoint aktif. ONU/CPE menghubungi alamat ini dengan metode POST.',
+    builtin_acs_enabled: v === true || String(v).toLowerCase() === 'true'
+  });
+});
 app.post('/acs', express.raw({ type: ['text/xml', 'application/soap+xml', 'application/xml', 'text/plain'], limit: '2mb' }), acsServerService.handleCwmpRequest);
 
 // Landing page untuk scan QR stiker modem ONU pelanggan
