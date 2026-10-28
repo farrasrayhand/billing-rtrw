@@ -124,7 +124,7 @@ function startSettingsWatcher() {
 
       try {
         const s = getSettingsWithCache();
-        if (s._saved_at) writeSnapshot(s);
+        writeSnapshot(s);
         const port = s.server_port ?? 4555;
         const host = s.server_host || 'localhost';
         const gurl = s.genieacs_url || '(tidak diatur)';
@@ -163,31 +163,57 @@ function withSnapshotDb(fn) {
   }
 }
 function writeSnapshot(obj) {
-  if (!obj || !obj._saved_at) return;
-  withSnapshotDb((sdb) => {
+  if (!obj) return false;
+  const r = withSnapshotDb((sdb) => {
     sdb.prepare('INSERT INTO settings_snapshot (id, json, saved_at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET json = excluded.json, saved_at = excluded.saved_at')
-      .run(JSON.stringify(obj), obj._saved_at);
+      .run(JSON.stringify(obj), new Date().toISOString());
+    return true;
   });
+  return r === true;
 }
-(function restoreFromSnapshotIfNeeded() {
-  try {
-    let current = {};
-    try { current = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) || {}; } catch (e) {}
-    withSnapshotDb((sdb) => {
-      const row = sdb.prepare('SELECT json, saved_at FROM settings_snapshot WHERE id = 1').get();
-      if (!current._saved_at && row) {
-        fs.writeFileSync(settingsPath, row.json, 'utf-8');
-        logger.warn(`[settings] File pengaturan terlihat kembali ke bawaan; dipulihkan dari salinan database (disimpan ${row.saved_at}).`);
-      } else if (current._saved_at && (!row || row.saved_at !== current._saved_at)) {
-        writeSnapshot(current);
-      } else if (!current._saved_at && !row) {
-        logger.info('[settings] Belum ada salinan pengaturan di database (akan dibuat saat pengaturan disimpan dari panel).');
-      }
-    });
-  } catch (e) {
-    logger.warn(`[settings] Pemulihan dari salinan database gagal: ${e.message}`);
+// Gabungkan salinan database ke file: kunci yang di file masih bernilai bawaan repo (atau hilang) diisi nilai dari salinan.
+// Perubahan nyata di file (nilainya beda dari bawaan repo) tidak ditimpa.
+function mergeSnapshotIntoFile() {
+  let repoDefaults = {};
+  try { repoDefaults = JSON.parse(fs.readFileSync(legacySettingsPath, 'utf-8')) || {}; } catch (e) {}
+  let current = {};
+  try { current = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) || {}; } catch (e) {}
+  const res = withSnapshotDb((sdb) => {
+    const row = sdb.prepare('SELECT json FROM settings_snapshot WHERE id = 1').get();
+    if (!row) return { restored: 0, hadSnapshot: false };
+    let snap = {};
+    try { snap = JSON.parse(row.json) || {}; } catch (e) { return { restored: 0, hadSnapshot: true }; }
+    const restoredKeys = [];
+    for (const [k, sv] of Object.entries(snap)) {
+      if (k === '_saved_at') continue;
+      const cv = current[k];
+      const dv = repoDefaults[k];
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      if ((cv === undefined || same(cv, dv)) && !same(sv, cv)) { current[k] = sv; restoredKeys.push(k); }
+    }
+    if (restoredKeys.length) {
+      fs.writeFileSync(settingsPath, JSON.stringify(current, null, 2), 'utf-8');
+      settingsCache = null;
+      settingsCacheTime = 0;
+    }
+    return { restored: restoredKeys.length, hadSnapshot: true };
+  });
+  return res;
+}
+let snapshotAttempts = 0;
+function syncSnapshotWithRetry() {
+  snapshotAttempts++;
+  const res = mergeSnapshotIntoFile();
+  if (res === null && snapshotAttempts < 8) { // database terkunci/belum siap: coba lagi
+    const t = setTimeout(syncSnapshotWithRetry, 4000);
+    if (t.unref) t.unref();
+    return;
   }
-})();
+  if (res && res.restored) logger.warn(`[settings] ${res.restored} pengaturan dipulihkan dari salinan database (file sempat kembali ke bawaan).`);
+  // Setelah selaras, simpan keadaan terkini ke salinan.
+  try { writeSnapshot(JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))); } catch (e) {}
+}
+syncSnapshotWithRetry();
 
 // Mulai watcher saat modul dimuat
 startSettingsWatcher();
@@ -196,7 +222,7 @@ startSettingsWatcher();
 function saveSettings(newSettings) {
   try {
     const currentSettings = getSettings();
-    const updatedSettings = { ...currentSettings, ...newSettings, _saved_at: new Date().toISOString() };
+    const updatedSettings = { ...currentSettings, ...newSettings };
     fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2), 'utf-8');
     settingsCache = updatedSettings;
     settingsCacheTime = Date.now();
