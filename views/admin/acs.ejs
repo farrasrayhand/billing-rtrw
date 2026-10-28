@@ -282,7 +282,14 @@
 
             <div id="tab-servers" class="tab-pane">
                 <div style="border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:22px; background:var(--bg2);">
-                    <h3 style="margin:0 0 12px; font-size:15px;"><i class="fas fa-sliders-h"></i> Pengaturan ACS</h3>
+                    <h3 style="margin:0 0 8px; font-size:15px;"><i class="fas fa-sliders-h"></i> Pengaturan ACS</h3>
+                    <% const acsBuiltinOn = (typeof settings !== 'undefined' && settings && settings.use_builtin_acs); const acsExtUrl = (typeof settings !== 'undefined' && settings && settings.genieacs_url); const acsLoginUser = (typeof settings !== 'undefined' && settings && settings.acs_auth_username); %>
+                    <div style="font-size:12px; margin-bottom:12px;">
+                        Mode saat ini:
+                        <% if (acsBuiltinOn) { %><strong style="color:#166534;">Built-in ACS aktif</strong>
+                        <% } else if (acsExtUrl) { %><strong style="color:#1e40af;">GenieACS eksternal</strong>
+                        <% } else { %><strong style="color:#991b1b;">Belum ada ACS aktif</strong> <span style="color:var(--muted);">(centang Built-in ACS lalu simpan)</span><% } %>
+                    </div>
                     <label style="display:flex; gap:8px; align-items:center; font-weight:600; cursor:pointer;">
                         <input type="checkbox" id="acsBuiltin" <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'checked' : '' %> onchange="toggleAcsExternal()">
                         Gunakan Built-in ACS Server (TR-069)
@@ -291,6 +298,8 @@
                         Aplikasi bertindak sebagai server ACS TR-069 sendiri (endpoint <code>/acs</code>) tanpa perlu server GenieACS terpisah.
                     </div>
                     <div id="acsExternalFields" style="margin-top:14px; <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'display:none;' : '' %>">
+                        <div style="font-size:13px; font-weight:700; margin-bottom:2px;">GenieACS eksternal</div>
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Isi hanya bila memakai server GenieACS terpisah (bukan Built-in). Kolom kosong di bawah hanya contoh tulisan.</div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
                             <div>
                                 <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS API URL</label>
@@ -308,6 +317,11 @@
                     </div>
                     <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
                         <div style="font-size:13px; font-weight:700; margin-bottom:4px;"><i class="fas fa-lock"></i> Login ONU ke ACS (opsional)</div>
+                        <% if (acsLoginUser) { %>
+                        <div style="font-size:12px; margin-bottom:8px; padding:8px 10px; border-radius:8px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;">
+                            Login aktif (username: <strong><%= acsLoginUser %></strong>). ONU yang tidak memakai username dan password yang sama akan ditolak. Kosongkan username lalu simpan bila ONU tidak memakai login.
+                        </div>
+                        <% } %>
                         <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Kosongkan username untuk tanpa login (bawaan). Bila diisi, isi sama persis di ONU pada kolom ACS Username/Password. Dipakai agar hanya ONU yang tahu kredensial ini yang bisa mendaftar.</div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
                             <div>
@@ -342,7 +356,10 @@
                     </div>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                    <h3>ACS Servers</h3>
+                    <div>
+                        <h3 style="margin:0;">ACS Servers</h3>
+                        <div style="font-size:12px; color:var(--muted); font-weight:400;">Daftar server yang dipantau. Built-in ACS muncul otomatis bila dicentang; <strong>Add ACS Server</strong> hanya untuk GenieACS eksternal tambahan.</div>
+                    </div>
                     <button class="btn btn-p btn-sm" onclick="openAddServerModal()"><i class="bi bi-plus-lg"></i> Add ACS Server</button>
                 </div>
                 <div class="table-container">
