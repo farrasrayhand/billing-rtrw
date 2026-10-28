@@ -2219,8 +2219,27 @@ async function getUnauthOnusLight(id) {
     if (!profile) throw new Error('Profil SNMP OLT tidak dikenali (cek community/port SNMP).');
     const stats = { unauth_onus: [] };
     await fetchUnauthOnus(session, profile, stats);
-    const items = stats.unauth_onus.map((u) => ({ ...u, snCli: profile.zte_ifindex ? zteSnCli(u.sn) : normalizeSnForOltProvision(u.sn) }));
-    return { items, profile: profile.name, brand: profile.__brandKey };
+    if (!stats.unauth_onus.length) await fetchUnauthOnus(session, profile, stats); // ulang sekali (walk bisa gagal sesaat)
+    let list = stats.unauth_onus;
+    let source = 'snmp';
+    if (!list.length) {
+      // Cadangan: daftar yang sama dengan halaman Manajemen OLT (hasil pembacaan terakhir di cache).
+      for (const k of [`${id}:true`, `${id}:false`]) {
+        const c = statsCache.get(k);
+        const cu = c && c.data && Array.isArray(c.data.unauth_onus) ? c.data.unauth_onus : [];
+        if (cu.length) {
+          list = cu.map((u) => ({
+            ...u,
+            pon: u.pon || (profile.zte_ifindex ? zteOltPortFromIfIndex(String(u.index || '').split('.')[0]) : null)
+          }));
+          source = 'cache';
+          break;
+        }
+      }
+    }
+    const items = list.map((u) => ({ ...u, snCli: profile.zte_ifindex ? zteSnCli(u.sn) : normalizeSnForOltProvision(u.sn) }));
+    logger.info(`[oltService] getUnauthOnusLight OLT ${id}: ${items.length} ONU (sumber ${source}, profil ${profile.name})`);
+    return { items, profile: profile.name, brand: profile.__brandKey, source };
   } finally {
     try { session.close(); } catch (e) {}
   }

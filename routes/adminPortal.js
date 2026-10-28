@@ -7434,7 +7434,7 @@ router.post('/onu-provision/scan-unconfigured', requireAdminSession, restrictToA
         const suggested = oltSvcLocal.suggestFreeOnuId(regOlt.id, u.pon);
         return { vendor: 'ZTE', sn: u.snCli || u.sn, snRaw: u.sn, model: u.type, pon: u.pon || '', onuId: suggested || '', onuIdKnown: Boolean(suggested), source: 'snmp' };
       });
-      return res.json({ success: true, onus: mapped, source: 'snmp' });
+      return res.json({ success: true, onus: mapped, source: light.source || 'snmp', profile: light.profile });
     }
 
     if (!oltConfig.host) {
