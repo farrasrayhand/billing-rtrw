@@ -1573,8 +1573,8 @@ global.appSettings = {
 
 // Pengarah portal isolir: trafik pelanggan terisolir dibelokkan (dst-nat) oleh MikroTik ke server ini
 // dengan Host domain lain (google.com, connectivitycheck.gstatic.com, dst.). Request seperti itu
-// diarahkan ke halaman /isolated. Aktif hanya jika app_url diisi; Host milik portal, localhost,
-// alamat IP, dan `portal_extra_hosts` (pisahkan koma) tidak disentuh.
+// diarahkan ke halaman /isolated. Aktif hanya jika app_url diisi; Host milik portal (app_url & public_base_url),
+// localhost, alamat IP, dan `portal_extra_hosts` (pisahkan koma) tidak disentuh.
 const PORTAL_REDIRECT_EXEMPT = /^\/(acs|api\/|webhook|customer\/payment\/callback|health)/;
 const portalRedirectLogged = new Set();
 function getPortalOrigin() {
@@ -1593,10 +1593,18 @@ app.use((req, res, next) => {
   if (!portal) return next();
   const host = String(req.hostname || '').toLowerCase();
   if (!host || host === 'localhost' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(':')) return next();
-  const extra = String(getSettingsWithCache().portal_extra_hosts || '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
-  const portalHost = portal.hostname.toLowerCase();
-  const strip = (h) => h.replace(/^www\./, '');
-  if (strip(host) === strip(portalHost) || extra.includes(host)) return next();
+  const s = getSettingsWithCache();
+  const strip = (h) => String(h || '').toLowerCase().replace(/^www\./, '');
+  const hostOf = (raw) => {
+    raw = String(raw || '').trim();
+    if (!raw) return null;
+    try { return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname; } catch (e) { return null; }
+  };
+  // Domain milik aplikasi: URL portal isolir, URL publik aplikasi, dan portal_extra_hosts.
+  const ownHosts = [portal.hostname, hostOf(s.public_base_url)]
+    .concat(String(s.portal_extra_hosts || '').split(',').map((h) => h.trim()))
+    .filter(Boolean).map(strip);
+  if (ownHosts.includes(strip(host))) return next();
   if (!portalRedirectLogged.has(host) && portalRedirectLogged.size < 200) {
     portalRedirectLogged.add(host);
     logger.warn(`[ISOLIR] Host "${host}" bukan domain portal; dialihkan ke /isolated. Jika ini domain milik Anda, tambahkan ke setting portal_extra_hosts.`);
