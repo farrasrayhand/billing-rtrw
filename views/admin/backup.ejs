@@ -42,6 +42,37 @@
     </div>
     <% } %>
 
+    <!-- Lokasi data & keamanan dari deploy -->
+    <% if (typeof dataLocations !== 'undefined' && dataLocations.length) { %>
+    <div class="card mb16">
+      <div class="card-hd"><h6 style="margin:0"><i class="bi bi-hdd"></i> Lokasi data &amp; keamanan dari deploy</h6></div>
+      <div class="card-bd">
+        <div class="hint" style="margin-bottom:10px">Data yang <strong>dilacak Git</strong> ditimpa setiap deploy (<code>git reset --hard</code>). Data di folder yang tidak dilacak (storage/ atau di luar folder aplikasi) aman. Pada Docker, aman bila folder <code>/app/storage</code> adalah volume.</div>
+        <div class="tbl-wrap">
+          <table class="dtbl">
+            <thead><tr><th>Data</th><th>Lokasi</th><th>Terakhir diubah</th><th>Status</th></tr></thead>
+            <tbody>
+              <% dataLocations.forEach(function (d) { %>
+              <tr>
+                <td><strong><%= d.label %></strong></td>
+                <td><code style="font-size:11px;word-break:break-all"><%= d.path %></code></td>
+                <td><%= d.mtime ? new Date(d.mtime).toLocaleString('id-ID') : (d.exists ? '-' : 'belum ada') %></td>
+                <td>
+                  <% if (d.state === 'tracked') { %><span class="badge" style="background:#fee2e2;color:#991b1b">Dilacak Git: AKAN TERTIMPA saat deploy</span>
+                  <% } else if (!d.writable) { %><span class="badge" style="background:#fee2e2;color:#991b1b">Tidak bisa ditulis</span>
+                  <% } else if (d.safe) { %><span class="badge" style="background:#dcfce7;color:#166534">Aman dari deploy</span>
+                  <% } else if (d.state === 'no-git') { %><span class="badge" style="background:#eff6ff;color:#1e40af">Tanpa Git (aman jika volume)</span>
+                  <% } else { %><span class="badge" style="background:#fef3c7;color:#92400e">Tidak diketahui</span><% } %>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
     <!-- Stats Grid -->
     <div class="stat-grid">
       <div class="sc p">
