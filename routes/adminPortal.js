@@ -4201,8 +4201,17 @@ router.get('/backup', requireAdminSession, requireSidebarMenuAccess('backup'), (
     backups: result.backups || [],
     total: result.total || 0,
     getSetting,
-    dataLocations: (() => { try { return require('../services/dataLocations').getDataLocations(); } catch (e) { return []; } })()
+    dataLocations: (() => { try { return require('../services/dataLocations').getDataLocations(); } catch (e) { return []; } })(),
+    pendingRestore: (() => { try { return backupSvc.getPendingRestore(); } catch (e) { return null; } })()
   });
+});
+
+router.post('/backup/cancel-pending', requireAdminSession, requireSidebarMenuAccess('backup'), (req, res) => {
+  const had = backupSvc.cancelPendingRestore();
+  req.session._msg = had
+    ? { type: 'success', text: 'Restore database tertunda dibatalkan. Database saat ini tidak akan ditimpa.' }
+    : { type: 'info', text: 'Tidak ada restore database tertunda.' };
+  res.redirect('/admin/backup');
 });
 
 router.get('/backup/download/:fileName', requireAdminSession, (req, res) => {

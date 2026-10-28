@@ -47,6 +47,19 @@
     </div>
     <% } %>
 
+    <% if (typeof pendingRestore !== 'undefined' && pendingRestore) { %>
+    <div class="alert alert-w mb16" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <div style="flex:1;min-width:240px">
+        <strong>Restore database tertunda:</strong> <%= pendingRestore.source %> (dijadwalkan <%= new Date(pendingRestore.scheduledAt).toLocaleString('id-ID') %>).
+        Database saat ini akan <strong>ditimpa</strong> saat aplikasi start berikutnya &mdash; termasuk saat <strong>redeploy/restart</strong>.
+      </div>
+      <form method="POST" action="/admin/backup/cancel-pending" onsubmit="return confirm('Batalkan restore database tertunda?')">
+        <button type="submit" class="btn btn-g btn-sm" style="color:#dc2626"><i class="bi bi-x-circle"></i> Batalkan restore</button>
+      </form>
+    </div>
+    <% } %>
+
     <!-- Lokasi data & keamanan dari deploy -->
     <% if (typeof dataLocations !== 'undefined' && dataLocations.length) { %>
     <div class="card mb16">

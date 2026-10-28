@@ -16,11 +16,16 @@ const pendingRestorePath = path.join(dbDir, 'pending_restore.db');
 if (fs.existsSync(pendingRestorePath)) {
   try {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    // Masukkan isi WAL ke file utama dulu, agar salinan before-restore memuat perubahan terakhir.
+    if (fs.existsSync(dbPath)) {
+      try { const old = new Database(dbPath); old.pragma('wal_checkpoint(TRUNCATE)'); old.close(); } catch (e) { console.error('[DB] Checkpoint sebelum restore gagal:', e.message); }
+    }
     if (fs.existsSync(dbPath)) fs.renameSync(dbPath, `${dbPath}.before-restore-${stamp}`);
     for (const ext of ['-wal', '-shm']) {
       if (fs.existsSync(dbPath + ext)) fs.unlinkSync(dbPath + ext);
     }
     fs.renameSync(pendingRestorePath, dbPath);
+    try { fs.unlinkSync(path.join(dbDir, 'pending_restore.json')); } catch (e) { /* opsional */ }
     console.log('[DB] Restore database tertunda diterapkan dari pending_restore.db');
   } catch (e) {
     console.error('[DB] Gagal menerapkan restore tertunda:', e.message);

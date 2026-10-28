@@ -13,6 +13,23 @@ const dbPath = path.join(projectRoot, 'database', 'billing.db');
 const settingsPath = require('../config/settingsManager').getSettingsPath();
 
 const PENDING_RESTORE_FILE = path.join(projectRoot, 'database', 'pending_restore.db');
+const PENDING_RESTORE_INFO = path.join(projectRoot, 'database', 'pending_restore.json');
+
+// Restore database yang sudah dijadwalkan tapi belum diterapkan (diterapkan saat aplikasi start berikutnya, termasuk saat redeploy).
+function getPendingRestore() {
+  if (!fs.existsSync(PENDING_RESTORE_FILE)) return null;
+  let info = {};
+  try { info = JSON.parse(fs.readFileSync(PENDING_RESTORE_INFO, 'utf8')) || {}; } catch (e) { /* file info lama tidak ada */ }
+  const st = fs.statSync(PENDING_RESTORE_FILE);
+  return { source: info.source || '(tidak diketahui)', scheduledAt: info.scheduledAt || st.mtime.toISOString(), size: st.size };
+}
+
+function cancelPendingRestore() {
+  const had = fs.existsSync(PENDING_RESTORE_FILE);
+  for (const f of [PENDING_RESTORE_FILE, PENDING_RESTORE_INFO]) { try { fs.unlinkSync(f); } catch (e) { /* tidak ada */ } }
+  if (had) logger.info('[Backup] Restore database tertunda dibatalkan');
+  return had;
+}
 const REQUIRED_TABLES = ['customers', 'invoices', 'packages'];
 
 /**
@@ -175,6 +192,7 @@ function restoreDatabase(backupFileName) {
     const tmp = `${PENDING_RESTORE_FILE}.tmp`;
     fs.copyFileSync(backupFilePath, tmp);
     fs.renameSync(tmp, PENDING_RESTORE_FILE);
+    try { fs.writeFileSync(PENDING_RESTORE_INFO, JSON.stringify({ source: backupFileName, scheduledAt: getNowLocalISO() })); } catch (e) { /* info opsional */ }
 
     logger.info(`[Backup] Restore database dijadwalkan dari: ${backupFileName}. Diterapkan saat aplikasi restart.`);
 
@@ -463,6 +481,8 @@ module.exports = {
   backupSettings,
   backupAll,
   restoreDatabase,
+  getPendingRestore,
+  cancelPendingRestore,
   restoreSettings,
   listBackups,
   cleanupOldBackups,
