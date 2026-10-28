@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="/css/admin.css">
   <style>
     .backup-actions { display: flex; gap: 8px; }
+    .btn.w-100 { display: flex; width: 100%; box-sizing: border-box; justify-content: center; align-items: center; gap: 8px; }
+    .mw .fc, .mw input[type=file], .mw select { max-width: 100%; box-sizing: border-box; }
+    .backup-actions .btn { flex: 0 0 auto; }
+    td .backup-actions { justify-content: flex-end; }
+    td:first-child { word-break: break-all; }
     .badge-database { background: var(--sdim); color: var(--success); }
     .badge-settings { background: var(--wdim); color: var(--warning); }
   </style>

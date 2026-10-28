@@ -275,7 +275,12 @@ function listBackups() {
         backupType = 'settings';
         const timestamp = file.replace('settings_', '').replace('.json', '');
         backupDate = parseBackupTimestamp(timestamp);
+      } else if (file.endsWith('.db') && !file.startsWith('pending_restore')) {
+        backupType = 'database'; // mis. uploaded_db_*.db
+      } else if (file.endsWith('.json')) {
+        backupType = 'settings'; // mis. uploaded_settings_*.json
       }
+      if (!backupDate) backupDate = stats.mtime;
 
       backups.push({
         fileName: file,
