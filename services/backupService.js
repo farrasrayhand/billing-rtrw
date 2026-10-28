@@ -229,6 +229,8 @@ function restoreSettings(backupFileName) {
     const tmp = `${settingsPath}.restore.tmp`;
     fs.copyFileSync(backupFilePath, tmp);
     fs.renameSync(tmp, settingsPath);
+    // Beri penanda & salin ke database agar tidak dianggap 'bawaan' saat start berikutnya.
+    try { require('../config/settingsManager').saveSettings({}); } catch (e) { logger.warn(`[Backup] Gagal menandai settings hasil restore: ${e.message}`); }
 
     const stats = fs.statSync(settingsPath);
     const sizeKB = Math.round(stats.size / 1024);

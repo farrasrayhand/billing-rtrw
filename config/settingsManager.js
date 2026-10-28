@@ -124,6 +124,7 @@ function startSettingsWatcher() {
 
       try {
         const s = getSettingsWithCache();
+        if (s._saved_at) writeSnapshot(s);
         const port = s.server_port ?? 4555;
         const host = s.server_host || 'localhost';
         const gurl = s.genieacs_url || '(tidak diatur)';
@@ -140,6 +141,54 @@ function startSettingsWatcher() {
   }
 }
 
+// ── Salinan pengaturan di database ──
+// Database (billing.db) terbukti selamat dari redeploy, sedangkan file pengaturan bisa tertimpa/hilang.
+// Setiap perubahan disalin ke tabel settings_snapshot; bila saat start file pengaturan terlihat "kembali ke bawaan"
+// (tidak pernah disimpan dari panel = tanpa penanda _saved_at), isinya dipulihkan dari salinan database.
+const snapshotDbPath = path.join(__dirname, '../database/billing.db');
+function withSnapshotDb(fn) {
+  let sdb = null;
+  try {
+    if (!fs.existsSync(snapshotDbPath)) return null;
+    const Database = require('better-sqlite3');
+    sdb = new Database(snapshotDbPath);
+    sdb.pragma('busy_timeout = 3000');
+    sdb.exec('CREATE TABLE IF NOT EXISTS settings_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL, saved_at TEXT)');
+    return fn(sdb);
+  } catch (e) {
+    logger.warn(`[settings] Salinan database tidak dapat diakses: ${e.message}`);
+    return null;
+  } finally {
+    try { if (sdb) sdb.close(); } catch (e) {}
+  }
+}
+function writeSnapshot(obj) {
+  if (!obj || !obj._saved_at) return;
+  withSnapshotDb((sdb) => {
+    sdb.prepare('INSERT INTO settings_snapshot (id, json, saved_at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET json = excluded.json, saved_at = excluded.saved_at')
+      .run(JSON.stringify(obj), obj._saved_at);
+  });
+}
+(function restoreFromSnapshotIfNeeded() {
+  try {
+    let current = {};
+    try { current = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) || {}; } catch (e) {}
+    withSnapshotDb((sdb) => {
+      const row = sdb.prepare('SELECT json, saved_at FROM settings_snapshot WHERE id = 1').get();
+      if (!current._saved_at && row) {
+        fs.writeFileSync(settingsPath, row.json, 'utf-8');
+        logger.warn(`[settings] File pengaturan terlihat kembali ke bawaan; dipulihkan dari salinan database (disimpan ${row.saved_at}).`);
+      } else if (current._saved_at && (!row || row.saved_at !== current._saved_at)) {
+        writeSnapshot(current);
+      } else if (!current._saved_at && !row) {
+        logger.info('[settings] Belum ada salinan pengaturan di database (akan dibuat saat pengaturan disimpan dari panel).');
+      }
+    });
+  } catch (e) {
+    logger.warn(`[settings] Pemulihan dari salinan database gagal: ${e.message}`);
+  }
+})();
+
 // Mulai watcher saat modul dimuat
 startSettingsWatcher();
 
@@ -147,10 +196,11 @@ startSettingsWatcher();
 function saveSettings(newSettings) {
   try {
     const currentSettings = getSettings();
-    const updatedSettings = { ...currentSettings, ...newSettings };
+    const updatedSettings = { ...currentSettings, ...newSettings, _saved_at: new Date().toISOString() };
     fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2), 'utf-8');
     settingsCache = updatedSettings;
     settingsCacheTime = Date.now();
+    writeSnapshot(updatedSettings);
     return true;
   } catch (error) {
     logger.error(`[settings] Error saving settings.json: ${error.message}`);
