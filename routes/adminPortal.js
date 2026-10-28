@@ -7400,6 +7400,17 @@ router.post('/onu-provision/configure-olt', requireAdminSession, restrictToAdmin
   res.redirect('/admin/onu-provision');
 });
 
+// OLT terdaftar yang dipakai halaman ONU Provision: cocokkan host pengaturan; bila tidak ada dan hanya ada satu OLT aktif, pakai itu.
+function resolveRegisteredOlt() {
+  const host = getSetting('olt_host', '');
+  let olt = host ? db.prepare('SELECT * FROM olts WHERE host = ? LIMIT 1').get(host) : null;
+  if (!olt) {
+    const all = db.prepare('SELECT * FROM olts WHERE is_active = 1').all();
+    if (all.length === 1) olt = all[0];
+  }
+  return olt || null;
+}
+
 router.post('/onu-provision/scan-unconfigured', requireAdminSession, restrictToAdmin, express.json(), async (req, res) => {
   try {
     const oltConfig = {
@@ -7411,6 +7422,21 @@ router.post('/onu-provision/scan-unconfigured', requireAdminSession, restrictToA
       protocol: getSetting('olt_protocol', '')
     };
     
+    // ZTE tanpa PON: pakai daftar ONU belum terdaftar dari SNMP (sama seperti Manajemen OLT), cepat dan tanpa memilih PON.
+    if (oltConfig.vendor === 'ZTE' && !String((req.body && req.body.pon) || '').trim()) {
+      const regOlt = resolveRegisteredOlt();
+      if (!regOlt) {
+        return res.json({ success: false, error: 'OLT belum didaftarkan di Manajemen OLT, atau ada lebih dari satu OLT dan IP-nya tidak cocok dengan Host di Konfigurasi OLT. Isi PON interface secara manual atau daftarkan OLT-nya.' });
+      }
+      const light = await require('../services/oltService').getUnauthOnusLight(regOlt.id);
+      const oltSvcLocal = require('../services/oltService');
+      const mapped = (light.items || []).map((u) => {
+        const suggested = oltSvcLocal.suggestFreeOnuId(regOlt.id, u.pon);
+        return { vendor: 'ZTE', sn: u.snCli || u.sn, snRaw: u.sn, model: u.type, pon: u.pon || '', onuId: suggested || '', onuIdKnown: Boolean(suggested), source: 'snmp' };
+      });
+      return res.json({ success: true, onus: mapped, source: 'snmp' });
+    }
+
     if (!oltConfig.host) {
       return res.json({ success: false, error: 'OLT belum dikonfigurasi' });
     }
@@ -7445,23 +7471,27 @@ router.post('/onu-provision/scan-unconfigured', requireAdminSession, restrictToA
 
 router.post('/onu-provision/scan-configured', requireAdminSession, restrictToAdmin, express.json(), async (req, res) => {
   try {
-    const host = getSetting('olt_host', '');
-    if (!host) {
-      return res.json({ success: false, error: 'OLT belum dikonfigurasi di pengaturan global' });
-    }
-    
-    const olt = db.prepare('SELECT * FROM olts WHERE host = ? LIMIT 1').get(host);
+    const olt = resolveRegisteredOlt();
     if (!olt) {
-      return res.json({ 
-        success: false, 
-        error: 'OLT dengan IP ' + host + ' belum didaftarkan di halaman "Manajemen OLT". Silakan daftarkan OLT Anda di sana terlebih dahulu agar sistem dapat membaca data monitoring SNMP.' 
+      return res.json({
+        success: false,
+        error: 'OLT belum didaftarkan di halaman "Manajemen OLT" (atau IP-nya tidak cocok dengan Host di Konfigurasi OLT). Daftarkan OLT Anda di sana agar sistem dapat membaca data ONU lewat SNMP.'
       });
     }
-    
+    // Pembacaan di latar belakang dengan progres (OLT besar bisa memakan beberapa menit); data terakhir langsung ditampilkan.
     const oltSvc = require('../services/oltService');
-    const stats = await oltSvc.getOltStats(olt.id, true);
-    
-    res.json({ success: true, onus: stats.onus || [], oltId: olt.id });
+    const stats = await oltSvc.getOltStatsAsync(olt.id, Boolean(req.body && req.body.force));
+    res.json({
+      success: true,
+      oltId: olt.id,
+      onus: stats.onus || [],
+      loading: Boolean(stats.loading),
+      progress: stats.progress || null,
+      partial: stats.partial || 0,
+      stale: Boolean(stats.stale),
+      updated_at: stats.updated_at || null,
+      error: (!stats.loading && !(stats.onus && stats.onus.length)) ? (stats.error || null) : null
+    });
   } catch (error) {
     logger.error('Scan configured ONUs error:', error);
     res.json({ success: false, error: error.message });

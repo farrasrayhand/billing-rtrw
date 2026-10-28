@@ -100,6 +100,10 @@ const BRAND_PROFILES = {
       offline_reason_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.7',
       // Waktu ONU terakhir online (DateAndTime, zona waktu OLT = zona waktu aplikasi); cocok dengan "Authpass Time" di CLI.
       online_since_table: '1.3.6.1.4.1.3902.1082.500.10.2.3.8.1.5',
+      // Percepatan: alasan offline cukup dibaca (GET) untuk ONU yang offline saja, bukan satu tabel penuh;
+      // nama, serial, dan jarak jarang berubah sehingga di-cache (baris ONU baru diisi lewat GET).
+      reason_by_get: true,
+      cache_static_tables: true,
       probe_oid:    '1.3.6.1.4.1.3902.1082.500.20.2.2.2.1.10',
       unauth_sn_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.2',
       unauth_type_table: '1.3.6.1.4.1.3902.1012.3.13.3.1.10',
@@ -409,6 +413,7 @@ function createOlt(data) {
 }
 
 function updateOlt(id, data) {
+  clearStaticTableCache();
   const prev = getOltById(id);
   const apiBase = String(data.api_base_url || '').trim();
   const telnetPort = parseInt(data.telnet_port, 10);
@@ -438,6 +443,7 @@ function updateOlt(id, data) {
 }
 
 function deleteOlt(id) {
+  clearStaticTableCache();
   return db.prepare('DELETE FROM olts WHERE id = ?').run(id);
 }
 
@@ -514,6 +520,16 @@ function normalizeSnForOltProvision(sn) {
   if (/^[A-F0-9]+$/.test(alnum) && (alnum.length === 12 || alnum.length === 16)) return alnum;
   if (/^[A-Z]{4}/.test(alnum) && alnum.length >= 8) return alnum;
   return alnum;
+}
+
+// SN ZTE bentuk heksa 16 digit (mis. 5A544547D8159F69) -> bentuk CLI "ZTEGD8159F69" (4 huruf vendor + 8 heksa).
+function zteSnCli(sn) {
+  const hex = String(sn == null ? '' : sn).replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+  if (/^[0-9A-F]{16}$/.test(hex)) {
+    const vendor = Buffer.from(hex.slice(0, 8), 'hex').toString('ascii');
+    if (/^[A-Z0-9]{4}$/i.test(vendor)) return vendor.toUpperCase() + hex.slice(8);
+  }
+  return normalizeSnForOltProvision(sn);
 }
 
 // SNMP DateAndTime (8 byte): tahun(2) bulan hari jam menit detik desi-detik.
@@ -956,7 +972,7 @@ class ProgressTracker {
     ];
     let n = 0;
     for (const [key, label] of tables) {
-      if (profile && profile[key]) { this.labels[profile[key]] = label; n++; }
+      if (profile && profile[key] && !(key === 'offline_reason_table' && profile.reason_by_get)) { this.labels[profile[key]] = label; n++; }
     }
     const card = profile && profile.card_oids;
     if (card) {
@@ -1833,10 +1849,12 @@ const fetchUnauthOnus = async (session, profile, stats) => {
 
       const type = safeToString(typeMap[idx]) || 'GENERIC';
       const onuId = hiosoOnuIdFromIndex(idx);
+      const ponDecoded = profile.zte_ifindex ? zteOltPortFromIfIndex(String(idx).split('.')[0]) : null;
 
       stats.unauth_onus.push({
         index: idx,
-        id: onuId || idx,
+        id: ponDecoded ? `PON ${ponDecoded}` : (onuId || idx),
+        pon: ponDecoded,
         sn: sn,
         type: type
       });
@@ -1870,6 +1888,52 @@ const zteOnuIdFromIndex = (index) => {
   const slot = (ifIndex >>> 8) & 0xff;
   const port = ifIndex & 0xff;
   return `${shelf}/${slot}/${port}:${onu}`;
+};
+
+// ifIndex port PON ZTE -> "shelf/slot/port". Dua keluarga indeks:
+//   0x11SSPPNN (C300 V2.x, indeks ONU 285278977 = 1/3/1) dan 0x10SSPP00 (tabel lama/unauth, 268896768 = 1/7/10).
+const zteOltPortFromIfIndex = (ifIndex) => {
+  const n = Number(ifIndex);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const type = (n >>> 24) & 0xff;
+  if (type === 0x11) return `${(n >>> 16) & 0xff}/${(n >>> 8) & 0xff}/${n & 0xff}`;
+  if (type === 0x10) return `1/${(n >>> 16) & 0xff}/${(n >>> 8) & 0xff}`;
+  return null;
+};
+
+// GET beberapa baris tabel sekaligus (per 20 OID) -> { indeks: nilai }, tanpa membaca seluruh tabel.
+const getByIndices = async (session, tableOid, indices, chunk = 20) => {
+  const out = {};
+  for (let i = 0; i < indices.length; i += chunk) {
+    const part = indices.slice(i, i + chunk);
+    const vals = await snmpGet(session, part.map((idx) => `${tableOid}.${idx}`));
+    part.forEach((idx, k) => { if (vals[k] != null) out[idx] = vals[k]; });
+  }
+  return out;
+};
+
+// Cache tabel yang jarang berubah (nama, serial, jarak). Baris ONU baru diisi lewat GET; cache dibuang
+// saat nama diubah/ONU diotorisasi. Walk yang terputus tidak disimpan.
+const STATIC_TABLE_TTL_MS = 30 * 60 * 1000;
+const staticTableCache = new Map();
+const clearStaticTableCache = (oltId) => {
+  if (oltId == null) { staticTableCache.clear(); return; }
+  const prefix = `${oltId}|`;
+  for (const k of Array.from(staticTableCache.keys())) if (k.startsWith(prefix)) staticTableCache.delete(k);
+};
+const walkWithStaticCache = async (session, oltId, tableOid, neededIndices) => {
+  const key = `${oltId}|${tableOid}`;
+  const now = Date.now();
+  const hit = staticTableCache.get(key);
+  if (hit && now - hit.at < STATIC_TABLE_TTL_MS) {
+    const missing = neededIndices.filter((idx) => hit.map[idx] === undefined);
+    if (missing.length) Object.assign(hit.map, await getByIndices(session, tableOid, missing));
+    return hit.map;
+  }
+  const before = (session.__truncated || []).length;
+  const map = await slowWalk(session, tableOid);
+  if ((session.__truncated || []).length === before) staticTableCache.set(key, { map: { ...map }, at: now });
+  return map;
 };
 
 const decodeRxPower = (brand, val, profile) => {
@@ -2119,6 +2183,47 @@ async function getOltStatsAsync(id, force = false) {
     stale: false,
     error
   };
+}
+
+// Saran ONU ID bebas terendah pada satu PON (mis. "1/7/10") dari hasil pembacaan terakhir; null bila belum ada data.
+function suggestFreeOnuId(oltId, pon) {
+  const cached = statsCache.get(`${oltId}:true`);
+  const onus = cached && cached.data && Array.isArray(cached.data.onus) ? cached.data.onus : null;
+  if (!onus || !pon) return null;
+  const used = new Set();
+  const prefix = `${pon}:`;
+  for (const o of onus) {
+    const id = String(o.id || '');
+    if (id.startsWith(prefix)) { const n = parseInt(id.slice(prefix.length), 10); if (Number.isFinite(n)) used.add(n); }
+  }
+  for (let i = 1; i <= 128; i++) if (!used.has(i)) return i;
+  return null;
+}
+
+// Daftar ONU belum terdaftar lewat SNMP saja (cepat, beberapa detik), tanpa membaca seluruh tabel ONU.
+async function getUnauthOnusLight(id) {
+  const olt = getOltById(id);
+  if (!olt) throw new Error('OLT tidak ditemukan');
+  const community = olt.snmp_community || 'public';
+  const brandKey = (olt.brand || 'hioso').toLowerCase();
+  const selected = (BRAND_PROFILES[brandKey] || []).map((p) => ({ ...p, __brandKey: brandKey }));
+  const others = Object.keys(BRAND_PROFILES).filter((k) => k !== brandKey)
+    .reduce((acc, k) => acc.concat((BRAND_PROFILES[k] || []).map((p) => ({ ...p, __brandKey: k }))), []);
+  const session = snmp.createSession(olt.host, community, { port: olt.snmp_port || 161, timeout: 3000, retries: 1, version: snmp.Version2c });
+  session.on('error', () => {});
+  try {
+    let profile = null;
+    for (const p of [...selected, ...others]) {
+      if (await probeOid(session, p.probe_oid)) { profile = p; break; }
+    }
+    if (!profile) throw new Error('Profil SNMP OLT tidak dikenali (cek community/port SNMP).');
+    const stats = { unauth_onus: [] };
+    await fetchUnauthOnus(session, profile, stats);
+    const items = stats.unauth_onus.map((u) => ({ ...u, snCli: profile.zte_ifindex ? zteSnCli(u.sn) : normalizeSnForOltProvision(u.sn) }));
+    return { items, profile: profile.name, brand: profile.__brandKey };
+  } finally {
+    try { session.close(); } catch (e) {}
+  }
 }
 
 /**
@@ -2427,10 +2532,16 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
         }
 
         // 5. Mode Table (Hioso, VSOL, HSGQ, etc)
-        const [statusMap, nameMap] = await Promise.all([
-          slowWalk(session, activeProfile.status_table),
-          slowWalk(session, activeProfile.name_table)
-        ]);
+        let statusMap, nameMap;
+        if (activeProfile.cache_static_tables && full) {
+          statusMap = await slowWalk(session, activeProfile.status_table);
+          nameMap = await walkWithStaticCache(session, olt.id, activeProfile.name_table, Object.keys(statusMap));
+        } else {
+          [statusMap, nameMap] = await Promise.all([
+            slowWalk(session, activeProfile.status_table),
+            slowWalk(session, activeProfile.name_table)
+          ]);
+        }
 
         let snMap = {};
         let rxMap = {};
@@ -2546,7 +2657,11 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
             const tasks = [];
             tasks.push(() => fetchCardMetrics(session, detectedBrandKey, stats, activeProfile));
             tasks.push(() => fetchUnauthOnus(session, activeProfile, stats));
-            tasks.push(() => pickSnTable(session, activeProfile).then(res => snMap = res.map || {}));
+            if (activeProfile.cache_static_tables && activeProfile.sn_table) {
+              tasks.push(() => walkWithStaticCache(session, olt.id, activeProfile.sn_table, Object.keys(statusMap)).then(res => snMap = res));
+            } else {
+              tasks.push(() => pickSnTable(session, activeProfile).then(res => snMap = res.map || {}));
+            }
             if (activeProfile.rx_power_table) {
               tasks.push(() => slowWalk(session, activeProfile.rx_power_table).then(res => rxMap = reindexMap(res, activeProfile.rx_strip_suffix)));
             }
@@ -2554,7 +2669,11 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
               tasks.push(() => slowWalk(session, activeProfile.tx_power_table).then(res => txMap = reindexMap(res, activeProfile.tx_strip_suffix)));
             }
             if (activeProfile.distance_table) {
-              tasks.push(() => slowWalk(session, activeProfile.distance_table).then(res => distMap = res));
+              if (activeProfile.cache_static_tables) {
+                tasks.push(() => walkWithStaticCache(session, olt.id, activeProfile.distance_table, Object.keys(statusMap)).then(res => distMap = res));
+              } else {
+                tasks.push(() => slowWalk(session, activeProfile.distance_table).then(res => distMap = res));
+              }
             }
             if (activeProfile.firmware_table) {
               tasks.push(() => slowWalk(session, activeProfile.firmware_table).then(res => fwMap = res));
@@ -2565,7 +2684,7 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
             if (activeProfile.online_since_table) {
               tasks.push(() => slowWalk(session, activeProfile.online_since_table).then(res => sinceMap = res));
             }
-            if (activeProfile.offline_reason_table) {
+            if (activeProfile.offline_reason_table && !activeProfile.reason_by_get) {
               tasks.push(() => slowWalk(session, activeProfile.offline_reason_table).then(res => reasonMap = res));
             }
 
@@ -2581,6 +2700,16 @@ async function getOltStatsInternal(id, full = false, timeoutOverrideMs = 0, prog
             };
             const concurrency = concurrencyMap[detectedBrandKey] || 4;
             await limitConcurrency(tasks, concurrency);
+
+            // Alasan offline: GET hanya untuk ONU yang offline (jauh lebih cepat dari walk satu tabel penuh).
+            if (activeProfile.offline_reason_table && activeProfile.reason_by_get) {
+              if (progress) progress.setStage('Membaca alasan offline…');
+              const offlineIdx = Object.keys(statusMap).filter((idx) => {
+                const n = bufferToInt(statusMap[idx]);
+                return !(n != null && onlineVals.includes(n));
+              });
+              reasonMap = await getByIndices(session, activeProfile.offline_reason_table, offlineIdx);
+            }
           }
         }
 
@@ -2811,6 +2940,7 @@ async function rebootOnu(oltId, index) {
 }
 
 async function renameOnu(oltId, index, newName) {
+  clearStaticTableCache();
   const olt = getOltById(oltId);
   if (!olt) throw new Error('OLT tidak ditemukan');
 
@@ -2847,6 +2977,7 @@ async function renameOnu(oltId, index, newName) {
  * Otorisasi ONU (Provisioning) via Telnet CLI.
  */
 async function authorizeOnu(oltId, data) {
+  clearStaticTableCache();
   const olt = getOltById(oltId);
   if (!olt) throw new Error('OLT tidak ditemukan');
 
@@ -2863,6 +2994,13 @@ async function authorizeOnu(oltId, data) {
       port = parts[parts.length - 2];
       onuId = parts[parts.length - 1];
     }
+  }
+
+  // Indeks mentah SNMP (mis. "268896768.1") tidak memuat PON/ONU ID yang benar. Tanpa pengaman, nilai bawaan
+  // board=1 port=1 onu=1 akan menulis ke gpon-olt_1/1/1 dan bisa menimpa ONU pelanggan yang sudah ada.
+  if (brand === 'zte' && !String(index || '').includes('/')) {
+    const pon = zteOltPortFromIfIndex(String(index || '').split('.')[0]);
+    throw new Error(`Otorisasi otomatis dari daftar ini ditolak karena tidak aman (ONU ID belum diketahui)${pon ? `; ONU ini ada di PON ${pon}` : ''}. Gunakan menu ONU Provision: isi PON dan ONU ID yang masih kosong.`);
   }
 
   const cmds = [];
@@ -3467,6 +3605,6 @@ async function configureWanViaAcs(sn, data) {
  }
 
  module.exports = {
-  getAllOlts, getActiveOlts, getOltById, createOlt, updateOlt, deleteOlt, getOltStats, getOltStatsAsync, getAllOltsStats, testOltConnection, rebootOnu, renameOnu, authorizeOnu,
+  getAllOlts, getActiveOlts, getOltById, createOlt, updateOlt, deleteOlt, getOltStats, getOltStatsAsync, getUnauthOnusLight, suggestFreeOnuId, zteOltPortFromIfIndex, getAllOltsStats, testOltConnection, rebootOnu, renameOnu, authorizeOnu,
   configureOnuWan, configureZteWanViaGoApi, configureWanViaAcs
 };

@@ -219,8 +219,8 @@
         <div class="card-bd">
           <% if (oltConfig.vendor === 'ZTE') { %>
             <div class="fg">
-              <label class="fl">PON Interface (contoh: 1/1/1)</label>
-              <input type="text" class="fc" id="scanPon" placeholder="1/1/1">
+              <label class="fl">PON Interface <span style="font-weight:400;color:var(--muted)">(opsional: kosongkan untuk semua PON via SNMP, atau isi mis. 1/7/10 untuk scan lewat CLI)</span></label>
+              <input type="text" class="fc" id="scanPon" placeholder="kosongkan = semua PON">
             </div>
           <% } else { %>
             <div class="form-row3">
@@ -254,7 +254,7 @@
       <div class="card">
         <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center">
           <h6 style="margin:0"><i class="bi bi-list-check"></i> Daftar ONU Terkonfigurasi</h6>
-          <button onclick="scanConfiguredONUs()" class="btn btn-p btn-sm">
+          <button onclick="scanConfiguredONUs(true)" class="btn btn-p btn-sm">
             <i class="bi bi-arrow-clockwise"></i> Muat Ulang / Scan
           </button>
         </div>
@@ -530,12 +530,12 @@ async function scanUnconfiguredONUs() {
   let params = {};
   
   if (vendor === 'ZTE' || vendor === 'VSOL' || vendor === 'CData' || vendor === 'HSGQ' || vendor === 'Hioso') {
-    const pon = document.getElementById('scanPon').value;
-    if (!pon) {
+    const pon = document.getElementById('scanPon').value.trim();
+    if (!pon && vendor !== 'ZTE') {
       alert('Masukkan PON interface (contoh: 1/1/1 atau epon 0/1)');
       return;
     }
-    params.pon = pon;
+    if (pon) params.pon = pon;
   } else if (vendor === 'Huawei' || vendor === 'Fiberhome') {
     params.frame = document.getElementById('scanFrame').value;
     params.slot = document.getElementById('scanSlot').value;
@@ -556,7 +556,8 @@ async function scanUnconfiguredONUs() {
     
     if (data.success && data.onus && data.onus.length > 0) {
       let html = '';
-      data.onus.forEach(onu => {
+      window.__scanned = data.onus;
+      data.onus.forEach((onu, idx) => {
         html += `
           <div class="onu-card">
             <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
@@ -564,7 +565,7 @@ async function scanUnconfiguredONUs() {
                 <span class="vendor-badge vendor-${onu.vendor.toLowerCase()}">${onu.vendor}</span>
                 <span class="onu-status unconfigured">Belum Terkonfigurasi</span>
               </div>
-              <button onclick="provisionONU('${JSON.stringify(onu).replace(/"/g, '"')}')" class="btn btn-p btn-sm">
+              <button onclick="provisionScanned(${idx})" class="btn btn-p btn-sm">
                 <i class="bi bi-plus-circle"></i> Provision
               </button>
             </div>
@@ -583,7 +584,7 @@ async function scanUnconfiguredONUs() {
               </div>
               <div>
                 <div class="hint" style="font-size:11px">ONU ID</div>
-                <div style="font-weight:600">${onu.onuId}</div>
+                <div style="font-weight:600">${(onu.onuId !== '' && onu.onuId != null) ? onu.onuId : '<span style="color:#b45309">isi manual (belum diketahui)</span>'}</div>
               </div>
             </div>
           </div>
@@ -596,6 +597,12 @@ async function scanUnconfiguredONUs() {
   } catch (error) {
     listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
   }
+}
+
+function provisionScanned(idx) {
+  const onu = (window.__scanned || [])[idx];
+  if (!onu) return;
+  provisionONU(JSON.stringify(onu));
 }
 
 function provisionONU(onuDataStr) {
@@ -731,89 +738,144 @@ function resetForm() {
   }
 }
 
-// Scan and render configured ONUs
-async function scanConfiguredONUs() {
+// ── ONU Terkonfigurasi: pembacaan latar belakang dengan progres, pencarian, dan paginasi ──
+let cfgOnus = [];
+let cfgOltId = null;
+let cfgLimit = 50;
+let cfgPollTimer = null;
+let cfgPartialPolls = 0;
+
+function cfgEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+function cfgJs(s) { return cfgEsc(String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")); }
+function cfgDur(ms) {
+  if (ms == null || !isFinite(ms)) return '';
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? s + ' dtk' : Math.floor(s / 60) + ' mnt ' + (s % 60) + ' dtk';
+}
+function cfgProgressText(p) {
+  if (!p) return 'memuat…';
+  let t = p.percent + '% — ' + (p.stage || 'membaca…');
+  if (p.rows > 0) t += ' (' + p.rows.toLocaleString('id-ID') + (p.expected_rows ? ' / ' + p.expected_rows.toLocaleString('id-ID') : '') + ' baris)';
+  t += ' · berjalan ' + cfgDur(p.elapsed_ms);
+  if (p.eta_ms != null && p.eta_ms > 0) t += ' · sisa ±' + cfgDur(p.eta_ms);
+  return t;
+}
+function cfgProgressHtml(p) {
+  const pct = p ? p.percent : 0;
+  return '<div style="max-width:560px;margin:30px auto;text-align:left">' +
+    '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><strong>Membaca data ONU dari OLT</strong><span>' + pct + '%</span></div>' +
+    '<div style="height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:#2563eb;border-radius:999px;transition:width .6s ease"></div></div>' +
+    '<div class="hint" style="margin-top:8px">' + cfgEsc(cfgProgressText(p)) + '</div>' +
+    '<div class="hint" style="margin-top:4px">OLT dengan ribuan ONU bisa memakan beberapa menit. Halaman diperbarui otomatis.</div></div>';
+}
+
+function cfgCardHtml(onu, oltId) {
+  const vendorClass = String(onu.vendor || 'ZTE').toLowerCase();
+  const status = String(onu.status || '');
+  const rxBad = parseFloat(onu.rx) < -27;
+  return `
+    <div class="onu-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div>
+          <span class="vendor-badge vendor-${cfgEsc(vendorClass)}">${cfgEsc(onu.vendor || 'ZTE')}</span>
+          <span class="onu-status ${status.toLowerCase() === 'online' ? 'online' : 'offline'}">${cfgEsc(status)}</span>
+          <span style="margin-left: 8px; font-weight: 700; color: var(--text, #111827);">${cfgEsc(onu.name)}</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="renameConfiguredOnu('${cfgJs(oltId)}', '${cfgJs(onu.index)}', '${cfgJs(onu.name)}')" class="btn btn-g btn-sm" title="Rename ONU"><i class="bi bi-pencil"></i></button>
+          <button onclick="rebootConfiguredOnu('${cfgJs(oltId)}', '${cfgJs(onu.index)}')" class="btn btn-g btn-sm" style="color:#b45309" title="Reboot ONU"><i class="bi bi-arrow-clockwise"></i></button>
+          <button onclick="deleteConfiguredOnu('${cfgJs(onu.index)}', '${cfgJs(onu.sn)}')" class="btn btn-g btn-sm" style="color:#dc2626" title="Hapus/Delete ONU"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+        <div><div class="hint" style="font-size:11px">Serial Number</div><div style="font-weight:700;font-family:monospace">${cfgEsc(onu.sn)}</div></div>
+        <div><div class="hint" style="font-size:11px">Interface / Index</div><div style="font-weight:600">${cfgEsc(onu.id || onu.index)}</div></div>
+        <div><div class="hint" style="font-size:11px">Sinyal RX / TX</div><div style="font-weight:600; color:${rxBad ? '#dc2626' : '#111827'}">${cfgEsc(onu.rx)} / ${cfgEsc(onu.tx)}</div></div>
+        <div><div class="hint" style="font-size:11px">Uptime / Jarak</div><div style="font-weight:600">${cfgEsc(onu.uptime || '-')} / ${cfgEsc(onu.distance || '-')}</div></div>
+        ${onu.customer_name ? `<div><div class="hint" style="font-size:11px">Nama Pelanggan</div><div style="font-weight:600; color:#0369a1"><i class="bi bi-person-fill"></i> ${cfgEsc(onu.customer_name)}</div></div>` : ''}
+        ${onu.wifi_ssid && onu.wifi_ssid !== '-' ? `<div><div class="hint" style="font-size:11px">WiFi SSID (ACS)</div><div style="font-weight:600; color:#2563eb"><i class="bi bi-wifi"></i> ${cfgEsc(onu.wifi_ssid)}</div></div>` : ''}
+        ${onu.client_count !== undefined && onu.client_count > 0 ? `<div><div class="hint" style="font-size:11px">Klien Connected (ACS)</div><div style="font-weight:600; color:#15803d"><i class="bi bi-people"></i> ${cfgEsc(onu.client_count)} device</div></div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderConfiguredList() {
   const listDiv = document.getElementById('configuredList');
-  listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-hourglass-split" style="font-size:32px"></i><p>Scanning OLT SNMP...</p></div>';
-  
+  listDiv.innerHTML = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">' +
+    '<input class="fc" id="cfgSearch" placeholder="Cari nama / SN / ID / pelanggan…" oninput="cfgLimit=50;renderConfiguredCards()" style="max-width:300px">' +
+    '<span id="cfgInfo" class="hint"></span><span id="cfgBanner" class="hint" style="color:#b45309"></span></div>' +
+    '<div id="cfgCards"></div><div id="cfgMore" style="text-align:center;margin-top:12px"></div>';
+  renderConfiguredCards();
+}
+
+function renderConfiguredCards() {
+  const cards = document.getElementById('cfgCards');
+  if (!cards) return;
+  const q = (document.getElementById('cfgSearch').value || '').toLowerCase().trim();
+  const qc = q.replace(/[:\-\.]/g, '');
+  const list = !q ? cfgOnus : cfgOnus.filter(function (o) {
+    return String(o.name || '').toLowerCase().indexOf(q) !== -1 ||
+           String(o.id || o.index || '').toLowerCase().indexOf(q) !== -1 ||
+           String(o.customer_name || '').toLowerCase().indexOf(q) !== -1 ||
+           (qc && String(o.sn || '').toLowerCase().replace(/[:\-\.]/g, '').indexOf(qc) !== -1);
+  });
+  const shown = list.slice(0, cfgLimit);
+  cards.innerHTML = shown.map(function (o) { return cfgCardHtml(o, cfgOltId); }).join('') || '<div class="hint" style="text-align:center;padding:30px">Tidak ada ONU yang cocok.</div>';
+  document.getElementById('cfgInfo').textContent = 'Menampilkan ' + shown.length + ' dari ' + list.length + ' ONU' + (q ? ' (total ' + cfgOnus.length + ')' : '');
+  document.getElementById('cfgMore').innerHTML = list.length > shown.length ? '<button class="btn btn-g btn-sm" onclick="cfgLimit+=50;renderConfiguredCards()">Tampilkan 50 lagi</button>' : '';
+}
+
+// Scan and render configured ONUs
+async function scanConfiguredONUs(force, silent) {
+  if (cfgPollTimer) { clearTimeout(cfgPollTimer); cfgPollTimer = null; }
+  const listDiv = document.getElementById('configuredList');
+  if (force === true) cfgPartialPolls = 0;
+  if (!silent && !cfgOnus.length) {
+    listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-hourglass-split" style="font-size:32px"></i><p>Menghubungi OLT…</p></div>';
+  }
   try {
     const response = await fetch('/admin/onu-provision/scan-configured', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: force === true })
     });
-    
-    const data = await response.json();
-    
-    if (data.success && data.onus && data.onus.length > 0) {
-      let html = '';
-      data.onus.forEach(onu => {
-        const vendorClass = (onu.vendor || 'ZTE').toLowerCase();
-        html += `
-          <div class="onu-card">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-              <div>
-                <span class="vendor-badge vendor-${vendorClass}">${onu.vendor || 'ZTE'}</span>
-                <span class="onu-status ${onu.status.toLowerCase() === 'online' ? 'online' : 'offline'}">${onu.status}</span>
-                <span style="margin-left: 8px; font-weight: 700; color: var(--text, #111827);">${onu.name}</span>
-              </div>
-              <div style="display:flex;gap:6px">
-                <button onclick="renameConfiguredOnu('${data.oltId}', '${onu.index}', '${onu.name}')" class="btn btn-g btn-sm" title="Rename ONU">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button onclick="rebootConfiguredOnu('${data.oltId}', '${onu.index}')" class="btn btn-g btn-sm" style="color:#b45309" title="Reboot ONU">
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button onclick="deleteConfiguredOnu('${onu.index}', '${onu.sn}')" class="btn btn-g btn-sm" style="color:#dc2626" title="Hapus/Delete ONU">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-              <div>
-                <div class="hint" style="font-size:11px">Serial Number</div>
-                <div style="font-weight:700;font-family:monospace">${onu.sn}</div>
-              </div>
-              <div>
-                <div class="hint" style="font-size:11px">Interface / Index</div>
-                <div style="font-weight:600">${onu.id || onu.index}</div>
-              </div>
-              <div>
-                <div class="hint" style="font-size:11px">Sinyal RX / TX</div>
-                <div style="font-weight:600; color:${parseFloat(onu.rx) < -27 ? '#dc2626' : '#111827'}">${onu.rx} / ${onu.tx}</div>
-              </div>
-              <div>
-                <div class="hint" style="font-size:11px">Uptime / Jarak</div>
-                <div style="font-weight:600">${onu.uptime || '-'} / ${onu.distance || '-'}</div>
-              </div>
-              ${onu.customer_name ? `
-              <div>
-                <div class="hint" style="font-size:11px">Nama Pelanggan</div>
-                <div style="font-weight:600; color:#0369a1"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>
-              </div>
-              ` : ''}
-              ${onu.wifi_ssid && onu.wifi_ssid !== '-' ? `
-              <div>
-                <div class="hint" style="font-size:11px">WiFi SSID (ACS)</div>
-                <div style="font-weight:600; color:#2563eb"><i class="bi bi-wifi"></i> ${onu.wifi_ssid}</div>
-              </div>
-              ` : ''}
-              ${onu.client_count !== undefined && onu.client_count > 0 ? `
-              <div>
-                <div class="hint" style="font-size:11px">Klien Connected (ACS)</div>
-                <div style="font-weight:600; color:#15803d"><i class="bi bi-people"></i> ${onu.client_count} device</div>
-              </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
-      });
-      listDiv.innerHTML = html;
-    } else {
-      const errorMsg = data.error || 'Tidak ada ONU terkonfigurasi yang ditemukan';
-      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>${errorMsg}</p></div>`;
+    const raw = await response.text();
+    let data;
+    try { data = JSON.parse(raw); } catch (_) { throw new Error('Server membalas HTTP ' + response.status + ' (bukan JSON). Kemungkinan sesi habis atau melewati batas waktu proxy.'); }
+    if (!data.success) {
+      listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>' + cfgEsc(data.error || 'Gagal membaca OLT') + '</p></div>';
+      return;
+    }
+    const have = Array.isArray(data.onus) && data.onus.length > 0;
+    if (data.loading && !have) {
+      listDiv.innerHTML = cfgProgressHtml(data.progress);
+      cfgPollTimer = setTimeout(function () { scanConfiguredONUs(false, true); }, 2000);
+      return;
+    }
+    if (!have) {
+      listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#b45309"></i><p>' + cfgEsc(data.error || 'Tidak ada ONU terkonfigurasi yang ditemukan') + '</p></div>';
+      return;
+    }
+    // Render ulang penuh hanya bila bukan polling diam atau pembacaan sudah selesai (hindari kedip & filter hilang).
+    if (!silent || !data.loading || !document.getElementById('cfgCards')) {
+      cfgOnus = data.onus;
+      cfgOltId = data.oltId;
+      renderConfiguredList();
+    }
+    const banner = document.getElementById('cfgBanner');
+    if (banner) {
+      banner.textContent = data.loading
+        ? 'Memperbarui dari OLT… ' + cfgProgressText(data.progress)
+        : (data.partial ? '⚠ sebagian data belum lengkap (koneksi ke OLT putus-putus), dibaca ulang otomatis' : '');
+    }
+    if (data.loading) {
+      cfgPollTimer = setTimeout(function () { scanConfiguredONUs(false, true); }, 2000);
+    } else if (data.partial && cfgPartialPolls < 3) {
+      cfgPartialPolls++;
+      cfgPollTimer = setTimeout(function () { scanConfiguredONUs(false, true); }, 5000);
     }
   } catch (error) {
-    listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
+    listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + cfgEsc(error.message) + '</div>';
   }
 }
 
