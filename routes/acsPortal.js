@@ -1419,8 +1419,7 @@ router.put('/api/servers/legacy', requireAdmin, express.json(), async (req, res)
         if (clearPassword) currentSettings.genieacs_password = '';
         else if (String(passwordInput || '').trim()) currentSettings.genieacs_password = String(passwordInput || '');
 
-        const settingsPath = path.join(__dirname, '../settings.json');
-        fs.writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2), 'utf8');
+        saveSettings(currentSettings);
 
         res.json({ success: true, message: 'Default ACS berhasil diperbarui.' });
     } catch (e) {
@@ -1472,8 +1471,7 @@ router.delete('/api/servers/legacy', requireAdmin, async (req, res) => {
         currentSettings.genieacs_username = '';
         currentSettings.genieacs_password = '';
 
-        const settingsPath = path.join(__dirname, '../settings.json');
-        fs.writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2), 'utf8');
+        saveSettings(currentSettings);
 
         res.json({ success: true, message: 'Default ACS dihapus.' });
     } catch (e) {

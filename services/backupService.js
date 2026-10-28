@@ -10,7 +10,7 @@ const { getSetting, getCurrentDateInTimezone, getNowLocalISO } = require('../con
 const projectRoot = path.join(__dirname, '..');
 const backupDir = path.join(projectRoot, 'backups');
 const dbPath = path.join(projectRoot, 'database', 'billing.db');
-const settingsPath = path.join(projectRoot, 'settings.json');
+const settingsPath = require('../config/settingsManager').getSettingsPath();
 
 const PENDING_RESTORE_FILE = path.join(projectRoot, 'database', 'pending_restore.db');
 const REQUIRED_TABLES = ['customers', 'invoices', 'packages'];

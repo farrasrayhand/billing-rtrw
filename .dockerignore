@@ -11,6 +11,7 @@ database/*.db-shm
 database/*.sqlite
 backups
 logs
+storage
 auth_info_baileys
 data
 public/uploads

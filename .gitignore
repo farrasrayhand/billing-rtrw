@@ -31,6 +31,9 @@ data/wa-lid-map.json
 .kotlin/
 build/
 
+# Data runtime (pengaturan panel, dsb.) -- tidak boleh ditimpa deploy
+storage/
+
 # Logs
 logs/
 *.log

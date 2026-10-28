@@ -17,7 +17,27 @@ let settingsCacheTime = 0;
 const CACHE_DURATION = 2000; // 2 detik
 
 // File system watcher untuk auto-reload settings
-const settingsPath = path.join(__dirname, '../settings.json');
+// Pengaturan runtime disimpan di folder storage/ (atau STORAGE_DIR), BUKAN di settings.json milik repo.
+// settings.json dilacak Git: tiap deploy (`git reset --hard`) menimpanya dengan versi repo sehingga pengaturan
+// yang diisi lewat panel hilang. storage/ tidak dilacak Git, jadi aman dari deploy. Di Docker folder ini
+// adalah volume persisten (/app/storage).
+const legacySettingsPath = path.join(__dirname, '../settings.json');
+const storageDir = process.env.STORAGE_DIR ? path.resolve(process.env.STORAGE_DIR) : path.join(__dirname, '../storage');
+let settingsPath = path.join(storageDir, 'settings.json');
+(function prepareRuntimeSettingsFile() {
+  try {
+    fs.mkdirSync(storageDir, { recursive: true });
+    if (!fs.existsSync(settingsPath)) {
+      // Pertama kali: awali dari settings.json bawaan repo (atau milik instalasi lama).
+      if (fs.existsSync(legacySettingsPath)) fs.copyFileSync(legacySettingsPath, settingsPath);
+      else fs.writeFileSync(settingsPath, '{}', 'utf-8');
+    }
+  } catch (e) {
+    // Folder storage tidak bisa ditulis: pakai lokasi lama agar aplikasi tetap jalan.
+    settingsPath = legacySettingsPath;
+  }
+})();
+function getSettingsPath() { return settingsPath; }
 let watcher = null;
 
 // Helper untuk baca settings.json secara dinamis
@@ -338,6 +358,7 @@ function ensureDefaultSettings() {
 }
 
 module.exports = {
+  getSettingsPath,
   getSettings,
   getSettingsWithCache,
   getSetting,

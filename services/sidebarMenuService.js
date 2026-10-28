@@ -54,7 +54,6 @@ const MENU_DEFINITIONS = [
   { key: 'agents_reports', section: 'user_management', href: '/admin/agents/reports', icon: 'bi bi-journal-text', labelKey: 'admin.nav.agent_reports', labelDefault: 'Laporan Agent', roles: ['admin'], activePages: ['agents_reports'], navHidden: true },
 
   // ── SISTEM ──
-  { key: 'update', section: 'system', href: '/admin/update', icon: 'bi bi-cloud-arrow-down', labelKey: 'admin.nav.update', labelDefault: 'Update GitHub', roles: ['admin'], activePages: ['update'] },
   { key: 'settings', section: 'system', href: '/admin/settings', icon: 'bi bi-gear', labelKey: 'admin.nav.settings', labelDefault: 'Pengaturan', roles: ['admin'], activePages: ['settings'] },
   { key: 'ewallet_logs', section: 'system', href: '/admin/ewallet-logs', icon: 'bi bi-receipt-cutoff', labelKey: 'admin.settings.ewallet_logs.title', labelDefault: 'Log Notifikasi E-Wallet', roles: ['admin'], activePages: ['ewallet_logs'] },
   { key: 'backup', section: 'system', href: '/admin/backup', icon: 'bi bi-hdd-stack', labelKey: 'admin.nav.backup', labelDefault: 'Backup & Recovery', roles: ['admin'], activePages: ['backup'] },
@@ -92,7 +91,6 @@ const DEFAULT_MENU_STATES = {
   areas: STATE_VISIBLE,
   agents: STATE_VISIBLE,
   agents_reports: STATE_VISIBLE,
-  update: STATE_VISIBLE,
   settings: STATE_VISIBLE,
   ewallet_logs: STATE_VISIBLE,
   backup: STATE_VISIBLE,
