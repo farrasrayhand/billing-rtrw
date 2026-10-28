@@ -32,9 +32,11 @@ let settingsPath = path.join(storageDir, 'settings.json');
       if (fs.existsSync(legacySettingsPath)) fs.copyFileSync(legacySettingsPath, settingsPath);
       else fs.writeFileSync(settingsPath, '{}', 'utf-8');
     }
+    logger.info(`[settings] File pengaturan runtime: ${settingsPath}`);
   } catch (e) {
     // Folder storage tidak bisa ditulis: pakai lokasi lama agar aplikasi tetap jalan.
     settingsPath = legacySettingsPath;
+    logger.warn(`[settings] PERINGATAN: ${storageDir} tidak bisa ditulis (${e.code || e.message}); memakai ${legacySettingsPath}. Pengaturan akan HILANG saat deploy (git reset --hard). Perbaiki izin folder storage.`);
   }
 })();
 function getSettingsPath() { return settingsPath; }
