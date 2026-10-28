@@ -283,7 +283,7 @@
             <div id="tab-servers" class="tab-pane">
                 <div style="border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:22px; background:var(--bg2);">
                     <h3 style="margin:0 0 8px; font-size:15px;"><i class="fas fa-sliders-h"></i> Pengaturan ACS</h3>
-                    <% const acsBuiltinOn = (typeof settings !== 'undefined' && settings && settings.use_builtin_acs); const acsExtUrl = (typeof settings !== 'undefined' && settings && settings.genieacs_url); const acsLoginUser = (typeof settings !== 'undefined' && settings && settings.acs_auth_username); %>
+                    <% const acsBuiltinOn = (typeof settings !== 'undefined' && settings && settings.use_builtin_acs); const acsExtUrl = (typeof acsServers !== 'undefined' && Array.isArray(acsServers) && acsServers.some(function (s) { return String(s.id) !== 'builtin'; })); const acsLoginUser = (typeof settings !== 'undefined' && settings && settings.acs_auth_username); %>
                     <div style="font-size:12px; margin-bottom:12px;">
                         Mode saat ini:
                         <% if (acsBuiltinOn) { %><strong style="color:#166534;">Built-in ACS aktif</strong>
@@ -291,29 +291,11 @@
                         <% } else { %><strong style="color:#991b1b;">Belum ada ACS aktif</strong> <span style="color:var(--muted);">(centang Built-in ACS lalu simpan)</span><% } %>
                     </div>
                     <label style="display:flex; gap:8px; align-items:center; font-weight:600; cursor:pointer;">
-                        <input type="checkbox" id="acsBuiltin" <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'checked' : '' %> onchange="toggleAcsExternal()">
+                        <input type="checkbox" id="acsBuiltin" <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'checked' : '' %>>
                         Gunakan Built-in ACS Server (TR-069)
                     </label>
                     <div style="font-size:12px; color:var(--muted); margin:4px 0 0 24px;">
-                        Aplikasi bertindak sebagai server ACS TR-069 sendiri (endpoint <code>/acs</code>) tanpa perlu server GenieACS terpisah.
-                    </div>
-                    <div id="acsExternalFields" style="margin-top:14px; <%= (typeof settings !== 'undefined' && settings && settings.use_builtin_acs) ? 'display:none;' : '' %>">
-                        <div style="font-size:13px; font-weight:700; margin-bottom:2px;">GenieACS eksternal</div>
-                        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Isi hanya bila memakai server GenieACS terpisah (bukan Built-in). Kolom kosong di bawah hanya contoh tulisan.</div>
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-                            <div>
-                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS API URL</label>
-                                <input class="fc" id="acsGenieUrl" value="<%= (typeof settings !== 'undefined' && settings && settings.genieacs_url) || '' %>" placeholder="http://192.168.8.89:7557" style="width:100%;">
-                            </div>
-                            <div>
-                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS Username</label>
-                                <input class="fc" id="acsGenieUser" value="<%= (typeof settings !== 'undefined' && settings && settings.genieacs_username) || '' %>" autocomplete="off" style="width:100%;">
-                            </div>
-                            <div>
-                                <label style="font-size:12px; font-weight:700; color:var(--muted);">GenieACS Password</label>
-                                <input class="fc" type="password" id="acsGeniePass" value="" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah" style="width:100%;">
-                            </div>
-                        </div>
+                        Aplikasi bertindak sebagai server ACS TR-069 sendiri (endpoint <code>/acs</code>) tanpa perlu server GenieACS terpisah. Untuk memakai server GenieACS eksternal, tambahkan lewat <strong>Add ACS Server</strong> di bawah.
                     </div>
                     <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
                         <div style="font-size:13px; font-weight:700; margin-bottom:4px;"><i class="fas fa-lock"></i> Login ONU ke ACS (opsional)</div>
@@ -1387,11 +1369,6 @@ async function submitChangePassword() {
     }
 }
 
-function toggleAcsExternal() {
-    const chk = document.getElementById('acsBuiltin');
-    const box = document.getElementById('acsExternalFields');
-    if (chk && box) box.style.display = chk.checked ? 'none' : 'block';
-}
 async function saveAcsSettings(btn) {
     const msg = document.getElementById('acsSettingsMsg');
     const show = (ok, text) => { msg.style.color = ok ? '#166534' : '#991b1b'; msg.textContent = (ok ? '✔ ' : '✖ ') + text; };
@@ -1401,9 +1378,6 @@ async function saveAcsSettings(btn) {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 use_builtin_acs: document.getElementById('acsBuiltin').checked,
-                genieacs_url: document.getElementById('acsGenieUrl').value,
-                genieacs_username: document.getElementById('acsGenieUser').value,
-                genieacs_password: document.getElementById('acsGeniePass').value,
                 acs_auth_username: document.getElementById('acsAuthUser').value,
                 acs_auth_password: document.getElementById('acsAuthPass').value
             })
