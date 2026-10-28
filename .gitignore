@@ -9,6 +9,7 @@ node_modules/
 local.properties
 
 # Database files
+database/settings.json
 database/*.db
 database/*.db-shm
 database/*.db-wal

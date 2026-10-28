@@ -22,14 +22,18 @@ const CACHE_DURATION = 2000; // 2 detik
 // yang diisi lewat panel hilang. storage/ tidak dilacak Git, jadi aman dari deploy. Di Docker folder ini
 // adalah volume persisten (/app/storage).
 const legacySettingsPath = path.join(__dirname, '../settings.json');
-const storageDir = process.env.STORAGE_DIR ? path.resolve(process.env.STORAGE_DIR) : path.join(__dirname, '../storage');
+// Default: folder database/ (tempat billing.db) — terbukti bertahan saat deploy karena tidak ada berkas yang dilacak Git di sana.
+// storage/ sebelumnya ikut terhapus pada sebagian lingkungan deploy sehingga pengaturan reset sementara database tetap ada.
+const storageDir = process.env.STORAGE_DIR ? path.resolve(process.env.STORAGE_DIR) : path.join(__dirname, '../database');
+const oldStorageSettingsPath = path.join(__dirname, '../storage/settings.json');
 let settingsPath = path.join(storageDir, 'settings.json');
 (function prepareRuntimeSettingsFile() {
   try {
     fs.mkdirSync(storageDir, { recursive: true });
     if (!fs.existsSync(settingsPath)) {
-      // Pertama kali: awali dari settings.json bawaan repo (atau milik instalasi lama).
-      if (fs.existsSync(legacySettingsPath)) fs.copyFileSync(legacySettingsPath, settingsPath);
+      // Pertama kali: awali dari storage/settings.json (versi sebelumnya), lalu settings.json bawaan repo.
+      if (!process.env.STORAGE_DIR && fs.existsSync(oldStorageSettingsPath)) fs.copyFileSync(oldStorageSettingsPath, settingsPath);
+      else if (fs.existsSync(legacySettingsPath)) fs.copyFileSync(legacySettingsPath, settingsPath);
       else fs.writeFileSync(settingsPath, '{}', 'utf-8');
     }
     logger.info(`[settings] File pengaturan runtime: ${settingsPath}`);
